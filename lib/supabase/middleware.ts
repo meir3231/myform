@@ -5,6 +5,19 @@ import { PUBLIC_ENV } from "@/lib/env";
 
 // רענון סשן המנהל והגנה על מסלולי /admin.
 export async function updateSession(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  const isAdminArea =
+    path.startsWith("/dashboard") ||
+    path.startsWith("/forms") ||
+    path.startsWith("/submissions");
+
+  // מסלולים ציבוריים (כמו /fill/[token]) לא צריכים בדיקת סשן מנהל בכלל —
+  // קריאת auth.getUser() היא round-trip רשת אמיתי לשרת ה-Auth של Supabase
+  // (לא רק פענוח JWT מקומי), ולכן מדלגים עליה לגמרי כאן כדי לא להאט אותם.
+  if (!isAdminArea && path !== "/login") {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(
@@ -29,12 +42,6 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const path = request.nextUrl.pathname;
-  const isAdminArea =
-    path.startsWith("/dashboard") ||
-    path.startsWith("/forms") ||
-    path.startsWith("/submissions");
 
   // לא מחובר ומנסה להיכנס לאזור המנהל → הפניה ל-login
   if (!user && isAdminArea) {
