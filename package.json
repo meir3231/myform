@@ -1,0 +1,38 @@
+{
+  "name": "myform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.48.0",
+    "bidi-js": "^1.0.3",
+    "nanoid": "^5.0.9",
+    "next": "^15.5.19",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "4.8.69",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-pdf": "^9.2.1",
+    "resend": "^4.1.1",
+    "signature_pad": "^5.0.4",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.18.0",
+    "eslint-config-next": "^15.5.19",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3"
+  }
+}
