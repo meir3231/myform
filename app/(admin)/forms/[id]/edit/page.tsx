@@ -48,7 +48,7 @@ export default async function EditFormPage({
     <div className="page-fade-in">
       <Breadcrumbs
         items={[
-          { label: "לוח בקרה", href: "/dashboard" },
+          { label: "תבניות", href: "/templates" },
           { label: form.name },
           { label: "עריכת שדות" },
         ]}

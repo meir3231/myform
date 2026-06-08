@@ -16,7 +16,7 @@ async function assertFormOwnership(formId: string) {
   const { profile, supabase } = await requireProfile();
   const { data: form } = await supabase
     .from("forms")
-    .select("id, org_id, page_count")
+    .select("id, org_id, page_count, archived_at")
     .eq("id", formId)
     .single();
   if (!form || form.org_id !== profile.org_id) throw new Error("טופס לא נמצא");
@@ -101,7 +101,8 @@ export async function createSubmission(
   _prev: SendActionState,
   formData: FormData
 ): Promise<SendActionState> {
-  const { profile } = await assertFormOwnership(formId);
+  const { form, profile } = await assertFormOwnership(formId);
+  if (form.archived_at) return { error: "תבנית לשימוש חד-פעמי זו כבר נוצלה ולא ניתן לשלוח אותה שוב" };
   const admin = createAdminClient();
 
   const recipientName = (formData.get("recipient_name") as string)?.trim();
@@ -195,6 +196,7 @@ export async function createForm(
 
   const name = (formData.get("name") as string)?.trim();
   const file = formData.get("file") as File | null;
+  const isReusable = formData.get("usage_type") !== "single_use";
 
   if (!name) return { error: "יש להזין שם לטופס" };
   if (!file || file.size === 0) return { error: "יש לבחור קובץ PDF" };
@@ -226,6 +228,7 @@ export async function createForm(
     name,
     original_pdf_path: path,
     page_count: pageCount,
+    is_reusable: isReusable,
     created_by: profile.id,
   });
   if (insertError) {
@@ -235,6 +238,7 @@ export async function createForm(
   }
 
   revalidatePath("/dashboard");
+  revalidatePath("/templates");
   redirect(`/forms/${formId}/edit`);
 }
 
@@ -255,4 +259,5 @@ export async function deleteForm(formId: string) {
   await admin.storage.from("originals").remove([form.original_pdf_path]);
 
   revalidatePath("/dashboard");
+  revalidatePath("/templates");
 }

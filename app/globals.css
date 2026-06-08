@@ -102,14 +102,18 @@ body {
     box-shadow: 0 6px 22px rgba(155, 109, 255, 0.55);
   }
 
+  /* ---- מעטפת כהה משותפת להדר ולסיידבר: אותו צבע ואותו מרקם, גוון מעט בהיר יותר ---- */
+  .admin-shell-surface {
+    background-color: #2a2140;
+    background-image:
+      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239b6dff' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),
+      linear-gradient(135deg, #2a2140 0%, #3c2f5c 50%, #2a2140 100%);
+  }
+
   /* ---- Header עליון של עמודי האדמין: גרדיאנט סגול-כהה + מרקם עדין + עומק ---- */
   .admin-header {
     height: 72px;
-    background-color: #1a1429;
-    background-image:
-      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239b6dff' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),
-      linear-gradient(135deg, #1a1429 0%, #2d1f4a 50%, #1a1429 100%);
-    border-bottom: 1px solid #352a4f;
+    border-bottom: 1px solid #3d3158;
     box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
   }
 }

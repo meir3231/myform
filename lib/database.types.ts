@@ -38,6 +38,8 @@ export interface Database {
           name: string;
           original_pdf_path: string;
           page_count: number;
+          is_reusable: boolean;
+          archived_at: string | null;
           created_by: string | null;
           created_at: string;
         };
@@ -47,10 +49,12 @@ export interface Database {
           name: string;
           original_pdf_path: string;
           page_count?: number;
+          is_reusable?: boolean;
+          archived_at?: string | null;
           created_by?: string | null;
           created_at?: string;
         };
-        Update: Partial<{ name: string; page_count: number }>;
+        Update: Partial<{ name: string; page_count: number; archived_at: string | null }>;
         Relationships: [];
       };
       form_fields: {

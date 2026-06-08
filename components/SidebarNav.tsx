@@ -10,7 +10,8 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "תבניות", icon: TemplatesIcon },
+  { href: "/dashboard", label: "דשבורד", icon: DashboardIcon },
+  { href: "/templates", label: "תבניות", icon: TemplatesIcon },
   { href: "/submissions", label: "הגשות", icon: SubmissionsIcon },
   { href: "/settings", label: "הגדרות", icon: SettingsIcon },
 ];
@@ -37,6 +38,17 @@ export function SidebarNav() {
         );
       })}
     </nav>
+  );
+}
+
+function DashboardIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="13" y="3.5" width="7.5" height="4.5" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="13" y="10" width="7.5" height="10.5" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="3.5" y="13" width="7.5" height="7.5" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
   );
 }
 

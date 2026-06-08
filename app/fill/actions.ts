@@ -50,7 +50,7 @@ export async function submitForm(
 
   const { data: form } = await admin
     .from("forms")
-    .select("id, name, original_pdf_path")
+    .select("id, name, original_pdf_path, is_reusable")
     .eq("id", sub.form_id)
     .single();
   if (!form) return { ok: false, error: "הטופס לא נמצא" };
@@ -160,6 +160,16 @@ export async function submitForm(
       completed_pdf_path: completedPath,
     })
     .eq("id", sub.id);
+
+  // תבנית לשימוש חד-פעמי: מושבתת אוטומטית אחרי הגשה ראשונה (לא נמחקת —
+  // כדי לשמר את ההגשה/החתימה/יומן-הביקורת המקושרים אליה ב-cascade)
+  if (!form.is_reusable) {
+    await admin
+      .from("forms")
+      .update({ archived_at: new Date().toISOString() })
+      .eq("id", form.id)
+      .is("archived_at", null);
+  }
 
   // התראת מנהל (best-effort)
   try {

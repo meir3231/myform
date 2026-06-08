@@ -32,7 +32,12 @@ export function FillFieldBox({
     height: `${field.height * pageH}px`,
   };
 
-  const ring = invalid ? "0 0 0 2px #ef4444" : "0 0 0 1px #94a3b8";
+  // הדגשת שדות למילוי: רקע תכלת עדין + מסגרת זהובה, כדי שיהיה קל לזהות
+  // אילו שדות צריך למלא. שדות נעולים (readOnly, מועתקים אוטומטית) נשארים
+  // בעיצוב הניטרלי הקיים — הם לא דורשים פעולה מהלקוח.
+  const highlightRing = "0 0 0 1.5px #f5c542";
+  const highlightBg = "rgba(45, 212, 207, 0.18)";
+  const ring = invalid ? "0 0 0 2px #ef4444" : highlightRing;
   const fontSize = Math.max(9, field.height * pageH * 0.5);
 
   if (field.type === "signature" || field.type === "initials") {
@@ -40,8 +45,8 @@ export function FillFieldBox({
       <button
         type="button"
         onClick={onRequestSignature}
-        style={{ ...style, boxShadow: ring }}
-        className="flex items-center justify-center overflow-hidden rounded bg-white/70 text-xs text-slate-500 hover:bg-blue-50"
+        style={{ ...style, boxShadow: ring, backgroundColor: highlightBg }}
+        className="flex items-center justify-center overflow-hidden rounded text-xs text-slate-600 hover:brightness-95"
       >
         {signatureDataUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -81,8 +86,8 @@ export function FillFieldBox({
       value={value}
       placeholder={field.label}
       onChange={(e) => onChange(e.target.value)}
-      style={{ ...style, boxShadow: ring, fontSize: `${fontSize}px` }}
-      className={`rounded bg-white/80 px-1 text-slate-900 outline-none focus:bg-white focus:shadow-[0_0_0_2px_#3b82f6] ${
+      style={{ ...style, boxShadow: ring, backgroundColor: highlightBg, fontSize: `${fontSize}px` }}
+      className={`rounded px-1 text-slate-900 outline-none focus:bg-white focus:shadow-[0_0_0_2px_#3b82f6] ${
         field.type === "text" ? "text-right" : ""
       }`}
     />

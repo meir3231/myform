@@ -32,7 +32,7 @@ export default async function SendPage({
     <div className="mx-auto max-w-5xl">
       <Breadcrumbs
         items={[
-          { label: "לוח בקרה", href: "/dashboard" },
+          { label: "תבניות", href: "/templates" },
           { label: form.name, href: `/forms/${form.id}/edit` },
           { label: "שליחה ללקוח" },
         ]}

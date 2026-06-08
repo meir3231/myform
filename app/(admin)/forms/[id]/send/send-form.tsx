@@ -85,8 +85,8 @@ export function SendForm({
           <Link href="/submissions" className="btn-primary">
             למעקב הגשות
           </Link>
-          <Link href="/dashboard" className="btn-secondary">
-            חזרה לטפסים
+          <Link href="/templates" className="btn-secondary">
+            חזרה לתבניות
           </Link>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { deleteForm } from "../forms/actions";
+import { deleteForm } from "@/app/(admin)/forms/actions";
 
 export function DeleteFormButton({
   formId,
