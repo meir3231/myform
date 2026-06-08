@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
+import { getSignedUrl } from "@/lib/storage";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { SendForm } from "./send-form";
 
 export default async function SendPage({
@@ -13,7 +14,7 @@ export default async function SendPage({
 
   const { data: form } = await supabase
     .from("forms")
-    .select("id, org_id, name")
+    .select("id, org_id, name, original_pdf_path, page_count")
     .eq("id", id)
     .single();
 
@@ -25,18 +26,26 @@ export default async function SendPage({
     .eq("form_id", form.id)
     .order("sort_order", { ascending: true });
 
+  const pdfUrl = await getSignedUrl("originals", form.original_pdf_path, 60 * 30);
+
   return (
-    <div className="mx-auto max-w-xl">
-      <Link
-        href={`/forms/${form.id}/edit`}
-        className="mb-4 inline-block text-sm text-slate-500 hover:text-brand"
-      >
-        → חזרה לעורך
-      </Link>
+    <div className="mx-auto max-w-5xl">
+      <Breadcrumbs
+        items={[
+          { label: "לוח בקרה", href: "/dashboard" },
+          { label: form.name, href: `/forms/${form.id}/edit` },
+          { label: "שליחה ללקוח" },
+        ]}
+      />
       <h1 className="mb-1 text-2xl font-bold text-slate-800">שליחה ללקוח</h1>
       <p className="mb-6 text-slate-500">{form.name}</p>
 
-      <SendForm formId={form.id} fields={fields ?? []} />
+      <SendForm
+        formId={form.id}
+        fields={fields ?? []}
+        pdfUrl={pdfUrl}
+        pageCount={form.page_count}
+      />
     </div>
   );
 }

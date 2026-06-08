@@ -2,8 +2,8 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import Link from "next/link";
 import { createForm, type FormActionState } from "../actions";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -19,9 +19,7 @@ export default function NewFormPage() {
 
   return (
     <div className="page-fade-in mx-auto max-w-xl">
-      <Link href="/dashboard" className="mb-4 inline-block text-sm text-slate-500 transition hover:text-brand">
-        → חזרה לטפסים
-      </Link>
+      <Breadcrumbs items={[{ label: "לוח בקרה", href: "/dashboard" }, { label: "טופס חדש" }]} />
       <h1 className="mb-6 text-2xl font-bold text-slate-800">טופס חדש</h1>
 
       <form action={formAction} className="card space-y-5 p-6">

@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { getSignedUrl } from "@/lib/storage";
 import { STATUS_META } from "@/lib/status";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 export default async function SubmissionDetailPage({
   params,
@@ -53,12 +53,12 @@ export default async function SubmissionDetailPage({
 
   return (
     <div className="page-fade-in mx-auto max-w-4xl">
-      <Link
-        href="/submissions"
-        className="mb-4 inline-block text-sm text-slate-500 transition hover:text-brand"
-      >
-        → חזרה להגשות
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: "הגשות", href: "/submissions" },
+          { label: sub.recipient_name },
+        ]}
+      />
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>

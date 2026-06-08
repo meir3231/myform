@@ -4,6 +4,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import type { FieldDraft } from "@/lib/fields";
 import { submitForm, type SubmitState } from "@/app/fill/actions";
+import { useToast } from "@/components/Toast";
 import { FillFieldBox } from "./FillFieldBox";
 import { SignatureModal } from "./SignatureModal";
 
@@ -139,7 +140,7 @@ export default function FormFiller({
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -175,9 +176,8 @@ export default function FormFiller({
   }
 
   async function handleSubmit() {
-    setError(null);
     if (!validate()) {
-      setError("יש למלא את כל שדות החובה (מסומנים באדום).");
+      showToast("יש למלא את כל שדות החובה (מסומנים באדום)", "error");
       return;
     }
     setSubmitting(true);
@@ -187,10 +187,10 @@ export default function FormFiller({
         setDownloadUrl(result.downloadUrl ?? null);
         setDone(true);
       } else {
-        setError(result.error ?? "השליחה נכשלה");
+        showToast(result.error ?? "השליחה נכשלה", "error");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "השליחה נכשלה");
+      showToast(e instanceof Error ? e.message : "השליחה נכשלה", "error");
     } finally {
       setSubmitting(false);
     }
@@ -267,11 +267,7 @@ export default function FormFiller({
       {/* סרגל שליחה קבוע בתחתית */}
       <div className="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/95 p-4 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-          {error ? (
-            <p className="text-sm text-red-600">{error}</p>
-          ) : (
-            <p className="text-sm text-slate-400">סך הכל {fields.length} שדות</p>
-          )}
+          <p className="text-sm text-slate-400">סך הכל {fields.length} שדות</p>
           <button
             onClick={handleSubmit}
             disabled={submitting}

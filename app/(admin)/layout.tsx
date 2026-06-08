@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
+import { BrandLogo } from "@/components/BrandLogo";
+import { SiteFooter } from "@/components/SiteFooter";
 import { signOut } from "./actions";
 
 export default async function AdminLayout({
@@ -14,26 +16,8 @@ export default async function AdminLayout({
       <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-8">
-            <Link href="/dashboard" className="group flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-gold shadow-sm transition group-hover:bg-brand-dark">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="h-5 w-5"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M12 3v18M12 3l-5 3-2 6h14l-2-6-5-3ZM5 12a3 3 0 0 0 6 0M13 12a3 3 0 0 0 6 0M5 21h14"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
-              <span className="text-xl font-bold tracking-tight text-brand">
-                MyForm
-              </span>
+            <Link href="/dashboard" className="group">
+              <BrandLogo size="lg" />
             </Link>
             <nav className="flex gap-1 text-sm">
               <Link
@@ -67,6 +51,7 @@ export default async function AdminLayout({
       <main className="mx-auto max-w-6xl px-4 py-8">
         <div className="page-fade-in">{children}</div>
       </main>
+      <SiteFooter />
     </div>
   );
 }

@@ -10,6 +10,17 @@ export default async function DashboardPage() {
     .select("id, name, page_count, created_at")
     .order("created_at", { ascending: false });
 
+  const [{ count: openedCount }, { count: completedCount }] = await Promise.all([
+    supabase.from("submissions").select("*", { count: "exact", head: true }).eq("status", "opened"),
+    supabase.from("submissions").select("*", { count: "exact", head: true }).eq("status", "completed"),
+  ]);
+
+  const stats = [
+    { label: "סה״כ טפסים", value: forms?.length ?? 0, icon: <FormIcon /> },
+    { label: "הגשות פתוחות", value: openedCount ?? 0, icon: <OpenIcon /> },
+    { label: "הגשות שהושלמו", value: completedCount ?? 0, icon: <CheckIcon /> },
+  ];
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -17,6 +28,20 @@ export default async function DashboardPage() {
         <Link href="/forms/new" className="btn-gold">
           <span className="text-base leading-none">+</span> טופס חדש
         </Link>
+      </div>
+
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {stats.map((s) => (
+          <div key={s.label} className="card flex items-center gap-3 p-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
+              {s.icon}
+            </span>
+            <div>
+              <p className="text-2xl font-bold text-slate-800">{s.value}</p>
+              <p className="text-sm text-slate-500">{s.label}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
       {!forms || forms.length === 0 ? (
@@ -79,6 +104,28 @@ function FormIcon() {
         strokeLinejoin="round"
       />
       <path d="M14 3.5V6a1 1 0 0 0 1 1h2.5M9 12h6M9 15h6M9 9h2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function OpenIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <path
+        d="M3 7.5 12 13l9-5.5M4.5 6h15a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8.5 12.3 11 14.8l4.5-5.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

@@ -4,6 +4,7 @@ import { requireProfile } from "@/lib/auth";
 import { getSignedUrl } from "@/lib/storage";
 import type { FieldDraft } from "@/lib/fields";
 import { FieldEditorLoader } from "@/components/pdf-editor/FieldEditorLoader";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 export default async function EditFormPage({
   params,
@@ -45,13 +46,15 @@ export default async function EditFormPage({
 
   return (
     <div className="page-fade-in">
+      <Breadcrumbs
+        items={[
+          { label: "לוח בקרה", href: "/dashboard" },
+          { label: form.name },
+          { label: "עריכת שדות" },
+        ]}
+      />
       <div className="mb-4 flex items-center justify-between">
-        <div>
-          <Link href="/dashboard" className="text-sm text-slate-500 transition hover:text-brand">
-            → חזרה לטפסים
-          </Link>
-          <h1 className="mt-1 text-2xl font-bold text-slate-800">{form.name}</h1>
-        </div>
+        <h1 className="text-2xl font-bold text-slate-800">{form.name}</h1>
         <Link href={`/forms/${form.id}/send`} className="btn-primary">
           שליחה ללקוח →
         </Link>
