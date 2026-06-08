@@ -6,8 +6,12 @@ import type { FieldDraft } from "@/lib/fields";
 const FormFiller = dynamic(() => import("./FormFiller"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-96 items-center justify-center text-slate-400">
-      טוען טופס...
+    <div className="mx-auto w-full max-w-3xl space-y-4">
+      <div className="skeleton h-8 w-1/3" />
+      <div className="skeleton h-[28rem] w-full" />
+      <div className="flex justify-end gap-2">
+        <div className="skeleton h-10 w-28" />
+      </div>
     </div>
   ),
 });

@@ -8,11 +8,7 @@ import { createForm, type FormActionState } from "../actions";
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded-lg bg-brand px-5 py-2.5 font-medium text-white hover:bg-brand-dark disabled:opacity-50"
-    >
+    <button type="submit" disabled={pending} className="btn-primary">
       {pending ? "מעלה..." : "העלאה והמשך לעורך"}
     </button>
   );
@@ -22,13 +18,13 @@ export default function NewFormPage() {
   const [state, formAction] = useActionState<FormActionState, FormData>(createForm, {});
 
   return (
-    <div className="mx-auto max-w-xl">
-      <Link href="/dashboard" className="mb-4 inline-block text-sm text-slate-500 hover:text-brand">
+    <div className="page-fade-in mx-auto max-w-xl">
+      <Link href="/dashboard" className="mb-4 inline-block text-sm text-slate-500 transition hover:text-brand">
         → חזרה לטפסים
       </Link>
       <h1 className="mb-6 text-2xl font-bold text-slate-800">טופס חדש</h1>
 
-      <form action={formAction} className="space-y-5 rounded-2xl bg-white p-6 shadow-sm">
+      <form action={formAction} className="card space-y-5 p-6">
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">שם הטופס</label>
           <input
@@ -36,7 +32,7 @@ export default function NewFormPage() {
             type="text"
             required
             placeholder="למשל: ייפוי כוח"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
         </div>
 
@@ -47,7 +43,7 @@ export default function NewFormPage() {
             type="file"
             accept="application/pdf,.pdf"
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-slate-700"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-brand/10 file:px-3 file:py-1.5 file:font-medium file:text-brand"
           />
         </div>
 

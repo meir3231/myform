@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
+  --background: #f7f8fa;
   --foreground: #0f172a;
 }
 
@@ -22,4 +22,83 @@ body {
 }
 .react-pdf__Page__canvas {
   display: block;
+}
+
+@layer components {
+  /* ---- כפתורים: עיצוב אחיד לכל המערכת ---- */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5
+      text-sm font-medium text-white shadow-sm transition
+      hover:bg-brand-dark hover:shadow-md
+      focus:outline-none focus:ring-2 focus:ring-brand/30
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300
+      bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition
+      hover:border-brand hover:text-brand
+      focus:outline-none focus:ring-2 focus:ring-brand/20
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-gold px-4 py-2.5
+      text-sm font-semibold text-brand-dark shadow-sm transition
+      hover:bg-gold-dark hover:text-white hover:shadow-md
+      focus:outline-none focus:ring-2 focus:ring-gold/40
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-danger-ghost {
+    @apply inline-flex items-center justify-center gap-1 rounded-lg px-3 py-1.5
+      text-sm text-slate-500 transition hover:bg-red-50 hover:text-red-600;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5
+      text-sm text-slate-600 transition hover:bg-slate-100 hover:text-brand;
+  }
+
+  /* ---- כרטיסים ---- */
+  .card {
+    @apply rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)];
+  }
+  .card-hover {
+    @apply transition duration-200 ease-out hover:-translate-y-1
+      hover:border-gold/40 hover:shadow-[0_12px_28px_-8px_rgba(30,58,95,0.25)];
+  }
+
+  /* ---- badge סטטוס ---- */
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+  .badge-dot::before {
+    content: "";
+    @apply inline-block h-1.5 w-1.5 rounded-full bg-current;
+  }
+
+  /* ---- skeleton טעינה ---- */
+  .skeleton {
+    @apply animate-shimmer rounded-lg bg-gradient-to-l from-slate-200 via-slate-100 to-slate-200
+      bg-[length:200%_100%];
+  }
+
+  /* ---- כניסת תוכן עדינה ---- */
+  .page-fade-in {
+    @apply animate-fade-in;
+  }
+}
+
+/* כניסה מדורגת לשורות/כרטיסים ברשימות */
+.stagger-item {
+  animation: fade-in 0.35s ease-out both;
+}
+.stagger-item:nth-child(1) { animation-delay: 0ms; }
+.stagger-item:nth-child(2) { animation-delay: 40ms; }
+.stagger-item:nth-child(3) { animation-delay: 80ms; }
+.stagger-item:nth-child(4) { animation-delay: 120ms; }
+.stagger-item:nth-child(5) { animation-delay: 160ms; }
+.stagger-item:nth-child(6) { animation-delay: 200ms; }
+.stagger-item:nth-child(n+7) { animation-delay: 240ms; }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }

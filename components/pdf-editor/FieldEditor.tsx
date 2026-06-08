@@ -8,6 +8,51 @@ import type { FieldType } from "@/lib/database.types";
 import { saveFormFields } from "@/app/(admin)/forms/actions";
 import { FieldBox } from "./FieldBox";
 
+// אייקון קטן לכל סוג שדה — מסייע למנהל לזהות חזותית את סוגי השדות בפאנל ההוספה.
+function FieldTypeIcon({ type }: { type: FieldType }) {
+  const common = {
+    viewBox: "0 0 24 24",
+    fill: "none" as const,
+    className: "h-4 w-4",
+    "aria-hidden": true,
+  };
+  switch (type) {
+    case "text":
+      return (
+        <svg {...common}>
+          <path d="M5 6h14M5 12h14M5 18h9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        </svg>
+      );
+    case "number":
+      return (
+        <svg {...common}>
+          <path d="M5 9h14M5 15h14M9 5l-2 14M16 5l-2 14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        </svg>
+      );
+    case "date":
+      return (
+        <svg {...common}>
+          <rect x="4.5" y="5.5" width="15" height="14" rx="2" stroke="currentColor" strokeWidth="1.7" />
+          <path d="M4.5 10h15M8 3.5v3M16 3.5v3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        </svg>
+      );
+    case "signature":
+      return (
+        <svg {...common}>
+          <path d="M4 17c2-1 3-3 3.5-5 .6-2.4 1-5 2.5-5s.5 4-.5 6.5S6 18 6 18s4 1 7-1 4-3.5 6-2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "initials":
+      return (
+        <svg {...common}>
+          <path d="M6 17V7l4 7 4-7v10M16 7h3M16 12h3M16 17h3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 // ה-canvas של ה-PDF מבודד ב-memo: לא מרונדר מחדש בכל גרירת שדה, רק כשהעמוד/הרוחב משתנים.
 const EditorPageCanvas = memo(function EditorPageCanvas({
   pageNumber,
@@ -130,44 +175,60 @@ export default function FieldEditor({
     <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
       {/* סרגל כלים — נעוץ במקום בזמן גלילת ה-PDF (מסכים רחבים) */}
       <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto">
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
-          <h2 className="mb-3 text-sm font-semibold text-slate-700">הוספת שדה</h2>
+        <div className="card p-4">
+          <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+            <span className="text-gold">＋</span> הוספת שדה
+          </h2>
           <div className="grid grid-cols-2 gap-2">
             {FIELD_TYPES.map((t) => (
               <button
                 key={t}
                 onClick={() => addField(t)}
-                className="rounded-lg border px-2 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                style={{ borderColor: FIELD_META[t].color }}
+                className="group flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-700 transition hover:-translate-y-0.5 hover:border-gold/50 hover:shadow-sm"
               >
-                + {FIELD_META[t].label}
+                <span
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+                  style={{ backgroundColor: `${FIELD_META[t].color}1a`, color: FIELD_META[t].color }}
+                >
+                  <FieldTypeIcon type={t} />
+                </span>
+                {FIELD_META[t].label}
               </button>
             ))}
           </div>
-          <p className="mt-3 text-xs text-slate-400">
+          <p className="mt-3 text-xs leading-relaxed text-slate-400">
             גרור כדי למקם, גרור את הפינה כדי לשנות גודל.
           </p>
         </div>
 
         {/* מאפייני השדה הנבחר */}
         {selected && (
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-sm font-semibold text-slate-700">מאפייני שדה</h2>
-            <label className="mb-1 block text-xs text-slate-500">תווית</label>
+          <div className="card p-4">
+            <h2 className="mb-3 flex items-center gap-2 border-b border-slate-100 pb-3 text-sm font-semibold text-slate-700">
+              <span
+                className="flex h-7 w-7 items-center justify-center rounded-md"
+                style={{ backgroundColor: `${FIELD_META[selected.type].color}1a`, color: FIELD_META[selected.type].color }}
+              >
+                <FieldTypeIcon type={selected.type} />
+              </span>
+              מאפייני שדה
+            </h2>
+            <label className="mb-1 block text-xs font-medium text-slate-500">תווית</label>
             <input
               value={selected.label}
               onChange={(e) => updateField({ ...selected, label: e.target.value })}
-              className="mb-3 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+              className="mb-3 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
-            <label className="mb-2 flex items-center gap-2 text-sm text-slate-700">
+            <label className="mb-3 flex items-center gap-2 text-sm text-slate-700">
               <input
                 type="checkbox"
                 checked={selected.required}
                 onChange={(e) => updateField({ ...selected, required: e.target.checked })}
+                className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand/30"
               />
               שדה חובה
             </label>
-            <label className="mb-1 block text-xs text-slate-500">גודל גופן</label>
+            <label className="mb-1 block text-xs font-medium text-slate-500">גודל גופן</label>
             <input
               type="number"
               min={6}
@@ -176,11 +237,11 @@ export default function FieldEditor({
               onChange={(e) =>
                 updateField({ ...selected, font_size: Number(e.target.value) || 12 })
               }
-              className="mb-3 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+              className="mb-3 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
             {selected.type !== "signature" && selected.type !== "initials" && (
               <>
-                <label className="mb-1 block text-xs text-slate-500">
+                <label className="mb-1 block text-xs font-medium text-slate-500">
                   העתקת ערך משדה אחר
                 </label>
                 <select
@@ -188,7 +249,7 @@ export default function FieldEditor({
                   onChange={(e) =>
                     updateField({ ...selected, copyFrom: e.target.value || null })
                   }
-                  className="mb-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+                  className="mb-1 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
                 >
                   <option value="">— ללא (מילוי עצמאי) —</option>
                   {fields
@@ -204,27 +265,20 @@ export default function FieldEditor({
                       </option>
                     ))}
                 </select>
-                <p className="mb-3 text-xs text-slate-400">
+                <p className="mb-3 text-xs leading-relaxed text-slate-400">
                   הלקוח ימלא רק את שדה המקור — שאר השדות המקושרים יתמלאו
                   אוטומטית באותו ערך.
                 </p>
               </>
             )}
-            <button
-              onClick={() => deleteField(selected.id)}
-              className="w-full rounded-lg bg-red-50 px-3 py-1.5 text-sm text-red-600 hover:bg-red-100"
-            >
+            <button onClick={() => deleteField(selected.id)} className="btn-danger-ghost w-full">
               מחיקת שדה
             </button>
           </div>
         )}
 
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
-          <button
-            onClick={handleSave}
-            disabled={status === "saving"}
-            className="w-full rounded-lg bg-brand py-2.5 font-medium text-white hover:bg-brand-dark disabled:opacity-50"
-          >
+        <div className="card p-4">
+          <button onClick={handleSave} disabled={status === "saving"} className="btn-primary w-full">
             {status === "saving" ? "שומר..." : "שמירת שדות"}
           </button>
           {status === "saved" && (
@@ -240,23 +294,23 @@ export default function FieldEditor({
       </aside>
 
       {/* אזור ה-PDF */}
-      <div ref={containerRef} className="rounded-2xl bg-white p-4 shadow-sm">
+      <div ref={containerRef} className="card p-4">
         {pageCount > 1 && (
           <div className="mb-3 flex items-center justify-center gap-3">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="rounded-lg border border-slate-300 px-3 py-1 text-sm disabled:opacity-40"
+              className="btn-secondary !px-3 !py-1 disabled:opacity-40"
             >
               → הקודם
             </button>
-            <span className="text-sm text-slate-600">
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
               עמוד {page} מתוך {pageCount}
             </span>
             <button
               onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
               disabled={page >= pageCount}
-              className="rounded-lg border border-slate-300 px-3 py-1 text-sm disabled:opacity-40"
+              className="btn-secondary !px-3 !py-1 disabled:opacity-40"
             >
               הבא ←
             </button>
@@ -266,7 +320,7 @@ export default function FieldEditor({
         <div className="flex justify-center">
           <Document
             file={pdfUrl}
-            loading={<div className="py-12 text-slate-400">טוען PDF...</div>}
+            loading={<div className="skeleton mx-auto h-[40rem] w-full max-w-[640px]" />}
             error={<div className="py-12 text-red-500">שגיאה בטעינת ה-PDF</div>}
           >
             {/* dir=ltr כדי שמיקום פיזי (left/top) יתאים תמיד לפינה השמאלית-עליונה */}

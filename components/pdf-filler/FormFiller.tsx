@@ -227,7 +227,7 @@ export default function FormFiller({
       <div ref={containerRef} className="flex flex-col items-center gap-6">
         <Document
           file={pdfUrl}
-          loading={<div className="py-12 text-slate-400">טוען טופס...</div>}
+          loading={<div className="skeleton mx-auto h-[40rem] w-full max-w-[640px]" />}
           error={<div className="py-12 text-red-500">שגיאה בטעינת הטופס</div>}
         >
           {Array.from({ length: pageCount }, (_, i) => i + 1).map((pageNum) => (

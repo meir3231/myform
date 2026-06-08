@@ -6,8 +6,8 @@ export const dynamic = "force-dynamic";
 
 function Notice({ title, body }: { title: string; body: string }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-sm">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-100 to-slate-200/70 p-4">
+      <div className="page-fade-in card w-full max-w-md p-8 text-center">
         <h1 className="mb-2 text-xl font-bold text-slate-800">{title}</h1>
         <p className="text-slate-500">{body}</p>
       </div>

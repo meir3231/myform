@@ -52,10 +52,10 @@ export default async function SubmissionDetailPage({
     : null;
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="page-fade-in mx-auto max-w-4xl">
       <Link
         href="/submissions"
-        className="mb-4 inline-block text-sm text-slate-500 hover:text-brand"
+        className="mb-4 inline-block text-sm text-slate-500 transition hover:text-brand"
       >
         → חזרה להגשות
       </Link>
@@ -70,14 +70,14 @@ export default async function SubmissionDetailPage({
             </span>
           </p>
         </div>
-        <span className={`rounded-full px-3 py-1 text-sm ${meta.className}`}>
+        <span className={`badge badge-dot text-sm ${meta.className}`}>
           {meta.label}
         </span>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* ערכים שמולאו */}
-        <section className="rounded-2xl bg-white p-5 shadow-sm">
+        <section className="card p-5">
           <h2 className="mb-3 font-semibold text-slate-700">תוכן הטופס</h2>
           {sub.status !== "completed" ? (
             <p className="text-sm text-slate-400">הטופס עדיין לא הושלם.</p>
@@ -100,7 +100,7 @@ export default async function SubmissionDetailPage({
         </section>
 
         {/* תיעוד + הורדה */}
-        <section className="rounded-2xl bg-white p-5 shadow-sm">
+        <section className="card p-5">
           <h2 className="mb-3 font-semibold text-slate-700">תיעוד וחתימה</h2>
           {sub.status === "completed" && audit ? (
             <dl className="space-y-2 text-sm">
@@ -117,7 +117,7 @@ export default async function SubmissionDetailPage({
               href={downloadUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
+              className="btn-primary mt-4 inline-flex"
             >
               הורדת ה-PDF החתום
             </a>
@@ -127,7 +127,7 @@ export default async function SubmissionDetailPage({
 
       {/* תצוגה מקדימה */}
       {downloadUrl && (
-        <section className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
+        <section className="card mt-6 p-5">
           <h2 className="mb-3 font-semibold text-slate-700">תצוגה מקדימה</h2>
           <iframe
             src={downloadUrl}

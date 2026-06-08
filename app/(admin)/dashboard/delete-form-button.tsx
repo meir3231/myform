@@ -28,13 +28,13 @@ export function DeleteFormButton({
         <button
           onClick={handleDelete}
           disabled={pending}
-          className="rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-1 rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {pending ? "מוחק..." : "אישור מחיקה"}
         </button>
         <button
           onClick={() => setConfirming(false)}
-          className="rounded-lg px-2 py-1.5 text-sm text-slate-500 hover:text-slate-700"
+          className="rounded-lg px-2 py-1.5 text-sm text-slate-500 transition hover:text-slate-700"
         >
           ביטול
         </button>
@@ -46,7 +46,7 @@ export function DeleteFormButton({
     <button
       onClick={() => setConfirming(true)}
       title={`מחיקת ${formName}`}
-      className="rounded-lg px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+      className="btn-danger-ghost"
     >
       מחיקה
     </button>

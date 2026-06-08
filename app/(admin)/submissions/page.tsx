@@ -24,11 +24,11 @@ export default async function SubmissionsPage() {
       <h1 className="mb-6 text-2xl font-bold text-slate-800">הגשות</h1>
 
       {!submissions || submissions.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center text-slate-500">
+        <div className="card border-dashed p-12 text-center text-slate-500">
           עדיין אין הגשות. שלח טופס ללקוח מתוך עמוד הטפסים.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="card overflow-hidden">
           <table className="w-full text-right text-sm">
             <thead className="bg-slate-50 text-slate-500">
               <tr>
@@ -41,10 +41,15 @@ export default async function SubmissionsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {submissions.map((s) => {
+              {submissions.map((s, i) => {
                 const meta = STATUS_META[s.status];
                 return (
-                  <tr key={s.id} className="hover:bg-slate-50">
+                  <tr
+                    key={s.id}
+                    className={`stagger-item transition hover:bg-gold/5 ${
+                      i % 2 === 1 ? "bg-slate-50/60" : ""
+                    }`}
+                  >
                     <td className="px-4 py-3">
                       <div className="font-medium text-slate-800">{s.recipient_name}</div>
                       <div className="text-xs text-slate-400" dir="ltr">
@@ -55,7 +60,7 @@ export default async function SubmissionsPage() {
                       {formName.get(s.form_id) ?? "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`rounded-full px-2.5 py-1 text-xs ${meta.className}`}>
+                      <span className={`badge badge-dot ${meta.className}`}>
                         {meta.label}
                       </span>
                     </td>
@@ -70,7 +75,7 @@ export default async function SubmissionsPage() {
                     <td className="px-4 py-3">
                       <Link
                         href={`/submissions/${s.id}`}
-                        className="text-brand hover:underline"
+                        className="font-medium text-brand transition hover:text-gold-dark hover:underline"
                       >
                         פרטים
                       </Link>

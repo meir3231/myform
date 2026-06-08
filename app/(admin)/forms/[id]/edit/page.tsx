@@ -44,18 +44,15 @@ export default async function EditFormPage({
   }));
 
   return (
-    <div>
+    <div className="page-fade-in">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <Link href="/dashboard" className="text-sm text-slate-500 hover:text-brand">
+          <Link href="/dashboard" className="text-sm text-slate-500 transition hover:text-brand">
             → חזרה לטפסים
           </Link>
           <h1 className="mt-1 text-2xl font-bold text-slate-800">{form.name}</h1>
         </div>
-        <Link
-          href={`/forms/${form.id}/send`}
-          className="rounded-lg bg-brand px-4 py-2 font-medium text-white hover:bg-brand-dark"
-        >
+        <Link href={`/forms/${form.id}/send`} className="btn-primary">
           שליחה ללקוח →
         </Link>
       </div>
