@@ -1,8 +1,6 @@
-import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
-import { BrandLogo } from "@/components/BrandLogo";
 import { SiteFooter } from "@/components/SiteFooter";
-import { NavDrawer } from "@/components/NavDrawer";
+import { Sidebar } from "@/components/Sidebar";
 import { AdminMain } from "@/components/AdminMain";
 import { signOut } from "./actions";
 
@@ -15,16 +13,12 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-ink-line bg-ink-panel/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link href="/dashboard" className="group">
-            <BrandLogo size="lg" />
-          </Link>
-          <NavDrawer userName={profile.full_name || "מנהל"} signOutAction={signOut} />
-        </div>
-      </header>
-      <AdminMain>{children}</AdminMain>
-      <SiteFooter dark />
+      <Sidebar userName={profile.full_name || "מנהל"} signOutAction={signOut} />
+      <div className="mr-[220px] flex min-h-screen flex-col">
+        <header className="admin-header sticky top-0 z-30" />
+        <AdminMain>{children}</AdminMain>
+        <SiteFooter />
+      </div>
     </div>
   );
 }

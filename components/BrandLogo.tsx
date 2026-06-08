@@ -32,7 +32,7 @@ export function BrandLogo({
       >
         <LogoMark className={s.icon} />
       </span>
-      <span className={`font-bold tracking-tight text-brand ${s.text}`}>Smart Form</span>
+      <span className={`font-bold tracking-tight text-brand ${s.text}`}>TofSync</span>
     </span>
   );
 }

@@ -2,16 +2,16 @@
 
 import { usePathname } from "next/navigation";
 
-// עמודי "עבודה עם ה-PDF" (יצירה/עריכה/שליחה) מוצגים בערכה הבהירה;
-// שאר עמודי הניהול (דשבורד/הגשות/הגדרות) — בערכה הכהה.
-const LIGHT_PREFIXES = ["/forms"];
+// עמודי "עבודה עם ה-PDF" (יצירה/עריכה/שליחה) מוצגים על רקע paper העדין;
+// שאר עמודי הניהול (דשבורד/הגשות/הגדרות) — על רקע surface הבהיר-סגלגל.
+const PDF_PREFIXES = ["/forms"];
 
 export function AdminMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const light = LIGHT_PREFIXES.some((p) => pathname.startsWith(p));
+  const isPdfPage = PDF_PREFIXES.some((p) => pathname.startsWith(p));
 
   return (
-    <main className={light ? "bg-paper text-paper-text" : "bg-ink text-ink-text"}>
+    <main className={`flex-1 text-paper-text ${isPdfPage ? "bg-paper" : "bg-surface"}`}>
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="page-fade-in">{children}</div>
       </div>

@@ -1,13 +1,7 @@
-export function SiteFooter({ dark = false }: { dark?: boolean }) {
+export function SiteFooter() {
   return (
-    <footer
-      className={`border-t px-4 py-4 text-center text-xs ${
-        dark
-          ? "border-ink-line bg-ink-panel/60 text-ink-muted"
-          : "border-paper-line bg-white/60 text-slate-400"
-      }`}
-    >
-      © {new Date().getFullYear()} Smart Form — מערכת לניהול וחתימה דיגיטלית של טפסים
+    <footer className="border-t border-paper-line bg-white/60 px-4 py-4 text-center text-xs text-slate-400">
+      © {new Date().getFullYear()} TofSync — מערכת לניהול וחתימה דיגיטלית של טפסים
     </footer>
   );
 }

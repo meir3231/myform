@@ -10,8 +10,8 @@ const heebo = Heebo({
 });
 
 export const metadata: Metadata = {
-  title: "Smart Form — ניהול טפסים דיגיטליים",
-  description: "מערכת לניהול, שליחה וחתימה של טפסי PDF דיגיטליים",
+  title: "TofSync",
+  description: "Smart Forms . Seamless Sync",
 };
 
 export default function RootLayout({

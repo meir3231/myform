@@ -5,21 +5,18 @@ export interface Crumb {
   href?: string;
 }
 
-export function Breadcrumbs({ items, dark = false }: { items: Crumb[]; dark?: boolean }) {
+export function Breadcrumbs({ items }: { items: Crumb[] }) {
   return (
     <nav aria-label="ניווט" className="mb-3 flex flex-wrap items-center gap-1.5 text-sm">
       {items.map((item, i) => (
         <span key={i} className="flex items-center gap-1.5">
-          {i > 0 && <span className={dark ? "text-ink-line" : "text-slate-300"}>‹</span>}
+          {i > 0 && <span className="text-slate-300">‹</span>}
           {item.href ? (
-            <Link
-              href={item.href}
-              className={`transition hover:text-brand ${dark ? "text-ink-muted hover:text-brand-light" : "text-slate-400"}`}
-            >
+            <Link href={item.href} className="text-slate-400 transition hover:text-brand">
               {item.label}
             </Link>
           ) : (
-            <span className={`font-medium ${dark ? "text-ink-text" : "text-slate-600"}`}>{item.label}</span>
+            <span className="font-medium text-slate-600">{item.label}</span>
           )}
         </span>
       ))}

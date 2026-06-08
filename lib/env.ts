@@ -25,7 +25,7 @@ export function serverEnv() {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     ),
     resendApiKey: process.env.RESEND_API_KEY ?? "",
-    emailFrom: process.env.EMAIL_FROM ?? "MyForm <onboarding@resend.dev>",
+    emailFrom: process.env.EMAIL_FROM ?? "TofSync <onboarding@resend.dev>",
     tokenSigningSecret: required("TOKEN_SIGNING_SECRET", process.env.TOKEN_SIGNING_SECRET),
     appUrl: PUBLIC_ENV.appUrl,
   };
