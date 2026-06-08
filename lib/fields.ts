@@ -5,11 +5,11 @@ export const FIELD_META: Record<
   FieldType,
   { label: string; color: string; defaultW: number; defaultH: number }
 > = {
-  text: { label: "טקסט", color: "#3b82f6", defaultW: 0.25, defaultH: 0.035 },
-  number: { label: "מספר", color: "#8b5cf6", defaultW: 0.15, defaultH: 0.035 },
-  date: { label: "תאריך", color: "#14b8a6", defaultW: 0.15, defaultH: 0.035 },
-  signature: { label: "חתימה", color: "#ef4444", defaultW: 0.3, defaultH: 0.09 },
-  initials: { label: "ראשי תיבות", color: "#f59e0b", defaultW: 0.12, defaultH: 0.06 },
+  text: { label: "טקסט", color: "#3b82f6", defaultW: 0.18, defaultH: 0.026 },
+  number: { label: "מספר", color: "#8b5cf6", defaultW: 0.11, defaultH: 0.026 },
+  date: { label: "תאריך", color: "#14b8a6", defaultW: 0.11, defaultH: 0.026 },
+  signature: { label: "חתימה", color: "#ef4444", defaultW: 0.22, defaultH: 0.065 },
+  initials: { label: "ראשי תיבות", color: "#f59e0b", defaultW: 0.09, defaultH: 0.045 },
 };
 
 export const FIELD_TYPES = Object.keys(FIELD_META) as FieldType[];

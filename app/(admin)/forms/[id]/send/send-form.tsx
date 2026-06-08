@@ -110,7 +110,7 @@ export function SendForm({
             name="recipient_name"
             type="text"
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-right outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
         </div>
 
@@ -170,7 +170,9 @@ export function SendForm({
                     <input
                       name={`prefill_${f.id}`}
                       type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"}
-                      className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+                      className={`mt-1 w-full rounded-md border border-slate-300 px-2 py-1 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 ${
+                        f.type === "text" ? "text-right" : ""
+                      }`}
                     />
                   </div>
                 </div>

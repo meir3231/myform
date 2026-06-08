@@ -82,7 +82,9 @@ export function FillFieldBox({
       placeholder={field.label}
       onChange={(e) => onChange(e.target.value)}
       style={{ ...style, boxShadow: ring, fontSize: `${fontSize}px` }}
-      className="rounded bg-white/80 px-1 text-slate-900 outline-none focus:bg-white focus:shadow-[0_0_0_2px_#3b82f6]"
+      className={`rounded bg-white/80 px-1 text-slate-900 outline-none focus:bg-white focus:shadow-[0_0_0_2px_#3b82f6] ${
+        field.type === "text" ? "text-right" : ""
+      }`}
     />
   );
 }

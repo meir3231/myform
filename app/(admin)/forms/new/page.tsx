@@ -30,7 +30,7 @@ export default function NewFormPage() {
             type="text"
             required
             placeholder="למשל: ייפוי כוח"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-right outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
         </div>
 

@@ -210,8 +210,8 @@ export default function FieldEditor({
 
   return (
     <div className="space-y-4">
-      {/* שורת כלים אופקית מעל ה-PDF */}
-      <div className="card flex flex-wrap items-center gap-3 p-3">
+      {/* שורת כלים אופקית מעל ה-PDF — נעולה (sticky) מתחת להדר בעת גלילה */}
+      <div className="card sticky top-[72px] z-20 flex flex-wrap items-center gap-3 bg-white/95 p-3 backdrop-blur-sm">
         <h2 className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-slate-700">
           <span className="text-brand">＋</span> הוספת שדה
         </h2>
@@ -372,7 +372,7 @@ export default function FieldEditor({
               <input
                 value={selected.label}
                 onChange={(e) => updateField({ ...selected, label: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-right text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
             </div>
             <label className="flex items-center gap-2 text-sm text-slate-700">
