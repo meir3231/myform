@@ -29,11 +29,21 @@ export async function saveFormFields(formId: string, fields: FieldDraft[]) {
   const { form } = await assertFormOwnership(formId);
   const admin = createAdminClient();
 
+  const validIds = new Set(fields.map((f) => f.id));
+
   // ולידציה + נירמול קואורדינטות לטווח חוקי
+  // שומרים על ה-id המקורי של כל שדה (במקום לתת ל-DB ליצור id חדש בכל שמירה),
+  // כך ש-submission_values וקישורי copy_from_field_id ימשיכו להצביע נכון
+  // גם אחרי עריכות חוזרות.
   const rows = fields.map((f, i) => {
     if (!FIELD_TYPES.includes(f.type)) throw new Error("סוג שדה לא חוקי: " + f.type);
     const page = Math.min(Math.max(1, Math.round(f.page)), form.page_count);
+    // קישור תקף רק אם המקור הוא שדה אחר באותו טופס שנשמר כעת
+    const copyFrom = f.copyFrom && f.copyFrom !== f.id && validIds.has(f.copyFrom)
+      ? f.copyFrom
+      : null;
     return {
+      id: f.id,
       form_id: formId,
       page,
       x: clamp01(f.x),
@@ -45,6 +55,7 @@ export async function saveFormFields(formId: string, fields: FieldDraft[]) {
       required: !!f.required,
       font_size: Math.min(Math.max(6, f.font_size || 12), 72),
       sort_order: i,
+      copyFrom,
     };
   });
 
@@ -53,8 +64,22 @@ export async function saveFormFields(formId: string, fields: FieldDraft[]) {
   if (delErr) throw new Error("שמירת השדות נכשלה: " + delErr.message);
 
   if (rows.length > 0) {
-    const { error: insErr } = await admin.from("form_fields").insert(rows);
+    // שלב 1: הכנסת כל השדות בלי קישורי העתקה — נמנעים מבעיית סדר ב-FK
+    // (שדה A יכול להצביע על שדה B שעדיין לא הוכנס לאותה הכנסה מרובת-שורות).
+    const { error: insErr } = await admin.from("form_fields").insert(
+      rows.map(({ copyFrom, ...row }) => row)
+    );
     if (insErr) throw new Error("שמירת השדות נכשלה: " + insErr.message);
+
+    // שלב 2: עדכון קישורי ההעתקה, אחרי שכל השדות כבר קיימים ב-DB
+    for (const row of rows) {
+      if (!row.copyFrom) continue;
+      const { error: linkErr } = await admin
+        .from("form_fields")
+        .update({ copy_from_field_id: row.copyFrom })
+        .eq("id", row.id);
+      if (linkErr) throw new Error("שמירת קישורי השדות נכשלה: " + linkErr.message);
+    }
   }
 
   revalidatePath(`/forms/${formId}/edit`);
@@ -119,6 +144,23 @@ export async function createSubmission(
     .single();
 
   if (insErr || !submission) return { error: "יצירת השליחה נכשלה: " + insErr?.message };
+
+  // ערכי מילוי-מקדים שהמנהל הזין (prefill_<fieldId>) — נשמרים כבר עכשיו,
+  // כך שהלקוח יראה אותם ממולאים כשיפתח את הלינק.
+  const prefillRows: { submission_id: string; field_id: string; value: string }[] = [];
+  for (const [key, raw] of formData.entries()) {
+    if (!key.startsWith("prefill_")) continue;
+    const value = (raw as string)?.trim();
+    if (!value) continue;
+    prefillRows.push({
+      submission_id: submission.id,
+      field_id: key.slice("prefill_".length),
+      value: value.slice(0, 2000),
+    });
+  }
+  if (prefillRows.length > 0) {
+    await admin.from("submission_values").insert(prefillRows);
+  }
 
   const { appUrl } = serverEnv();
   const link = `${appUrl}/fill/${token}`;

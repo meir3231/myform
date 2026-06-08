@@ -13,6 +13,7 @@ type LoadResult =
       pageCount: number;
       pdfUrl: string;
       fields: FieldDraft[];
+      initialValues: Record<string, string>;
     }
   | { status: "completed" }
   | { status: "expired" }
@@ -69,6 +70,17 @@ export async function loadSubmissionForFill(token: string): Promise<LoadResult> 
     .eq("id", sub.id)
     .single();
 
+  // ערכים שמולאו מראש ע"י המנהל (prefill) — נטענים כך שהלקוח יראה אותם ממולאים
+  const { data: existingValues } = await admin
+    .from("submission_values")
+    .select("field_id, value")
+    .eq("submission_id", sub.id);
+
+  const initialValues: Record<string, string> = {};
+  for (const row of existingValues ?? []) {
+    if (row.field_id && row.value != null) initialValues[row.field_id] = row.value;
+  }
+
   return {
     status: "ok",
     submissionId: sub.id,
@@ -88,5 +100,6 @@ export async function loadSubmissionForFill(token: string): Promise<LoadResult> 
       required: f.required,
       font_size: f.font_size,
     })),
+    initialValues,
   };
 }

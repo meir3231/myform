@@ -56,6 +56,7 @@ function FillablePage({
   values,
   signatures,
   invalidIds,
+  linkedFieldIds,
   onChange,
   onRequestSignature,
 }: {
@@ -67,6 +68,7 @@ function FillablePage({
   values: Record<string, string>;
   signatures: Record<string, string>;
   invalidIds: Set<string>;
+  linkedFieldIds: Set<string>;
   onChange: (id: string, v: string) => void;
   onRequestSignature: (f: FieldDraft) => void;
 }) {
@@ -83,6 +85,7 @@ function FillablePage({
             value={values[f.id] ?? ""}
             signatureDataUrl={signatures[f.id]}
             invalid={invalidIds.has(f.id)}
+            readOnly={linkedFieldIds.has(f.id)}
             onChange={(v) => onChange(f.id, v)}
             onRequestSignature={() => onRequestSignature(f)}
           />
@@ -96,6 +99,7 @@ export default function FormFiller({
   pdfUrl,
   pageCount,
   fields,
+  initialValues,
   recipientName,
   formName,
 }: {
@@ -103,10 +107,30 @@ export default function FormFiller({
   pdfUrl: string;
   pageCount: number;
   fields: FieldDraft[];
+  initialValues: Record<string, string>;
   recipientName: string;
   formName: string;
 }) {
-  const [values, setValues] = useState<Record<string, string>>({});
+  // מיפוי שדה-מקור ← רשימת שדות-יעד שמועתקים ממנו אוטומטית בזמן המילוי
+  // (לדוגמה: "שם" שחוזר על עצמו בכמה עמודים — הלקוח ממלא רק את שדה המקור).
+  const copyTargets: Record<string, string[]> = {};
+  for (const f of fields) {
+    if (f.copyFrom) (copyTargets[f.copyFrom] ??= []).push(f.id);
+  }
+  // שדות "יעד" מוצגים כקריאה-בלבד — ערכם תמיד מגיע מהשדה שהם מקושרים אליו
+  const linkedFieldIds = new Set(fields.filter((f) => f.copyFrom).map((f) => f.id));
+
+  // ערכים שהמנהל מילא מראש בעת השליחה (prefill) — מאתחלים איתם את הטופס,
+  // כך שהלקוח רואה אותם ממולאים ויכול עדיין לערוך אותם במידת הצורך.
+  // אם שדה-מקור מולא מראש, מפיצים את הערך גם לשדות המקושרים אליו.
+  const [values, setValues] = useState<Record<string, string>>(() => {
+    const seeded = { ...initialValues };
+    for (const [sourceId, targets] of Object.entries(copyTargets)) {
+      const v = seeded[sourceId];
+      if (v) for (const t of targets) seeded[t] = v;
+    }
+    return seeded;
+  });
   const [signatures, setSignatures] = useState<Record<string, string>>({});
   const [sizes, setSizes] = useState<Sizes>({});
   const [renderWidth, setRenderWidth] = useState(700);
@@ -114,6 +138,7 @@ export default function FormFiller({
   const [invalidIds, setInvalidIds] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -159,6 +184,7 @@ export default function FormFiller({
     try {
       const result: SubmitState = await submitForm(token, { values, signatures });
       if (result.ok) {
+        setDownloadUrl(result.downloadUrl ?? null);
         setDone(true);
       } else {
         setError(result.error ?? "השליחה נכשלה");
@@ -176,6 +202,15 @@ export default function FormFiller({
         <div className="mb-3 text-5xl">✓</div>
         <h2 className="mb-2 text-xl font-bold text-slate-800">הטופס נשלח בהצלחה</h2>
         <p className="text-slate-500">תודה {recipientName}. הטופס נשמר ונחתם.</p>
+        {downloadUrl && (
+          <a
+            href={downloadUrl}
+            download
+            className="mt-5 inline-block w-full rounded-lg bg-brand py-2.5 font-medium text-white hover:bg-brand-dark"
+          >
+            הורדת עותק חתום (PDF)
+          </a>
+        )}
       </div>
     );
   }
@@ -206,7 +241,23 @@ export default function FormFiller({
               values={values}
               signatures={signatures}
               invalidIds={invalidIds}
-              onChange={(id, v) => setValues((p) => ({ ...p, [id]: v }))}
+              linkedFieldIds={linkedFieldIds}
+              onChange={(id, v) => {
+                setValues((p) => {
+                  const next = { ...p, [id]: v };
+                  // הפצה אוטומטית לכל השדות שמקושרים לשדה הזה כ"מקור"
+                  const targets = copyTargets[id];
+                  if (targets) for (const t of targets) next[t] = v;
+                  return next;
+                });
+                setInvalidIds((prev) => {
+                  if (!prev.has(id) && !copyTargets[id]) return prev;
+                  const next = new Set(prev);
+                  next.delete(id);
+                  for (const t of copyTargets[id] ?? []) next.delete(t);
+                  return next;
+                });
+              }}
               onRequestSignature={(f) => setSigningField(f)}
             />
           ))}

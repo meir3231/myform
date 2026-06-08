@@ -10,6 +10,7 @@ export function FillFieldBox({
   value,
   signatureDataUrl,
   invalid,
+  readOnly,
   onChange,
   onRequestSignature,
 }: {
@@ -19,6 +20,7 @@ export function FillFieldBox({
   value: string;
   signatureDataUrl?: string;
   invalid: boolean;
+  readOnly?: boolean;
   onChange: (value: string) => void;
   onRequestSignature: () => void;
 }) {
@@ -57,6 +59,21 @@ export function FillFieldBox({
 
   const inputType =
     field.type === "number" ? "number" : field.type === "date" ? "date" : "text";
+
+  if (readOnly) {
+    return (
+      <div
+        title="הערך מועתק אוטומטית משדה אחר בטופס"
+        style={{ ...style, boxShadow: ring, fontSize: `${fontSize}px` }}
+        className="flex items-center overflow-hidden rounded bg-slate-100/90 px-1 text-slate-500"
+      >
+        <span className="truncate">{value || field.label}</span>
+        <span className="mr-1 shrink-0 text-[0.7em]" aria-hidden>
+          🔗
+        </span>
+      </div>
+    );
+  }
 
   return (
     <input

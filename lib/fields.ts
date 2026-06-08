@@ -26,4 +26,7 @@ export interface FieldDraft {
   label: string;
   required: boolean;
   font_size: number;
+  // אם מוגדר — ערך השדה מועתק אוטומטית משדה "מקור" אחר באותו טופס בזמן המילוי
+  // (למשל "שם" שחוזר על עצמו בכמה עמודים — הלקוח ממלא פעם אחת בלבד).
+  copyFrom?: string | null;
 }

@@ -17,6 +17,7 @@ export function FillerLoader(props: {
   pdfUrl: string;
   pageCount: number;
   fields: FieldDraft[];
+  initialValues: Record<string, string>;
   recipientName: string;
   formName: string;
 }) {

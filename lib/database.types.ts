@@ -67,6 +67,7 @@ export interface Database {
           required: boolean;
           font_size: number;
           sort_order: number;
+          copy_from_field_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -82,6 +83,7 @@ export interface Database {
           required?: boolean;
           font_size?: number;
           sort_order?: number;
+          copy_from_field_id?: string | null;
           created_at?: string;
         };
         Update: Partial<{
@@ -95,6 +97,7 @@ export interface Database {
           required: boolean;
           font_size: number;
           sort_order: number;
+          copy_from_field_id: string | null;
         }>;
         Relationships: [];
       };

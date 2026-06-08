@@ -19,6 +19,12 @@ export default async function SendPage({
 
   if (!form || form.org_id !== profile.org_id) notFound();
 
+  const { data: fields } = await supabase
+    .from("form_fields")
+    .select("id, page, type, label, required, sort_order")
+    .eq("form_id", form.id)
+    .order("sort_order", { ascending: true });
+
   return (
     <div className="mx-auto max-w-xl">
       <Link
@@ -30,7 +36,7 @@ export default async function SendPage({
       <h1 className="mb-1 text-2xl font-bold text-slate-800">שליחה ללקוח</h1>
       <p className="mb-6 text-slate-500">{form.name}</p>
 
-      <SendForm formId={form.id} />
+      <SendForm formId={form.id} fields={fields ?? []} />
     </div>
   );
 }

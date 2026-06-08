@@ -47,6 +47,7 @@ export default async function FillPage({
         pdfUrl={result.pdfUrl}
         pageCount={result.pageCount}
         fields={result.fields}
+        initialValues={result.initialValues}
         recipientName={result.recipientName}
         formName={result.formName}
       />

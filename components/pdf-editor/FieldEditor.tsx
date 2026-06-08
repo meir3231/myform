@@ -96,6 +96,7 @@ export default function FieldEditor({
       label: meta.label,
       required: type === "signature",
       font_size: 12,
+      copyFrom: null,
     };
     setFields((prev) => [...prev, f]);
     setSelectedId(f.id);
@@ -127,8 +128,8 @@ export default function FieldEditor({
 
   return (
     <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
-      {/* סרגל כלים */}
-      <aside className="space-y-4">
+      {/* סרגל כלים — נעוץ במקום בזמן גלילת ה-PDF (מסכים רחבים) */}
+      <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto">
         <div className="rounded-2xl bg-white p-4 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold text-slate-700">הוספת שדה</h2>
           <div className="grid grid-cols-2 gap-2">
@@ -177,6 +178,38 @@ export default function FieldEditor({
               }
               className="mb-3 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
             />
+            {selected.type !== "signature" && selected.type !== "initials" && (
+              <>
+                <label className="mb-1 block text-xs text-slate-500">
+                  העתקת ערך משדה אחר
+                </label>
+                <select
+                  value={selected.copyFrom ?? ""}
+                  onChange={(e) =>
+                    updateField({ ...selected, copyFrom: e.target.value || null })
+                  }
+                  className="mb-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+                >
+                  <option value="">— ללא (מילוי עצמאי) —</option>
+                  {fields
+                    .filter(
+                      (f) =>
+                        f.id !== selected.id &&
+                        f.type === selected.type &&
+                        !f.copyFrom // מונע שרשראות/מעגלים: רק שדות "מקור" ניתנים לבחירה
+                    )
+                    .map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.label || FIELD_META[f.type].label} (עמ׳ {f.page})
+                      </option>
+                    ))}
+                </select>
+                <p className="mb-3 text-xs text-slate-400">
+                  הלקוח ימלא רק את שדה המקור — שאר השדות המקושרים יתמלאו
+                  אוטומטית באותו ערך.
+                </p>
+              </>
+            )}
             <button
               onClick={() => deleteField(selected.id)}
               className="w-full rounded-lg bg-red-50 px-3 py-1.5 text-sm text-red-600 hover:bg-red-100"

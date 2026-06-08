@@ -4,13 +4,13 @@ import { createHash } from "crypto";
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashToken } from "@/lib/tokens";
-import { downloadFile } from "@/lib/storage";
+import { downloadFile, getSignedUrl } from "@/lib/storage";
 import { flattenPdf, type FlattenInput } from "@/lib/pdf/flatten";
 import { sendCompletionNotice } from "@/lib/email";
 import { serverEnv } from "@/lib/env";
 import type { FieldDraft } from "@/lib/fields";
 
-export type SubmitState = { ok: boolean; error?: string };
+export type SubmitState = { ok: boolean; error?: string; downloadUrl?: string };
 
 interface SubmitPayload {
   values: Record<string, string>;
@@ -180,5 +180,13 @@ export async function submitForm(
     // לא קריטי — אל תיכשל בגלל המייל
   }
 
-  return { ok: true };
+  // קישור הורדה זמני ללקוח, כדי שיוכל לשמור עותק חתום מיד לאחר החתימה
+  let downloadUrl: string | undefined;
+  try {
+    downloadUrl = await getSignedUrl("completed", completedPath, 60 * 30);
+  } catch {
+    // לא קריטי — אם נכשל, הלקוח עדיין יכול לקבל את הקובץ דרך המנהל
+  }
+
+  return { ok: true, downloadUrl };
 }

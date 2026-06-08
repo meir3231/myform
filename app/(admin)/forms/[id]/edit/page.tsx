@@ -40,6 +40,7 @@ export default async function EditFormPage({
     label: f.label,
     required: f.required,
     font_size: f.font_size,
+    copyFrom: f.copy_from_field_id,
   }));
 
   return (
