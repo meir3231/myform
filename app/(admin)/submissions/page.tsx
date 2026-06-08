@@ -21,16 +21,16 @@ export default async function SubmissionsPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-ink-text">הגשות</h1>
+      <h1 className="mb-6 text-2xl font-bold text-paper-text">הגשות</h1>
 
       {!submissions || submissions.length === 0 ? (
-        <div className="card-dark border-dashed p-12 text-center text-ink-muted">
+        <div className="card border-dashed p-12 text-center text-paper-muted">
           עדיין אין הגשות. שלח טופס ללקוח מתוך עמוד הטפסים.
         </div>
       ) : (
-        <div className="card-dark overflow-hidden">
+        <div className="card overflow-hidden">
           <table className="w-full text-right text-sm">
-            <thead className="text-ink-muted">
+            <thead className="text-paper-muted">
               <tr>
                 <th className="px-4 py-3 font-medium">לקוח</th>
                 <th className="px-4 py-3 font-medium">טופס</th>
@@ -40,23 +40,23 @@ export default async function SubmissionsPage() {
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink-line">
+            <tbody className="divide-y divide-paper-line">
               {submissions.map((s, i) => {
                 const meta = STATUS_META[s.status];
                 return (
                   <tr
                     key={s.id}
-                    className={`stagger-item transition hover:bg-white/5 ${
-                      i % 2 === 1 ? "bg-white/[0.02]" : ""
+                    className={`stagger-item transition hover:bg-brand/5 ${
+                      i % 2 === 1 ? "bg-slate-50/60" : ""
                     }`}
                   >
                     <td className="px-4 py-3">
-                      <div className="font-medium text-ink-text">{s.recipient_name}</div>
-                      <div className="text-xs text-ink-muted" dir="ltr">
+                      <div className="font-medium text-paper-text">{s.recipient_name}</div>
+                      <div className="text-xs text-paper-muted" dir="ltr">
                         {s.recipient_email}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-ink-muted">
+                    <td className="px-4 py-3 text-paper-muted">
                       {formName.get(s.form_id) ?? "—"}
                     </td>
                     <td className="px-4 py-3">
@@ -64,10 +64,10 @@ export default async function SubmissionsPage() {
                         {meta.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-ink-muted">
+                    <td className="px-4 py-3 text-paper-muted">
                       {s.sent_at ? new Date(s.sent_at).toLocaleDateString("he-IL") : "—"}
                     </td>
-                    <td className="px-4 py-3 text-ink-muted">
+                    <td className="px-4 py-3 text-paper-muted">
                       {s.completed_at
                         ? new Date(s.completed_at).toLocaleDateString("he-IL")
                         : "—"}
@@ -75,7 +75,7 @@ export default async function SubmissionsPage() {
                     <td className="px-4 py-3">
                       <Link
                         href={`/submissions/${s.id}`}
-                        className="font-medium text-brand-light transition hover:underline"
+                        className="font-medium text-brand transition hover:underline"
                       >
                         פרטים
                       </Link>

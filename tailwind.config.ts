@@ -17,20 +17,24 @@ export default {
           dark: "#7c4ddb",
           light: "#c4abff",
         },
-        // ערכת-הניהול הכהה (דשבורד / הגשות / הגדרות / נאבבר ותפריט)
+        // ערכת-הניהול הכהה (Sidebar קבוע + Header עליון)
         ink: {
           DEFAULT: "#1a1429",
           panel: "#221a35",
           line: "#352a4f",
           text: "#e8e4f5",
           muted: "#8878b0",
+          active: "#2d2245",
         },
         // ערכת-העבודה הבהירה (עריכת טופס / שליחה / מילוי לקוח)
         paper: {
           DEFAULT: "#f8f7ff",
           line: "#e8e4f5",
           text: "#1a1429",
+          muted: "#6b6385",
         },
+        // רקע אזורי-הניהול (דשבורד / הגשות / הגדרות) — בהיר וסגלגל עדין
+        surface: "#f0eeff",
       },
       keyframes: {
         "fade-in": {

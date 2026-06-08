@@ -40,10 +40,34 @@ export default async function DashboardPage() {
   ]);
 
   const stats = [
-    { label: "סה״כ טפסים", value: forms?.length ?? 0, icon: <FormIcon /> },
-    { label: "נשלחו ללקוחות", value: sentCount ?? 0, icon: <SentIcon /> },
-    { label: "הושלמו", value: completedCount ?? 0, icon: <CheckIcon /> },
-    { label: "ממתינים לחתימה", value: pendingCount ?? 0, icon: <PendingIcon /> },
+    {
+      label: "סה״כ טפסים",
+      value: forms?.length ?? 0,
+      icon: <FormIcon />,
+      gradient: "linear-gradient(135deg, #ffffff 0%, #f3eeff 100%)",
+      accent: "#9b6dff",
+    },
+    {
+      label: "נשלחו ללקוחות",
+      value: sentCount ?? 0,
+      icon: <SentIcon />,
+      gradient: "linear-gradient(135deg, #ffffff 0%, #eef3ff 100%)",
+      accent: "#6d9bff",
+    },
+    {
+      label: "הושלמו",
+      value: completedCount ?? 0,
+      icon: <CheckIcon />,
+      gradient: "linear-gradient(135deg, #ffffff 0%, #eefff3 100%)",
+      accent: "#5cb98a",
+    },
+    {
+      label: "ממתינים לחתימה",
+      value: pendingCount ?? 0,
+      icon: <PendingIcon />,
+      gradient: "linear-gradient(135deg, #ffffff 0%, #fff8ee 100%)",
+      accent: "#c9943a",
+    },
   ];
 
   const { data: submissions } = await supabase
@@ -75,21 +99,28 @@ export default async function DashboardPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-ink-text">הטפסים שלי</h1>
-        <Link href="/forms/new" className="btn-primary">
-          <span className="text-base leading-none">+</span> טופס חדש
+        <h1 className="text-2xl font-bold text-paper-text">הטפסים שלי</h1>
+        <Link href="/forms/new" className="btn-new-form">
+          <span className="text-xl font-bold leading-none">+</span> טופס חדש
         </Link>
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="card-dark flex items-center gap-3 p-4">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-brand-light">
+          <div
+            key={s.label}
+            className="stat-card flex items-center gap-3"
+            style={{ background: s.gradient, borderTop: `4px solid ${s.accent}` }}
+          >
+            <span
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+              style={{ backgroundColor: `${s.accent}1f`, color: s.accent }}
+            >
               {s.icon}
             </span>
             <div>
-              <p className="text-2xl font-bold text-ink-text">{s.value}</p>
-              <p className="text-sm text-ink-muted">{s.label}</p>
+              <p className="text-2xl font-bold text-paper-text">{s.value}</p>
+              <p className="text-sm text-paper-muted">{s.label}</p>
             </div>
           </div>
         ))}
@@ -97,19 +128,19 @@ export default async function DashboardPage() {
 
       <div className="mb-6 grid gap-4 lg:grid-cols-2">
         {/* גרף שימוש לפי טופס */}
-        <section className="card-dark p-5">
-          <h2 className="mb-4 font-semibold text-ink-text">שימוש לפי טופס</h2>
+        <section className="card p-5">
+          <h2 className="mb-4 font-semibold text-paper-text">שימוש לפי טופס</h2>
           {usage.length === 0 ? (
-            <p className="text-sm text-ink-muted">אין עדיין הגשות להצגה.</p>
+            <p className="text-sm text-paper-muted">אין עדיין הגשות להצגה.</p>
           ) : (
             <div className="space-y-3">
               {usage.map((u) => (
                 <div key={u.formId}>
                   <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="truncate text-ink-text">{u.name}</span>
-                    <span className="shrink-0 text-ink-muted">{u.count}</span>
+                    <span className="truncate text-paper-text">{u.name}</span>
+                    <span className="shrink-0 text-paper-muted">{u.count}</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-ink-line">
+                  <div className="h-2 overflow-hidden rounded-full bg-paper-line">
                     <div
                       className="h-full rounded-full bg-brand"
                       style={{ width: `${(u.count / maxUsage) * 100}%` }}
@@ -122,18 +153,18 @@ export default async function DashboardPage() {
         </section>
 
         {/* פיד פעילות אחרונה */}
-        <section className="card-dark p-5">
-          <h2 className="mb-4 font-semibold text-ink-text">פעילות אחרונה</h2>
+        <section className="card p-5">
+          <h2 className="mb-4 font-semibold text-paper-text">פעילות אחרונה</h2>
           {activity.length === 0 ? (
-            <p className="text-sm text-ink-muted">אין עדיין פעילות להצגה.</p>
+            <p className="text-sm text-paper-muted">אין עדיין פעילות להצגה.</p>
           ) : (
             <ul className="space-y-3 text-sm">
               {activity.map((a, i) => (
-                <li key={i} className="flex items-start gap-2.5 border-b border-ink-line pb-3 last:border-0 last:pb-0">
+                <li key={i} className="flex items-start gap-2.5 border-b border-paper-line pb-3 last:border-0 last:pb-0">
                   <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
                   <div className="min-w-0">
-                    <p className="text-ink-text">{a.text}</p>
-                    <p className="text-xs text-ink-muted">{new Date(a.at).toLocaleString("he-IL")}</p>
+                    <p className="text-paper-text">{a.text}</p>
+                    <p className="text-xs text-paper-muted">{new Date(a.at).toLocaleString("he-IL")}</p>
                   </div>
                 </li>
               ))}
@@ -144,12 +175,12 @@ export default async function DashboardPage() {
 
       {/* טבלת טפסים ממתינים לחתימה */}
       {pendingSubs.length > 0 && (
-        <section className="card-dark mb-6 overflow-hidden">
-          <h2 className="border-b border-ink-line p-5 pb-4 font-semibold text-ink-text">
+        <section className="card mb-6 overflow-hidden">
+          <h2 className="border-b border-paper-line p-5 pb-4 font-semibold text-paper-text">
             ממתינים לחתימה
           </h2>
           <table className="w-full text-right text-sm">
-            <thead className="text-ink-muted">
+            <thead className="text-paper-muted">
               <tr>
                 <th className="px-5 py-2.5 font-medium">לקוח</th>
                 <th className="px-5 py-2.5 font-medium">טופס</th>
@@ -157,18 +188,18 @@ export default async function DashboardPage() {
                 <th className="px-5 py-2.5"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink-line">
+            <tbody className="divide-y divide-paper-line">
               {pendingSubs.map((s) => {
                 const meta = STATUS_META[s.status];
                 return (
-                  <tr key={s.id} className="transition hover:bg-white/5">
-                    <td className="px-5 py-3 text-ink-text">{s.recipient_name}</td>
-                    <td className="px-5 py-3 text-ink-muted">{formName.get(s.form_id) ?? "—"}</td>
+                  <tr key={s.id} className="transition hover:bg-brand/5">
+                    <td className="px-5 py-3 text-paper-text">{s.recipient_name}</td>
+                    <td className="px-5 py-3 text-paper-muted">{formName.get(s.form_id) ?? "—"}</td>
                     <td className="px-5 py-3">
                       <span className={`badge badge-dot ${meta.className}`}>{meta.label}</span>
                     </td>
                     <td className="px-5 py-3">
-                      <Link href={`/submissions/${s.id}`} className="font-medium text-brand-light transition hover:underline">
+                      <Link href={`/submissions/${s.id}`} className="font-medium text-brand transition hover:underline">
                         פרטים
                       </Link>
                     </td>
@@ -181,11 +212,11 @@ export default async function DashboardPage() {
       )}
 
       {!forms || forms.length === 0 ? (
-        <div className="card-dark border-dashed p-12 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand/15 text-brand-light">
+        <div className="card border-dashed p-12 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand/15 text-brand">
             <FormIcon />
           </div>
-          <p className="mb-4 text-ink-muted">עדיין אין טפסים. העלה PDF כדי להתחיל.</p>
+          <p className="mb-4 text-paper-muted">עדיין אין טפסים. העלה PDF כדי להתחיל.</p>
           <Link href="/forms/new" className="btn-primary inline-flex">
             העלאת טופס ראשון
           </Link>
@@ -195,24 +226,24 @@ export default async function DashboardPage() {
           {forms.map((form) => (
             <div
               key={form.id}
-              className="card-dark card-hover stagger-item flex flex-col p-5"
+              className="card card-hover stagger-item flex flex-col p-5"
             >
               <div className="mb-3 flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-brand-light">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-brand">
                   <FormIcon />
                 </span>
                 <div className="min-w-0">
-                  <h2 className="truncate text-lg font-semibold text-ink-text">
+                  <h2 className="truncate text-lg font-semibold text-paper-text">
                     {form.name}
                   </h2>
-                  <p className="text-sm text-ink-muted">
+                  <p className="text-sm text-paper-muted">
                     {form.page_count} עמודים ·{" "}
                     {new Date(form.created_at).toLocaleDateString("he-IL")}
                   </p>
                 </div>
               </div>
               <div className="mt-auto flex flex-wrap items-center gap-2 pt-3">
-                <Link href={`/forms/${form.id}/edit`} className="btn-ghost !text-ink-text hover:!bg-white/10 hover:!text-brand-light">
+                <Link href={`/forms/${form.id}/edit`} className="btn-ghost">
                   עריכת שדות
                 </Link>
                 <Link href={`/forms/${form.id}/send`} className="btn-primary !px-3 !py-1.5">

@@ -54,7 +54,6 @@ export default async function SubmissionDetailPage({
   return (
     <div className="page-fade-in mx-auto max-w-4xl">
       <Breadcrumbs
-        dark
         items={[
           { label: "הגשות", href: "/submissions" },
           { label: sub.recipient_name },
@@ -63,8 +62,8 @@ export default async function SubmissionDetailPage({
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-ink-text">{sub.recipient_name}</h1>
-          <p className="text-ink-muted">
+          <h1 className="text-2xl font-bold text-paper-text">{sub.recipient_name}</h1>
+          <p className="text-paper-muted">
             {form?.name} ·{" "}
             <span dir="ltr" className="text-sm">
               {sub.recipient_email}
@@ -78,19 +77,19 @@ export default async function SubmissionDetailPage({
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* ערכים שמולאו */}
-        <section className="card-dark p-5">
-          <h2 className="mb-3 font-semibold text-ink-text">תוכן הטופס</h2>
+        <section className="card p-5">
+          <h2 className="mb-3 font-semibold text-paper-text">תוכן הטופס</h2>
           {sub.status !== "completed" ? (
-            <p className="text-sm text-ink-muted">הטופס עדיין לא הושלם.</p>
+            <p className="text-sm text-paper-muted">הטופס עדיין לא הושלם.</p>
           ) : (
             <dl className="space-y-2 text-sm">
               {(fields ?? []).map((f) => {
                 const raw = valueMap.get(f.id);
                 const isSig = f.type === "signature" || f.type === "initials";
                 return (
-                  <div key={f.id} className="flex justify-between gap-4 border-b border-ink-line pb-2">
-                    <dt className="text-ink-muted">{f.label || f.type}</dt>
-                    <dd className="text-ink-text">
+                  <div key={f.id} className="flex justify-between gap-4 border-b border-paper-line pb-2">
+                    <dt className="text-paper-muted">{f.label || f.type}</dt>
+                    <dd className="text-paper-text">
                       {isSig ? (raw ? "נחתם ✓" : "—") : raw || "—"}
                     </dd>
                   </div>
@@ -101,8 +100,8 @@ export default async function SubmissionDetailPage({
         </section>
 
         {/* תיעוד + הורדה */}
-        <section className="card-dark p-5">
-          <h2 className="mb-3 font-semibold text-ink-text">תיעוד וחתימה</h2>
+        <section className="card p-5">
+          <h2 className="mb-3 font-semibold text-paper-text">תיעוד וחתימה</h2>
           {sub.status === "completed" && audit ? (
             <dl className="space-y-2 text-sm">
               <Row label="נחתם בתאריך" value={new Date(audit.signed_at).toLocaleString("he-IL")} />
@@ -110,7 +109,7 @@ export default async function SubmissionDetailPage({
               <Row label="טביעת מסמך (SHA-256)" value={audit.doc_sha256} mono />
             </dl>
           ) : (
-            <p className="text-sm text-ink-muted">אין תיעוד — הטופס לא נחתם עדיין.</p>
+            <p className="text-sm text-paper-muted">אין תיעוד — הטופס לא נחתם עדיין.</p>
           )}
 
           {downloadUrl && (
@@ -128,11 +127,11 @@ export default async function SubmissionDetailPage({
 
       {/* תצוגה מקדימה */}
       {downloadUrl && (
-        <section className="card-dark mt-6 p-5">
-          <h2 className="mb-3 font-semibold text-ink-text">תצוגה מקדימה</h2>
+        <section className="card mt-6 p-5">
+          <h2 className="mb-3 font-semibold text-paper-text">תצוגה מקדימה</h2>
           <iframe
             src={downloadUrl}
-            className="h-[800px] w-full rounded-lg border border-ink-line"
+            className="h-[800px] w-full rounded-lg border border-paper-line"
             title="PDF חתום"
           />
         </section>
@@ -153,10 +152,10 @@ function Row({
   mono?: boolean;
 }) {
   return (
-    <div className="flex justify-between gap-4 border-b border-ink-line pb-2">
-      <dt className="shrink-0 text-ink-muted">{label}</dt>
+    <div className="flex justify-between gap-4 border-b border-paper-line pb-2">
+      <dt className="shrink-0 text-paper-muted">{label}</dt>
       <dd
-        className={`break-all text-ink-text ${mono ? "font-mono text-xs" : ""}`}
+        className={`break-all text-paper-text ${mono ? "font-mono text-xs" : ""}`}
         dir={ltr || mono ? "ltr" : undefined}
       >
         {value}
