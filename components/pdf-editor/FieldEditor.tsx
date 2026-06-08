@@ -213,7 +213,7 @@ export default function FieldEditor({
       {/* שורת כלים אופקית מעל ה-PDF */}
       <div className="card flex flex-wrap items-center gap-3 p-3">
         <h2 className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-slate-700">
-          <span className="text-gold">＋</span> הוספת שדה
+          <span className="text-brand">＋</span> הוספת שדה
         </h2>
         <div className="flex flex-wrap gap-2">
           {FIELD_TYPES.map((t) => (
@@ -222,8 +222,8 @@ export default function FieldEditor({
               onClick={() => startPlacing(t)}
               className={`group flex items-center gap-2 rounded-lg border px-2.5 py-2 text-xs font-medium transition hover:-translate-y-0.5 hover:shadow-sm ${
                 placing === t
-                  ? "border-gold bg-gold/10 text-brand"
-                  : "border-slate-200 bg-white text-slate-700 hover:border-gold/50"
+                  ? "border-brand bg-brand/10 text-brand"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-brand/50"
               }`}
             >
               <span

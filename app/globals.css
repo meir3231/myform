@@ -40,13 +40,6 @@ body {
       focus:outline-none focus:ring-2 focus:ring-brand/20
       disabled:cursor-not-allowed disabled:opacity-50;
   }
-  .btn-gold {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-gold px-4 py-2.5
-      text-sm font-semibold text-brand-dark shadow-sm transition
-      hover:bg-gold-dark hover:text-white hover:shadow-md
-      focus:outline-none focus:ring-2 focus:ring-gold/40
-      disabled:cursor-not-allowed disabled:opacity-50;
-  }
   .btn-danger-ghost {
     @apply inline-flex items-center justify-center gap-1 rounded-lg px-3 py-1.5
       text-sm text-slate-500 transition hover:bg-red-50 hover:text-red-600;
@@ -56,13 +49,17 @@ body {
       text-sm text-slate-600 transition hover:bg-slate-100 hover:text-brand;
   }
 
-  /* ---- כרטיסים ---- */
+  /* ---- כרטיסים: ברירת מחדל לערכה הבהירה (עריכה/שליחה/מילוי) ---- */
   .card {
-    @apply rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)];
+    @apply rounded-2xl border border-paper-line bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)];
   }
   .card-hover {
     @apply transition duration-200 ease-out hover:-translate-y-1
-      hover:border-gold/40 hover:shadow-[0_12px_28px_-8px_rgba(30,58,95,0.25)];
+      hover:border-brand/40 hover:shadow-[0_12px_28px_-8px_rgba(155,109,255,0.25)];
+  }
+  /* ---- כרטיסים: ערכת-הניהול הכהה (דשבורד/הגשות/הגדרות) ---- */
+  .card-dark {
+    @apply rounded-2xl border border-ink-line bg-ink-panel shadow-[0_1px_3px_rgba(0,0,0,0.25)];
   }
 
   /* ---- badge סטטוס ---- */

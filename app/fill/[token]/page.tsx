@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 // פס מיתוג מינימלי — מופיע גם בדפי הודעה וגם בדף המילוי, ללא ניווט (דף ציבורי).
 function BrandBar() {
   return (
-    <header className="border-b border-slate-200/60 bg-white/70 px-4 py-3 backdrop-blur-sm">
+    <header className="border-b border-paper-line bg-white/70 px-4 py-3 backdrop-blur-sm">
       <BrandLogo size="sm" />
     </header>
   );
@@ -17,11 +17,11 @@ function BrandBar() {
 
 function Notice({ title, body }: { title: string; body: string }) {
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-100 to-slate-200/70">
+    <div className="flex min-h-screen flex-col bg-paper">
       <BrandBar />
       <main className="flex flex-1 items-center justify-center p-4">
         <div className="page-fade-in card w-full max-w-md p-8 text-center">
-          <h1 className="mb-2 text-xl font-bold text-slate-800">{title}</h1>
+          <h1 className="mb-2 text-xl font-bold text-paper-text">{title}</h1>
           <p className="text-slate-500">{body}</p>
         </div>
       </main>
@@ -56,7 +56,7 @@ export default async function FillPage({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-100">
+    <div className="flex min-h-screen flex-col bg-paper">
       <BrandBar />
       <main className="flex-1 px-4 py-6">
         <FillerLoader

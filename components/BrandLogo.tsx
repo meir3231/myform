@@ -1,10 +1,10 @@
-// סמל המותג: דף/טופס (קווי טקסט) + ניצוץ זהב — משלב "טופס" ו"חדשנות".
+// סמל המותג: דף/טופס (קווי טקסט) + ניצוץ סגול — משלב "טופס" ו"חדשנות".
 function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
       <rect x="4" y="3" width="13" height="18" rx="2.2" stroke="currentColor" strokeWidth="1.6" />
       <path d="M7.3 8h6.4M7.3 11.5h6.4M7.3 15h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M18.3 12.2l.9 2 2 .9-2 .9-.9 2-.9-2-2-.9 2-.9.9-2Z" fill="#c9a84c" />
+      <path d="M18.3 12.2l.9 2 2 .9-2 .9-.9 2-.9-2-2-.9 2-.9.9-2Z" fill="#c4abff" />
     </svg>
   );
 }
