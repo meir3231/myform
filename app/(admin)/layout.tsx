@@ -17,7 +17,7 @@ export default async function AdminLayout({
     <div className="min-h-screen">
       <header className="admin-header">
         <Link href="/dashboard" className="header-logo-link">
-          <Image src="/logo.png" alt="TofSync" width={129} height={56} className="h-auto" priority />
+          <Image src="/logo.png" alt="TofSync" width={516} height={224} className="h-auto" priority />
         </Link>
       </header>
       <Sidebar userName={profile.full_name || "מנהל"} signOutAction={signOut} />

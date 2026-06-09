@@ -138,25 +138,17 @@ body {
 
 body { background-color: #f4f5f7; }
 
-/* ── HEADER: full-width, fixed, גל בתחתית ── */
+/* ── HEADER: full-width, בזרם הדף (לא fixed) ── */
 header.admin-header {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  width: 100vw; max-width: 100vw;
-  height: 96px;
-  z-index: 200;
+  position: relative;
   display: flex;
   align-items: center;
-  padding: 0 36px;
-  overflow: visible;
+  justify-content: center;
+  padding: 28px 36px;
+  overflow: hidden;
   background: linear-gradient(135deg, #2c5282 0%, #2a5f8f 40%, #2e6da4 70%, #2a5f8f 100%);
   border-bottom: none;
   box-shadow: 0 4px 0 #1e4976, 0 6px 20px rgba(30, 73, 118, 0.3);
-  clip-path: polygon(
-    0% 0%, 100% 0%, 100% 82%,
-    95% 90%, 88% 95%, 80% 98%, 72% 100%, 63% 100%, 54% 99%,
-    45% 96%, 37% 93%, 29% 91%, 22% 90%, 15% 91%, 8% 94%, 3% 97%, 0% 100%
-  );
   isolation: isolate;
 }
 
@@ -182,25 +174,22 @@ header.admin-header::after {
 
 /* לוגו ב-header */
 .header-logo-link {
-  position: absolute;
-  inset-inline-end: 36px;
-  top: 50%;
-  transform: translateY(-50%);
+  position: relative;
   z-index: 10;
   display: flex;
   align-items: center;
 }
 
 .header-logo-link img {
-  height: 56px;
+  height: 224px;
   width: auto;
   filter: brightness(10) drop-shadow(0 2px 8px rgba(0,0,0,0.3));
 }
 
-/* ── SIDEBAR: לבן, מתחיל מתחת להדר ── */
+/* ── SIDEBAR: לבן, מלמעלה עד למטה ── */
 .admin-shell-surface {
   position: fixed !important;
-  top: 96px !important;
+  top: 0 !important;
   right: 0;
   width: 220px;
   z-index: 40;
@@ -220,8 +209,8 @@ header.admin-header::after {
 .admin-shell-surface .border-t { border-color: #e5e7eb; }
 .admin-shell-surface nav { padding-top: 8px; }
 
-/* ── Content wrapper: padding בגובה ה-header ── */
-.mr-\[220px\] { padding-top: 96px !important; }
+/* ── Content wrapper ── */
+.mr-\[220px\] { padding-top: 0 !important; }
 
 /* ── כרטיסי סטטיסטיקה ── */
 .stat-card {
