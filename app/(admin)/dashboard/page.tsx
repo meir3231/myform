@@ -39,34 +39,10 @@ export default async function DashboardPage() {
   ]);
 
   const stats = [
-    {
-      label: "סה״כ טפסים",
-      value: forms?.length ?? 0,
-      icon: <FormIcon />,
-      gradient: "linear-gradient(135deg, #ffffff 0%, #f3eeff 100%)",
-      accent: "#9b6dff",
-    },
-    {
-      label: "נשלחו ללקוחות",
-      value: sentCount ?? 0,
-      icon: <SentIcon />,
-      gradient: "linear-gradient(135deg, #ffffff 0%, #eef3ff 100%)",
-      accent: "#6d9bff",
-    },
-    {
-      label: "הושלמו",
-      value: completedCount ?? 0,
-      icon: <CheckIcon />,
-      gradient: "linear-gradient(135deg, #ffffff 0%, #eefff3 100%)",
-      accent: "#5cb98a",
-    },
-    {
-      label: "ממתינים לחתימה",
-      value: pendingCount ?? 0,
-      icon: <PendingIcon />,
-      gradient: "linear-gradient(135deg, #ffffff 0%, #fff8ee 100%)",
-      accent: "#c9943a",
-    },
+    { label: "סה״כ טפסים",      value: forms?.length ?? 0, icon: <FormIcon />,    accent: "#9b6dff" },
+    { label: "נשלחו ללקוחות",   value: sentCount ?? 0,     icon: <SentIcon />,    accent: "#4f83ff" },
+    { label: "הושלמו",           value: completedCount ?? 0, icon: <CheckIcon />,  accent: "#22c55e" },
+    { label: "ממתינים לחתימה",  value: pendingCount ?? 0,  icon: <PendingIcon />, accent: "#f59e0b" },
   ];
 
   const { data: submissions } = await supabase
@@ -108,8 +84,8 @@ export default async function DashboardPage() {
         {stats.map((s) => (
           <div
             key={s.label}
-            className="stat-card flex items-center gap-3"
-            style={{ background: s.gradient, borderTop: `4px solid ${s.accent}` }}
+            className="stat-card flex items-center gap-3 border border-paper-line bg-white"
+            style={{ borderTop: `3px solid ${s.accent}` }}
           >
             <span
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"

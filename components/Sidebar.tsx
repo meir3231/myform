@@ -13,7 +13,7 @@ export function Sidebar({
     <aside className="admin-shell-surface fixed inset-y-0 right-0 z-40 flex w-[220px] flex-col border-l border-[#3d3158] text-ink-text">
       <div className="flex items-center justify-center border-b border-ink-line px-4 py-4">
         <Link href="/dashboard">
-          <Image src="/logo.png" alt="TofSync" width={120} height={40} className="h-auto w-[120px]" priority />
+          <Image src="/logo.png" alt="TofSync" width={180} height={60} className="h-auto w-[180px]" priority />
         </Link>
       </div>
 

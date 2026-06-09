@@ -75,9 +75,9 @@ export default async function SubmissionsPage() {
                     <td className="px-4 py-3">
                       <Link
                         href={`/submissions/${s.id}`}
-                        className="font-medium text-brand transition hover:underline"
+                        className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-medium text-brand transition hover:bg-brand/10"
                       >
-                        פרטים
+                        פרטים ←
                       </Link>
                     </td>
                   </tr>
