@@ -192,7 +192,7 @@ header.admin-header::after {
 }
 
 .header-logo-link img {
-  height: 56px;
+  height: 336px;
   width: auto;
   filter: brightness(10) drop-shadow(0 2px 8px rgba(0,0,0,0.3));
 }
