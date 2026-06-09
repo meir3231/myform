@@ -31,6 +31,26 @@ export interface Database {
         Update: Partial<{ full_name: string | null; role: string; org_id: string }>;
         Relationships: [];
       };
+      folders: {
+        Row: {
+          id: string;
+          org_id: string;
+          name: string;
+          parent_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          name: string;
+          parent_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<{ name: string; parent_id: string | null }>;
+        Relationships: [];
+      };
       forms: {
         Row: {
           id: string;
@@ -40,6 +60,7 @@ export interface Database {
           page_count: number;
           is_reusable: boolean;
           archived_at: string | null;
+          folder_id: string | null;
           created_by: string | null;
           created_at: string;
         };
@@ -51,10 +72,11 @@ export interface Database {
           page_count?: number;
           is_reusable?: boolean;
           archived_at?: string | null;
+          folder_id?: string | null;
           created_by?: string | null;
           created_at?: string;
         };
-        Update: Partial<{ name: string; page_count: number; archived_at: string | null }>;
+        Update: Partial<{ name: string; page_count: number; archived_at: string | null; folder_id: string | null }>;
         Relationships: [];
       };
       form_fields: {
