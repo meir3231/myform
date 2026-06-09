@@ -8,6 +8,9 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
+  experimental: {
+    viewTransition: true,
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

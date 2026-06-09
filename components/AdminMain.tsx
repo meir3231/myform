@@ -11,9 +11,12 @@ export function AdminMain({ children }: { children: React.ReactNode }) {
   const isPdfPage = PDF_PREFIXES.some((p) => pathname.startsWith(p));
 
   return (
-    <main className={`flex-1 text-paper-text ${isPdfPage ? "bg-paper" : "bg-surface"}`}>
+    <main
+      className={`flex-1 text-paper-text ${isPdfPage ? "bg-paper" : "bg-surface"}`}
+      style={{ viewTransitionName: "main-content" }}
+    >
       <div className="mx-auto max-w-6xl px-4 py-8">
-        <div className="page-fade-in">{children}</div>
+        {children}
       </div>
     </main>
   );

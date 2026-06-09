@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
-import { STATUS_META } from "@/lib/status";
+import { DashboardTabs } from "@/components/DashboardTabs";
 import type { SubmissionStatus } from "@/lib/database.types";
 
 type SubmissionRow = {
@@ -32,7 +32,7 @@ export default async function DashboardPage() {
     { data: submissions },
     [{ count: sentCount }, { count: completedCount }, { count: pendingCount }],
   ] = await Promise.all([
-    supabase.from("forms").select("id, name, page_count, created_at").order("created_at", { ascending: false }),
+    supabase.from("forms").select("id, name, page_count, is_reusable, archived_at, created_at").order("created_at", { ascending: false }),
     supabase.from("submissions").select("id, recipient_name, status, form_id, sent_at, opened_at, completed_at, created_at").order("created_at", { ascending: false }),
     Promise.all([
       supabase.from("submissions").select("*", { count: "exact", head: true }).not("sent_at", "is", null),
@@ -146,43 +146,12 @@ export default async function DashboardPage() {
         </section>
       </div>
 
-      {/* טבלת טפסים ממתינים לחתימה */}
-      {pendingSubs.length > 0 && (
-        <section className="card mb-6 overflow-hidden">
-          <h2 className="border-b border-paper-line p-5 pb-4 font-semibold text-paper-text">
-            ממתינים לחתימה
-          </h2>
-          <table className="w-full text-right text-sm">
-            <thead className="text-paper-muted">
-              <tr>
-                <th className="px-5 py-2.5 font-medium">לקוח</th>
-                <th className="px-5 py-2.5 font-medium">טופס</th>
-                <th className="px-5 py-2.5 font-medium">סטטוס</th>
-                <th className="px-5 py-2.5"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-paper-line">
-              {pendingSubs.map((s) => {
-                const meta = STATUS_META[s.status];
-                return (
-                  <tr key={s.id} className="transition hover:bg-brand/5">
-                    <td className="px-5 py-3 text-paper-text">{s.recipient_name}</td>
-                    <td className="px-5 py-3 text-paper-muted">{formName.get(s.form_id) ?? "—"}</td>
-                    <td className="px-5 py-3">
-                      <span className={`badge badge-dot ${meta.className}`}>{meta.label}</span>
-                    </td>
-                    <td className="px-5 py-3">
-                      <Link href={`/submissions/${s.id}`} className="font-medium text-brand transition hover:underline">
-                        פרטים
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </section>
-      )}
+      {/* Tabs: ממתינים לחתימה ↔ תבניות — מיתוג עם אנימציה */}
+      <DashboardTabs
+        pendingSubs={pendingSubs}
+        forms={forms ?? []}
+        formName={formName}
+      />
 
     </div>
   );
