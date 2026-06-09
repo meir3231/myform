@@ -48,6 +48,13 @@ function FieldTypeIcon({ type }: { type: FieldType }) {
           <path d="M6 17V7l4 7 4-7v10M16 7h3M16 12h3M16 17h3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
+    case "checkbox":
+      return (
+        <svg {...common}>
+          <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.7" />
+          <path d="M7.5 12l3 3 6-6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -171,7 +178,7 @@ export default function FieldEditor({
       type,
       label: meta.label,
       required: type === "signature",
-      font_size: 12,
+      font_size: 14,
       copyFrom: null,
     };
     setFields((prev) => [...prev, f]);
@@ -423,14 +430,17 @@ export default function FieldEditor({
               </button>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-              <svg viewBox="0 0 24 24" fill="none" className="h-8 w-8 text-slate-300" aria-hidden>
-                <rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-                <rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-                <rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-                <rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
-              <p className="text-xs text-slate-400">לחץ על שדה לעריכת מאפייניו</p>
+            <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100">
+                <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6 text-slate-400" aria-hidden>
+                  <path d="M15 3H9a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">לא נבחר שדה</p>
+                <p className="mt-0.5 text-xs text-slate-400">לחץ על שדה ב-PDF לעריכה</p>
+              </div>
             </div>
           )}
         </aside>

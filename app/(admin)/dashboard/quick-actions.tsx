@@ -12,7 +12,7 @@ export function QuickActions({ forms }: { forms: FormOption[] }) {
 
   return (
     <>
-      <div className="mb-6 flex flex-col gap-2 sm:flex-row">
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center">
         <Link
           href="/forms/new"
           className="flex items-center gap-2 rounded-xl border border-brand bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark hover:shadow-md"
@@ -23,7 +23,7 @@ export function QuickActions({ forms }: { forms: FormOption[] }) {
 
         <button
           onClick={() => setShowPicker(true)}
-          className="flex items-center gap-2 rounded-xl border border-brand px-4 py-2.5 text-sm font-semibold text-brand transition hover:bg-brand/10"
+          className="flex items-center gap-2 rounded-xl border border-brand px-4 py-2.5 text-sm font-semibold text-brand shadow-sm transition hover:bg-brand/10"
         >
           <SendIcon />
           שליחת טופס ללקוח

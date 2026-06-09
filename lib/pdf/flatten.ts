@@ -95,6 +95,17 @@ export async function flattenPdf(
       const x = boxX + (boxW - w) / 2;
       const y = topPdfY - boxH + (boxH - h) / 2;
       page.drawImage(img, { x, y, width: w, height: h });
+    } else if (field.type === "checkbox") {
+      // מסגרת קופסא + סימון ✓ אם מסומן
+      const bx = boxX;
+      const by = topPdfY - boxH;
+      page.drawRectangle({ x: bx, y: by, width: boxW, height: boxH, borderWidth: 1, borderColor: rgb(0.3, 0.3, 0.3), color: rgb(1, 1, 1) });
+      if (value === "true") {
+        const size = Math.max(6, boxH * 0.78);
+        const checkX = bx + boxW * 0.08;
+        const checkY = by + (boxH - size) / 2 + size * 0.12;
+        page.drawText("✓", { x: checkX, y: checkY, size, font, color: rgb(0.06, 0.09, 0.16) });
+      }
     } else if (value && value.trim()) {
       const size = Math.max(6, Math.min(field.font_size, boxH * 0.85));
       const baselineY = topPdfY - boxH + (boxH - size) / 2 + size * 0.18;

@@ -166,6 +166,8 @@ export default function FormFiller({
       if (!f.required) continue;
       if (f.type === "signature" || f.type === "initials") {
         if (!signatures[f.id]) invalid.add(f.id);
+      } else if (f.type === "checkbox") {
+        if (values[f.id] !== "true") invalid.add(f.id);
       } else if (!values[f.id]?.trim()) {
         invalid.add(f.id);
       }

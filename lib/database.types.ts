@@ -1,7 +1,7 @@
 // טיפוסי הדאטהבייס. תואם ל-supabase/migrations/0001_init.sql.
 // אם משנים את הסכמה — יש לעדכן גם כאן (או לייצר אוטומטית עם `supabase gen types`).
 
-export type FieldType = "text" | "number" | "date" | "signature" | "initials";
+export type FieldType = "text" | "number" | "date" | "signature" | "initials" | "checkbox";
 export type SubmissionStatus = "pending" | "opened" | "completed" | "expired";
 
 export interface Database {

@@ -87,17 +87,17 @@ export function SendForm({
 
   return (
     <div
-      className="grid gap-0 lg:grid-cols-[420px_1fr]"
+      className="grid gap-3 lg:grid-cols-[420px_1fr]"
       style={{ height: "calc(100vh - 180px)" }}
     >
       {/* Left: form — client details (compact) + prefill (main) */}
-      <div className="flex h-full flex-col overflow-hidden border-r border-paper-line">
+      <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-paper-line shadow-sm">
         <form
           action={formAction}
           className="flex h-full flex-col overflow-hidden"
         >
           {/* Client details — compact, no scroll */}
-          <div className="shrink-0 border-b border-paper-line bg-white px-5 py-4">
+          <div className="shrink-0 border-b border-paper-line bg-slate-50/80 px-5 py-4">
             <h2 className="mb-3 text-sm font-semibold text-slate-700">פרטי הלקוח</h2>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -134,7 +134,7 @@ export function SendForm({
           </div>
 
           {/* Prefill — main scrollable section */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50/50">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
             <div className="shrink-0 border-b border-paper-line bg-white px-5 py-3">
               <h2 className="text-sm font-semibold text-slate-700">מילוי מקדים</h2>
               <p className="mt-0.5 text-xs text-slate-400">
@@ -191,7 +191,7 @@ export function SendForm({
       </div>
 
       {/* Right: PDF preview — main area */}
-      <div className="hidden h-full overflow-hidden bg-slate-50 lg:block">
+      <div className="hidden h-full overflow-hidden rounded-2xl border border-paper-line bg-slate-50 shadow-sm lg:block">
         <SendPreviewLoader pdfUrl={pdfUrl} pageCount={pageCount} />
       </div>
     </div>

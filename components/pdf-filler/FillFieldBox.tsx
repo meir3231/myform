@@ -58,6 +58,25 @@ export function FillFieldBox({
     );
   }
 
+  if (field.type === "checkbox") {
+    const checked = value === "true";
+    return (
+      <div
+        style={{ ...style, boxShadow: ring, backgroundColor: highlightBg }}
+        className="flex items-center justify-center rounded"
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={readOnly || preview}
+          onChange={(e) => onChange(e.target.checked ? "true" : "false")}
+          className="cursor-pointer accent-brand"
+          style={{ width: "60%", height: "60%" }}
+        />
+      </div>
+    );
+  }
+
   if (field.type === "signature" || field.type === "initials") {
     return (
       <button

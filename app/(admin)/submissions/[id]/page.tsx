@@ -67,12 +67,18 @@ export default async function SubmissionDetailPage({
               {(fields ?? []).map((f) => {
                 const raw = valueMap.get(f.id);
                 const isSig = f.type === "signature" || f.type === "initials";
+                const isCheckbox = f.type === "checkbox";
+                const displayValue = isSig
+                  ? (raw ? "נחתם ✓" : <span className="text-slate-400">לא נחתם</span>)
+                  : isCheckbox
+                  ? (raw === "true" ? "מסומן ✓" : <span className="text-slate-400">לא מסומן</span>)
+                  : raw
+                  ? raw
+                  : <span className="text-slate-400">לא מולא</span>;
                 return (
                   <div key={f.id} className="flex justify-between gap-4 border-b border-paper-line pb-2">
                     <dt className="text-paper-muted">{f.label || f.type}</dt>
-                    <dd className="text-paper-text">
-                      {isSig ? (raw ? "נחתם ✓" : "—") : raw || "—"}
-                    </dd>
+                    <dd className="text-paper-text">{displayValue}</dd>
                   </div>
                 );
               })}

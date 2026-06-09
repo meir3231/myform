@@ -166,12 +166,12 @@ export function SubmissionsClient({
           <table className="w-full text-right text-sm">
             <thead className="text-paper-muted">
               <tr>
-                <th className="px-4 py-3 font-medium">לקוח</th>
-                <th className="px-4 py-3 font-medium">טופס</th>
-                <th className="px-4 py-3 font-medium">סטטוס</th>
-                <th className="px-4 py-3 font-medium">נשלח</th>
-                <th className="px-4 py-3 font-medium">הושלם</th>
-                <th className="px-4 py-3 w-8" />
+                <th className="px-4 py-3 text-right font-medium">לקוח</th>
+                <th className="px-4 py-3 text-right font-medium">טופס</th>
+                <th className="px-4 py-3 text-right font-medium">סטטוס</th>
+                <th className="px-4 py-3 text-right font-medium">נשלח</th>
+                <th className="px-4 py-3 text-right font-medium">הושלם</th>
+                <th className="w-8 px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-paper-line">

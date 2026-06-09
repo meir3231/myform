@@ -14,7 +14,7 @@ export default async function SettingsPage() {
       <h1 className="mb-6 text-2xl font-bold text-paper-text">הגדרות</h1>
 
       <div className="space-y-4">
-        <section className="card p-5">
+        <section className="card p-5 shadow-sm">
           <h2 className="mb-4 font-semibold text-paper-text">פרטי משתמש</h2>
           <dl className="space-y-3 text-sm">
             <Row label="שם מלא" value={profile.full_name || "—"} />
@@ -23,7 +23,7 @@ export default async function SettingsPage() {
           </dl>
         </section>
 
-        <section className="card p-5">
+        <section className="card p-5 shadow-sm">
           <h2 className="mb-4 font-semibold text-paper-text">פרטי הארגון</h2>
           <dl className="space-y-3 text-sm">
             <Row label="שם הארגון" value={org?.name || "—"} />

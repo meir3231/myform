@@ -68,6 +68,8 @@ export async function submitForm(
     if (!f.required) continue;
     if (f.type === "signature" || f.type === "initials") {
       if (!payload.signatures[f.id]) return { ok: false, error: "חסרה חתימה בשדה חובה" };
+    } else if (f.type === "checkbox") {
+      if (payload.values[f.id] !== "true") return { ok: false, error: "יש לסמן את תיבת הסימון החובה" };
     } else if (!(payload.values[f.id] ?? "").trim()) {
       return { ok: false, error: "חסר ערך בשדה חובה" };
     }
