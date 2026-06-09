@@ -4,6 +4,7 @@ import {
   useState, useEffect, useMemo, useRef, useTransition,
   type RefObject,
 } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -95,7 +96,8 @@ export function TemplatesClient({
   useEffect(() => {
     if (!openMenuId) return;
     function handleDocClick(e: MouseEvent) {
-      if (!(e.target as Element).closest("[data-form-menu]")) {
+      const t = e.target as Element;
+      if (!t.closest("[data-form-menu]") && !t.closest("[data-form-menu-portal]")) {
         setOpenMenuId(null);
       }
     }
@@ -744,61 +746,79 @@ function FormMenu({
   onMove: () => void;
   onDelete: () => void;
 }) {
-  return (
-    <div className="relative" data-form-menu>
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+
+  function handleToggle() {
+    if (!isOpen && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setMenuPos({ top: r.bottom + 4, left: r.left });
+    }
+    onToggle();
+  }
+
+  const dropdown = isOpen && menuPos ? createPortal(
+    <div
+      className="fixed z-[9999] w-44 overflow-hidden rounded-xl border border-paper-line bg-white py-1 shadow-xl"
+      style={{ top: menuPos.top, left: menuPos.left }}
+      data-form-menu-portal
+    >
+      <Link
+        href={`/forms/${form.id}/edit`}
+        className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
+      >
+        <EditPenIcon /> עריכת שדות
+      </Link>
+      {!form.archived_at && (
+        <Link
+          href={`/forms/${form.id}/send`}
+          className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
+        >
+          <SendArrowIcon /> שליחה ללקוח
+        </Link>
+      )}
+      <div className="my-1 border-t border-paper-line" />
       <button
-        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        onClick={onDuplicate}
+        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
+      >
+        <CopyIcon /> שכפול
+      </button>
+      <button
+        onClick={onRename}
+        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
+      >
+        <PenIcon /> שינוי שם
+      </button>
+      <button
+        onClick={onMove}
+        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
+      >
+        <FolderIcon className="h-4 w-4" /> העברה לתיקייה
+      </button>
+      <div className="my-1 border-t border-paper-line" />
+      <button
+        onClick={onDelete}
+        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-red-600 transition hover:bg-red-50"
+      >
+        <TrashIcon /> מחיקה
+      </button>
+    </div>,
+    document.body
+  ) : null;
+
+  return (
+    <div data-form-menu>
+      <button
+        ref={btnRef}
+        onClick={(e) => { e.stopPropagation(); handleToggle(); }}
         disabled={isPending}
         className="flex h-7 w-7 items-center justify-center rounded text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
         title="פעולות"
       >
         <DotsVerticalIcon />
       </button>
-
-      {isOpen && (
-        <div className="absolute left-0 top-8 z-50 w-44 overflow-hidden rounded-xl border border-paper-line bg-white py-1 shadow-xl">
-          <Link
-            href={`/forms/${form.id}/edit`}
-            className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
-          >
-            <EditPenIcon /> עריכת שדות
-          </Link>
-          {!form.archived_at && (
-            <Link
-              href={`/forms/${form.id}/send`}
-              className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
-            >
-              <SendArrowIcon /> שליחה ללקוח
-            </Link>
-          )}
-          <div className="my-1 border-t border-paper-line" />
-          <button
-            onClick={onDuplicate}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
-          >
-            <CopyIcon /> שכפול
-          </button>
-          <button
-            onClick={onRename}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
-          >
-            <PenIcon /> שינוי שם
-          </button>
-          <button
-            onClick={onMove}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
-          >
-            <FolderIcon className="h-4 w-4" /> העברה לתיקייה
-          </button>
-          <div className="my-1 border-t border-paper-line" />
-          <button
-            onClick={onDelete}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-red-600 transition hover:bg-red-50"
-          >
-            <TrashIcon /> מחיקה
-          </button>
-        </div>
-      )}
+      {dropdown}
     </div>
   );
 }

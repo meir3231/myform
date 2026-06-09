@@ -52,14 +52,9 @@ export default async function EditFormPage({
       />
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-800">{form.name}</h1>
-        <div className="flex items-center gap-2">
-          <Link href={`/forms/${form.id}/preview`} className="btn-secondary">
-            תצוגה מקדימה
-          </Link>
-          <Link href={`/forms/${form.id}/send`} className="btn-primary">
-            שליחה ללקוח →
-          </Link>
-        </div>
+        <Link href={`/forms/${form.id}/send`} className="btn-primary">
+          שליחה ללקוח →
+        </Link>
       </div>
 
       <FieldEditorLoader

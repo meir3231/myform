@@ -12,11 +12,10 @@ export function QuickActions({ forms }: { forms: FormOption[] }) {
 
   return (
     <>
-      <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-paper-line bg-gradient-to-l from-brand/5 to-white p-5 sm:flex-row">
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row">
         <Link
           href="/forms/new"
-          className="flex flex-1 items-center justify-center gap-3 rounded-xl bg-brand px-6 py-4 text-base font-semibold text-white shadow-md transition hover:bg-brand-dark hover:shadow-lg"
-          style={{ boxShadow: "0 4px 18px rgba(41,181,168,0.35)" }}
+          className="flex items-center gap-2 rounded-xl border border-brand bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark hover:shadow-md"
         >
           <PlusIcon />
           יצירת טופס חדש
@@ -24,7 +23,7 @@ export function QuickActions({ forms }: { forms: FormOption[] }) {
 
         <button
           onClick={() => setShowPicker(true)}
-          className="flex flex-1 items-center justify-center gap-3 rounded-xl border-2 border-brand px-6 py-4 text-base font-semibold text-brand transition hover:bg-brand/10"
+          className="flex items-center gap-2 rounded-xl border border-brand px-4 py-2.5 text-sm font-semibold text-brand transition hover:bg-brand/10"
         >
           <SendIcon />
           שליחת טופס ללקוח
@@ -94,7 +93,7 @@ function FormPickerModal({
 
 function PlusIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
       <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
     </svg>
   );
@@ -102,7 +101,7 @@ function PlusIcon() {
 
 function SendIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
       <path d="M4 12 20 4l-5 16-3-7-8-1Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
     </svg>
   );

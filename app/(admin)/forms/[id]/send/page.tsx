@@ -26,7 +26,7 @@ export default async function SendPage({
   ]);
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div>
       <Breadcrumbs
         items={[
           { label: "תבניות", href: "/templates" },
@@ -35,7 +35,7 @@ export default async function SendPage({
         ]}
       />
       <h1 className="mb-1 text-2xl font-bold text-slate-800">שליחה ללקוח</h1>
-      <p className="mb-6 text-slate-500">{form.name}</p>
+      <p className="mb-4 text-slate-500">{form.name}</p>
 
       <SendForm
         formId={form.id}

@@ -9,7 +9,6 @@ import { saveFormFields } from "@/app/(admin)/forms/actions";
 import { useToast } from "@/components/Toast";
 import { FieldBox } from "./FieldBox";
 
-// אייקון קטן לכל סוג שדה — מסייע למנהל לזהות חזותית את סוגי השדות בפאנל ההוספה.
 function FieldTypeIcon({ type }: { type: FieldType }) {
   const common = {
     viewBox: "0 0 24 24",
@@ -54,7 +53,6 @@ function FieldTypeIcon({ type }: { type: FieldType }) {
   }
 }
 
-// ה-canvas של ה-PDF מבודד ב-memo: לא מרונדר מחדש בכל גרירת שדה, רק כשהעמוד/הרוחב משתנים.
 const EditorPageCanvas = memo(function EditorPageCanvas({
   pageNumber,
   width,
@@ -75,11 +73,13 @@ const EditorPageCanvas = memo(function EditorPageCanvas({
   );
 });
 
-// הגדרת ה-worker של pdfjs (נטען בצד לקוח).
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
   import.meta.url
 ).toString();
+
+type PageSizes = Record<number, { w: number; h: number }>;
+type GhostPos = { x: number; y: number; page: number } | null;
 
 export default function FieldEditor({
   formId,
@@ -93,20 +93,17 @@ export default function FieldEditor({
   initialFields: FieldDraft[];
 }) {
   const [fields, setFields] = useState<FieldDraft[]>(initialFields);
-  const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [renderWidth, setRenderWidth] = useState(800);
-  const [pageSize, setPageSize] = useState({ w: 0, h: 0 });
+  const [pageSizes, setPageSizes] = useState<PageSizes>({});
   const [status, setStatus] = useState<"idle" | "saving">("idle");
   const { showToast } = useToast();
-  // מצב "מיקום שדה": אחרי לחיצה על סוג שדה, השדה ממתין למיקום בקליק על ה-PDF
   const [placing, setPlacing] = useState<FieldType | null>(null);
-  const [ghostPos, setGhostPos] = useState<{ x: number; y: number } | null>(null);
+  const [ghostPos, setGhostPos] = useState<GhostPos>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const pageWrapRef = useRef<HTMLDivElement>(null);
+  const pageRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
-  // מדידת רוחב האזור והתאמת רוחב הרינדור
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -118,21 +115,21 @@ export default function FieldEditor({
     return () => ro.disconnect();
   }, []);
 
-  // מדידת מידות העמוד המרונדר בפועל (לצורך מיקום השדות)
-  const measurePage = useCallback(() => {
-    const el = pageWrapRef.current;
+  const measurePage = useCallback((pageNum: number) => {
+    const el = pageRefs.current[pageNum];
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    setPageSize({ w: rect.width, h: rect.height });
+    if (rect.width && rect.height) {
+      setPageSizes((prev) =>
+        prev[pageNum]?.w === rect.width && prev[pageNum]?.h === rect.height
+          ? prev
+          : { ...prev, [pageNum]: { w: rect.width, h: rect.height } }
+      );
+    }
   }, []);
 
-  const pageFields = useMemo(
-    () => fields.filter((f) => f.page === page),
-    [fields, page]
-  );
   const selected = fields.find((f) => f.id === selectedId) ?? null;
 
-  // מקש Escape מבטל מצב "מיקום שדה"
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape" && placing) {
@@ -144,18 +141,15 @@ export default function FieldEditor({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [placing]);
 
-  // לחיצה על סוג שדה לא יוצרת אותו מיד — נכנסים למצב "מיקום", והשדה
-  // יווצר במקום שעליו ילחץ המנהל בתצוגת ה-PDF (ראו placeField/normalizedFromEvent).
   function startPlacing(type: FieldType) {
     setPlacing((prev) => (prev === type ? null : type));
     setGhostPos(null);
     setSelectedId(null);
   }
 
-  // ממיר נקודת עכבר (קליינט) לקואורדינטות מנורמלות 0..1 ביחס לעמוד המוצג
-  function normalizedFromEvent(e: { clientX: number; clientY: number }) {
-    const el = pageWrapRef.current;
-    if (!el || pageSize.w === 0 || pageSize.h === 0) return null;
+  function normalizedFromPage(pageNum: number, e: React.PointerEvent) {
+    const el = pageRefs.current[pageNum];
+    if (!el) return null;
     const rect = el.getBoundingClientRect();
     return {
       x: (e.clientX - rect.left) / rect.width,
@@ -163,13 +157,13 @@ export default function FieldEditor({
     };
   }
 
-  function placeField(type: FieldType, centerX: number, centerY: number) {
+  function placeField(type: FieldType, centerX: number, centerY: number, pageNum: number) {
     const meta = FIELD_META[type];
     const x = Math.min(Math.max(centerX - meta.defaultW / 2, 0), 1 - meta.defaultW);
     const y = Math.min(Math.max(centerY - meta.defaultH / 2, 0), 1 - meta.defaultH);
     const f: FieldDraft = {
       id: randomUUID(),
-      page,
+      page: pageNum,
       x,
       y,
       width: meta.defaultW,
@@ -210,7 +204,7 @@ export default function FieldEditor({
 
   return (
     <div className="space-y-4">
-      {/* שורת כלים אופקית מעל ה-PDF — נעולה (sticky) מתחת להדר בעת גלילה */}
+      {/* Toolbar */}
       <div className="card sticky top-[72px] z-20 flex flex-wrap items-center gap-3 bg-white/95 p-3 backdrop-blur-sm">
         <h2 className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-slate-700">
           <span className="text-brand">＋</span> הוספת שדה
@@ -252,112 +246,106 @@ export default function FieldEditor({
       )}
 
       <div className={`grid gap-4 ${selected ? "lg:grid-cols-[1fr_300px]" : ""}`}>
-        {/* אזור ה-PDF */}
-        <div ref={containerRef} className="card p-4">
-          {pageCount > 1 && (
-            <div className="mb-3 flex items-center justify-center gap-3">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="btn-secondary !px-3 !py-1 disabled:opacity-40"
-              >
-                → הקודם
-              </button>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
-                עמוד {page} מתוך {pageCount}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-                disabled={page >= pageCount}
-                className="btn-secondary !px-3 !py-1 disabled:opacity-40"
-              >
-                הבא ←
-              </button>
-            </div>
-          )}
-
-          <div className="flex justify-center">
+        {/* PDF area — scrollable */}
+        <div ref={containerRef} className="card overflow-hidden p-0">
+          <div
+            className="overflow-y-auto"
+            style={{ maxHeight: "calc(100vh - 180px)" }}
+          >
             <Document
               file={pdfUrl}
               loading={<div className="skeleton mx-auto h-[40rem] w-full max-w-[640px]" />}
-              error={<div className="py-12 text-red-500">שגיאה בטעינת ה-PDF</div>}
+              error={<div className="py-12 text-center text-red-500">שגיאה בטעינת ה-PDF</div>}
             >
-              {/* dir=ltr כדי שמיקום פיזי (left/top) יתאים תמיד לפינה השמאלית-עליונה */}
-              <div
-                ref={pageWrapRef}
-                dir="ltr"
-                style={{ position: "relative", width: renderWidth }}
-                className={placing ? "cursor-crosshair" : ""}
-              >
-                <EditorPageCanvas
-                  pageNumber={page}
-                  width={renderWidth}
-                  onRendered={measurePage}
-                />
-                <div
-                  style={{ position: "absolute", inset: 0 }}
-                  onPointerMove={(e) => {
-                    if (!placing) return;
-                    const pos = normalizedFromEvent(e);
-                    if (pos) setGhostPos(pos);
-                  }}
-                  onPointerLeave={() => setGhostPos(null)}
-                  onPointerDown={(e) => {
-                    if (placing) {
-                      const pos = normalizedFromEvent(e);
-                      if (pos) placeField(placing, pos.x, pos.y);
-                      setPlacing(null);
-                      setGhostPos(null);
-                      return;
-                    }
-                    // לחיצה על אזור ריק מבטלת בחירה
-                    if (e.target === e.currentTarget) setSelectedId(null);
-                  }}
-                >
-                  {pageSize.w > 0 &&
-                    pageFields.map((f) => (
-                      <FieldBox
-                        key={f.id}
-                        field={f}
-                        pageW={pageSize.w}
-                        pageH={pageSize.h}
-                        selected={f.id === selectedId}
-                        onSelect={() => setSelectedId(f.id)}
-                        onChange={updateField}
-                      />
-                    ))}
-
-                  {/* תצוגת "רפאים" — עוקבת אחרי העכבר במצב מיקום שדה */}
-                  {placing &&
-                    ghostPos &&
-                    pageSize.w > 0 &&
-                    (() => {
-                      const meta = FIELD_META[placing];
-                      const x = Math.min(Math.max(ghostPos.x - meta.defaultW / 2, 0), 1 - meta.defaultW);
-                      const y = Math.min(Math.max(ghostPos.y - meta.defaultH / 2, 0), 1 - meta.defaultH);
-                      return (
-                        <div
-                          className="pointer-events-none absolute rounded border-2 border-dashed"
-                          style={{
-                            left: x * pageSize.w,
-                            top: y * pageSize.h,
-                            width: meta.defaultW * pageSize.w,
-                            height: meta.defaultH * pageSize.h,
-                            borderColor: meta.color,
-                            backgroundColor: `${meta.color}1a`,
-                          }}
+              <div className="flex flex-col items-center gap-6 p-4">
+                {Array.from({ length: pageCount }, (_, i) => i + 1).map((pageNum) => {
+                  const size = pageSizes[pageNum];
+                  const pageFields = fields.filter((f) => f.page === pageNum);
+                  return (
+                    <div key={pageNum} className="w-full">
+                      {pageCount > 1 && (
+                        <div className="mb-1.5 text-center text-xs text-slate-400">
+                          עמוד {pageNum} מתוך {pageCount}
+                        </div>
+                      )}
+                      <div
+                        ref={(el) => { pageRefs.current[pageNum] = el; }}
+                        dir="ltr"
+                        style={{ position: "relative", width: renderWidth }}
+                        className={`mx-auto shadow-sm ${placing ? "cursor-crosshair" : ""}`}
+                      >
+                        <EditorPageCanvas
+                          pageNumber={pageNum}
+                          width={renderWidth}
+                          onRendered={() => measurePage(pageNum)}
                         />
-                      );
-                    })()}
-                </div>
+                        <div
+                          style={{ position: "absolute", inset: 0 }}
+                          onPointerMove={(e) => {
+                            if (!placing) return;
+                            const pos = normalizedFromPage(pageNum, e);
+                            if (pos) setGhostPos({ ...pos, page: pageNum });
+                          }}
+                          onPointerLeave={() => {
+                            if (ghostPos?.page === pageNum) setGhostPos(null);
+                          }}
+                          onPointerDown={(e) => {
+                            if (placing) {
+                              const pos = normalizedFromPage(pageNum, e);
+                              if (pos) placeField(placing, pos.x, pos.y, pageNum);
+                              setPlacing(null);
+                              setGhostPos(null);
+                              return;
+                            }
+                            if (e.target === e.currentTarget) setSelectedId(null);
+                          }}
+                        >
+                          {size &&
+                            pageFields.map((f) => (
+                              <FieldBox
+                                key={f.id}
+                                field={f}
+                                pageW={size.w}
+                                pageH={size.h}
+                                selected={f.id === selectedId}
+                                onSelect={() => setSelectedId(f.id)}
+                                onChange={updateField}
+                              />
+                            ))}
+
+                          {/* Ghost preview */}
+                          {placing && ghostPos?.page === pageNum && size &&
+                            (() => {
+                              const meta = FIELD_META[placing];
+                              const x = Math.min(Math.max(ghostPos.x - meta.defaultW / 2, 0), 1 - meta.defaultW);
+                              const y = Math.min(Math.max(ghostPos.y - meta.defaultH / 2, 0), 1 - meta.defaultH);
+                              return (
+                                <div
+                                  className="pointer-events-none absolute rounded border-2 border-dashed"
+                                  style={{
+                                    left: x * size.w,
+                                    top: y * size.h,
+                                    width: meta.defaultW * size.w,
+                                    height: meta.defaultH * size.h,
+                                    borderColor: meta.color,
+                                    backgroundColor: `${meta.color}1a`,
+                                  }}
+                                />
+                              );
+                            })()}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </Document>
           </div>
         </div>
 
-        {/* מאפייני השדה הנבחר — מוצג רק כשיש שדה נבחר */}
+        {/* Field properties panel */}
         {selected && (
-          <aside className="card h-fit space-y-3 p-4 lg:sticky lg:top-4">
+          <aside className="card h-fit space-y-3 p-4 lg:sticky lg:top-[80px]">
             <h2 className="flex items-center gap-2 border-b border-slate-100 pb-3 text-sm font-semibold text-slate-700">
               <span
                 className="flex h-7 w-7 items-center justify-center rounded-md"
@@ -415,7 +403,7 @@ export default function FieldEditor({
                       (f) =>
                         f.id !== selected.id &&
                         f.type === selected.type &&
-                        !f.copyFrom // מונע שרשראות/מעגלים: רק שדות "מקור" ניתנים לבחירה
+                        !f.copyFrom
                     )
                     .map((f) => (
                       <option key={f.id} value={f.id}>

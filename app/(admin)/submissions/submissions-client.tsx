@@ -27,6 +27,7 @@ export function SubmissionsClient({
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<SubmissionStatus | "all">("all");
   const [formFilter, setFormFilter] = useState<string>("all");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -66,13 +67,16 @@ export function SubmissionsClient({
     URL.revokeObjectURL(url);
   }
 
+  function toggleExpand(id: string) {
+    setExpandedId((prev) => (prev === id ? null : id));
+  }
+
   return (
     <div>
       {/* Header */}
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <h1 className="text-2xl font-bold text-paper-text ml-2">הגשות</h1>
 
-        {/* Search */}
         <div className="relative">
           <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
@@ -87,7 +91,6 @@ export function SubmissionsClient({
           />
         </div>
 
-        {/* Status filter */}
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as SubmissionStatus | "all")}
@@ -100,7 +103,6 @@ export function SubmissionsClient({
           <option value="expired">פג תוקף</option>
         </select>
 
-        {/* Form filter */}
         {formOptions.length > 1 && (
           <select
             value={formFilter}
@@ -116,14 +118,12 @@ export function SubmissionsClient({
 
         <div className="flex-1" />
 
-        {/* Results count */}
         {isFiltered && (
           <span className="text-sm text-paper-muted">
             {filtered.length} מתוך {submissions.length}
           </span>
         )}
 
-        {/* Clear filters */}
         {isFiltered && (
           <button
             onClick={() => { setSearch(""); setStatusFilter("all"); setFormFilter("all"); }}
@@ -133,7 +133,6 @@ export function SubmissionsClient({
           </button>
         )}
 
-        {/* CSV export */}
         {filtered.length > 0 && (
           <button
             onClick={exportCsv}
@@ -169,42 +168,76 @@ export function SubmissionsClient({
                 <th className="px-4 py-3 font-medium">סטטוס</th>
                 <th className="px-4 py-3 font-medium">נשלח</th>
                 <th className="px-4 py-3 font-medium">הושלם</th>
-                <th className="px-4 py-3" />
+                <th className="px-4 py-3 w-8" />
               </tr>
             </thead>
             <tbody className="divide-y divide-paper-line">
               {filtered.map((s, i) => {
                 const meta = STATUS_META[s.status];
+                const isExpanded = expandedId === s.id;
                 return (
-                  <tr
-                    key={s.id}
-                    className={`stagger-item transition hover:bg-brand/5 ${i % 2 === 1 ? "bg-slate-50/60" : ""}`}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-paper-text">{s.recipient_name}</div>
-                      <div className="text-xs text-paper-muted" dir="ltr">{s.recipient_email}</div>
-                    </td>
-                    <td className="px-4 py-3 text-paper-muted">
-                      {formName.get(s.form_id) ?? "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`badge badge-dot ${meta.className}`}>{meta.label}</span>
-                    </td>
-                    <td className="px-4 py-3 text-paper-muted">
-                      {s.sent_at ? new Date(s.sent_at).toLocaleDateString("he-IL") : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-paper-muted">
-                      {s.completed_at ? new Date(s.completed_at).toLocaleDateString("he-IL") : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/submissions/${s.id}`}
-                        className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-medium text-brand transition hover:bg-brand/10"
-                      >
-                        פרטים ←
-                      </Link>
-                    </td>
-                  </tr>
+                  <>
+                    <tr
+                      key={s.id}
+                      onClick={() => toggleExpand(s.id)}
+                      className={`cursor-pointer transition hover:bg-brand/5 ${
+                        isExpanded ? "bg-brand/5" : i % 2 === 1 ? "bg-slate-50/60" : ""
+                      }`}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-paper-text">{s.recipient_name}</div>
+                        <div className="text-xs text-paper-muted" dir="ltr">{s.recipient_email}</div>
+                      </td>
+                      <td className="px-4 py-3 text-paper-muted">
+                        {formName.get(s.form_id) ?? "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`badge badge-dot ${meta.className}`}>{meta.label}</span>
+                      </td>
+                      <td className="px-4 py-3 text-paper-muted">
+                        {s.sent_at ? new Date(s.sent_at).toLocaleDateString("he-IL") : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-paper-muted">
+                        {s.completed_at ? new Date(s.completed_at).toLocaleDateString("he-IL") : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <ChevronIcon expanded={isExpanded} />
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr key={`${s.id}-expanded`} className="bg-brand/5">
+                        <td colSpan={6} className="px-6 pb-4 pt-2">
+                          <div className="flex flex-wrap items-center gap-5 text-sm">
+                            <div>
+                              <span className="text-paper-muted">מייל: </span>
+                              <a href={`mailto:${s.recipient_email}`} className="text-brand hover:underline" dir="ltr">
+                                {s.recipient_email}
+                              </a>
+                            </div>
+                            {s.sent_at && (
+                              <div>
+                                <span className="text-paper-muted">נשלח: </span>
+                                {new Date(s.sent_at).toLocaleString("he-IL")}
+                              </div>
+                            )}
+                            {s.completed_at && (
+                              <div>
+                                <span className="text-paper-muted">הושלם: </span>
+                                {new Date(s.completed_at).toLocaleString("he-IL")}
+                              </div>
+                            )}
+                            <Link
+                              href={`/submissions/${s.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="mr-auto flex items-center gap-1 rounded-lg border border-brand px-3 py-1 text-xs font-medium text-brand transition hover:bg-brand hover:text-white"
+                            >
+                              פרטים מלאים ←
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 );
               })}
             </tbody>
@@ -212,6 +245,19 @@ export function SubmissionsClient({
         </div>
       )}
     </div>
+  );
+}
+
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+      aria-hidden
+    >
+      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

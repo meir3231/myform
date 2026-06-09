@@ -8,7 +8,6 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url
 ).toString();
 
-// תצוגה מקדימה לקריאה-בלבד של ה-PDF במסך "שליחה ללקוח" — בלי שכבת שדות אינטראקטיבית.
 export default function SendPreview({
   pdfUrl,
   pageCount,
@@ -16,7 +15,6 @@ export default function SendPreview({
   pdfUrl: string;
   pageCount: number;
 }) {
-  const [page, setPage] = useState(1);
   const [width, setWidth] = useState(520);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -24,7 +22,7 @@ export default function SendPreview({
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver(() => {
-      const w = Math.min(640, el.clientWidth - 2);
+      const w = Math.min(700, el.clientWidth - 2);
       if (w > 0) setWidth(w);
     });
     ro.observe(el);
@@ -32,40 +30,30 @@ export default function SendPreview({
   }, []);
 
   return (
-    <div className="card p-4">
-      {pageCount > 1 && (
-        <div className="mb-3 flex items-center justify-center gap-3">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            className="btn-secondary !px-3 !py-1 disabled:opacity-40"
-          >
-            → הקודם
-          </button>
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
-            עמוד {page} מתוך {pageCount}
-          </span>
-          <button
-            onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-            disabled={page >= pageCount}
-            className="btn-secondary !px-3 !py-1 disabled:opacity-40"
-          >
-            הבא ←
-          </button>
+    <div ref={containerRef} className="h-full overflow-y-auto">
+      <Document
+        file={pdfUrl}
+        loading={<div className="skeleton mx-auto h-[40rem] w-full max-w-[640px]" />}
+        error={<div className="py-12 text-center text-red-500">שגיאה בטעינת ה-PDF</div>}
+      >
+        <div className="flex flex-col items-center gap-5 py-4">
+          {Array.from({ length: pageCount }, (_, i) => i + 1).map((pageNum) => (
+            <div key={pageNum} dir="ltr" className="shadow-sm">
+              <Page
+                pageNumber={pageNum}
+                width={width}
+                renderTextLayer={false}
+                renderAnnotationLayer={false}
+              />
+              {pageCount > 1 && (
+                <div className="bg-slate-50 py-1 text-center text-xs text-slate-400">
+                  עמוד {pageNum} מתוך {pageCount}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
-      )}
-
-      <div ref={containerRef} className="flex justify-center">
-        <Document
-          file={pdfUrl}
-          loading={<div className="skeleton mx-auto h-[40rem] w-full max-w-[640px]" />}
-          error={<div className="py-12 text-red-500">שגיאה בטעינת ה-PDF</div>}
-        >
-          <div dir="ltr">
-            <Page pageNumber={page} width={width} renderTextLayer={false} renderAnnotationLayer={false} />
-          </div>
-        </Document>
-      </div>
+      </Document>
     </div>
   );
 }
