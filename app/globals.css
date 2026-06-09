@@ -92,30 +92,25 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
-  /* ---- כפתור "טופס חדש": בולט עם זוהר סגול ---- */
+  /* ---- כפתור "טופס חדש" ---- */
   .btn-new-form {
     @apply inline-flex h-12 min-w-[180px] items-center justify-center gap-2 rounded-lg
       bg-brand px-5 text-sm font-semibold text-white transition-all duration-200
       hover:bg-brand-dark;
-    box-shadow: 0 4px 15px rgba(155, 109, 255, 0.4);
+    box-shadow: 0 4px 15px rgba(41, 181, 168, 0.4);
   }
   .btn-new-form:hover {
-    box-shadow: 0 6px 22px rgba(155, 109, 255, 0.55);
+    box-shadow: 0 6px 22px rgba(41, 181, 168, 0.55);
   }
 
-  /* ---- מעטפת כהה משותפת להדר ולסיידבר: אותו צבע ואותו מרקם, גוון מעט בהיר יותר ---- */
+  /* ---- Sidebar: לבן, מתחיל מתחת להדר ---- */
   .admin-shell-surface {
-    background-color: #2a2140;
-    background-image:
-      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239b6dff' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),
-      linear-gradient(135deg, #2a2140 0%, #3c2f5c 50%, #2a2140 100%);
+    background: #ffffff;
   }
 
-  /* ---- Header עליון של עמודי האדמין: גרדיאנט סגול-כהה + מרקם עדין + עומק ---- */
+  /* ---- Header: placeholder — מוחלף ע"י header.admin-header ---- */
   .admin-header {
-    height: 72px;
-    border-bottom: 1px solid #3d3158;
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+    height: 96px;
   }
 }
 
@@ -135,3 +130,117 @@ body {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ================================================
+   TOFSYNC DESIGN SYSTEM — unlayered overrides
+   Header: כחול-כהה #2a5f8f | Sidebar: לבן | Brand: teal #29b5a8
+   ================================================ */
+
+body { background-color: #f4f5f7; }
+
+/* ── HEADER: full-width, fixed, גל בתחתית ── */
+header.admin-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  width: 100vw; max-width: 100vw;
+  height: 96px;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  padding: 0 36px;
+  overflow: visible;
+  background: linear-gradient(135deg, #2c5282 0%, #2a5f8f 40%, #2e6da4 70%, #2a5f8f 100%);
+  border-bottom: none;
+  box-shadow: 0 4px 0 #1e4976, 0 6px 20px rgba(30, 73, 118, 0.3);
+  clip-path: polygon(
+    0% 0%, 100% 0%, 100% 82%,
+    95% 90%, 88% 95%, 80% 98%, 72% 100%, 63% 100%, 54% 99%,
+    45% 96%, 37% 93%, 29% 91%, 22% 90%, 15% 91%, 8% 94%, 3% 97%, 0% 100%
+  );
+  isolation: isolate;
+}
+
+header.admin-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' width='120' height='120'%3E%3Cg transform='translate(6%2C8) scale(0.62)'%3E%3Cpath d='M12 20h9' fill='none' stroke='rgba(255%2C255%2C255%2C0.2)' stroke-width='1.6' stroke-linecap='round'%2F%3E%3Cpath d='M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z' fill='none' stroke='rgba(255%2C255%2C255%2C0.2)' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%2F%3E%3C%2Fg%3E%3Cg transform='translate(74%2C5) scale(0.6)'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' fill='none' stroke='rgba(255%2C255%2C255%2C0.17)' stroke-width='1.6'%2F%3E%3Cpolyline points='14 2 14 8 20 8' fill='none' stroke='rgba(255%2C255%2C255%2C0.17)' stroke-width='1.6'%2F%3E%3Cline x1='16' y1='13' x2='8' y2='13' stroke='rgba(255%2C255%2C255%2C0.17)' stroke-width='1.6'%2F%3E%3Cline x1='14' y1='17' x2='8' y2='17' stroke='rgba(255%2C255%2C255%2C0.17)' stroke-width='1.6'%2F%3E%3C%2Fg%3E%3Cg transform='translate(40%2C36) scale(0.56)'%3E%3Cpolyline points='20 6 9 17 4 12' fill='none' stroke='rgba(255%2C255%2C255%2C0.22)' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%2F%3E%3C%2Fg%3E%3Cg transform='translate(6%2C70) scale(0.6)'%3E%3Cpath d='M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z' fill='none' stroke='rgba(255%2C255%2C255%2C0.17)' stroke-width='1.6'%2F%3E%3Cpolyline points='22%2C6 12%2C13 2%2C6' fill='none' stroke='rgba(255%2C255%2C255%2C0.17)' stroke-width='1.6'%2F%3E%3C%2Fg%3E%3Cg transform='translate(78%2C66) scale(0.57)'%3E%3Crect x='3' y='11' width='18' height='11' rx='2' ry='2' fill='none' stroke='rgba(255%2C255%2C255%2C0.18)' stroke-width='1.6'%2F%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4' fill='none' stroke='rgba(255%2C255%2C255%2C0.18)' stroke-width='1.6'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+  background-size: 120px 120px;
+  background-repeat: repeat;
+  pointer-events: none;
+  z-index: 0;
+}
+
+header.admin-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* לוגו ב-header */
+.header-logo-link {
+  position: absolute;
+  inset-inline-end: 36px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+}
+
+.header-logo-link img {
+  height: 56px;
+  width: auto;
+  filter: brightness(10) drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+}
+
+/* ── SIDEBAR: לבן, מתחיל מתחת להדר ── */
+.admin-shell-surface {
+  position: fixed !important;
+  top: 96px !important;
+  right: 0;
+  width: 220px;
+  z-index: 40;
+  background: #ffffff !important;
+  background-image: none !important;
+  border-left: 1px solid #e2e8f0 !important;
+  border-top: none;
+  box-shadow: -3px 0 12px rgba(0,0,0,0.06);
+}
+
+/* טקסט וגבולות בסיידבר הלבן */
+.admin-shell-surface a { color: #374151; border-radius: 6px; font-weight: 500; }
+.admin-shell-surface a:hover { background-color: #f0fdf9; color: #29b5a8; }
+.admin-shell-surface .text-ink-text { color: #1f2937; }
+.admin-shell-surface .text-ink-muted { color: #6b7280; }
+.admin-shell-surface .border-ink-line { border-color: #e5e7eb; }
+.admin-shell-surface .border-t { border-color: #e5e7eb; }
+.admin-shell-surface nav { padding-top: 8px; }
+
+/* ── Content wrapper: padding בגובה ה-header ── */
+.mr-\[220px\] { padding-top: 96px !important; }
+
+/* ── כרטיסי סטטיסטיקה ── */
+.stat-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.09);
+  transform: translateY(-1px);
+}
+
+/* ── טבלאות ── */
+thead th {
+  background-color: #f9fafb;
+  color: #6b7280;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+tbody tr:hover { background-color: #f0fdf9; }

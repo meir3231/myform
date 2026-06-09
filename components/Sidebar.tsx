@@ -1,5 +1,3 @@
-import Image from "next/image";
-import Link from "next/link";
 import { SidebarNav } from "./SidebarNav";
 
 export function Sidebar({
@@ -10,21 +8,15 @@ export function Sidebar({
   signOutAction: () => Promise<void>;
 }) {
   return (
-    <aside className="admin-shell-surface fixed inset-y-0 right-0 z-40 flex w-[220px] flex-col border-l border-[#3d3158] text-ink-text">
-      <div className="flex items-center justify-center border-b border-ink-line px-4 py-4">
-        <Link href="/dashboard">
-          <Image src="/logo.png" alt="TofSync" width={180} height={60} className="h-auto w-[180px]" priority />
-        </Link>
-      </div>
-
+    <aside className="admin-shell-surface fixed inset-y-0 right-0 z-40 flex w-[220px] flex-col text-slate-700">
       <SidebarNav />
 
-      <div className="border-t border-ink-line p-3">
-        <p className="truncate px-3 pb-2 text-sm font-medium text-ink-muted">{userName}</p>
+      <div className="border-t border-slate-200 p-3">
+        <p className="truncate px-3 pb-2 text-sm font-medium text-slate-500">{userName}</p>
         <form action={signOutAction}>
           <button
             type="submit"
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-muted transition hover:bg-white/5 hover:text-ink-text"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
           >
             <SignOutIcon className="h-5 w-5 shrink-0" />
             התנתקות

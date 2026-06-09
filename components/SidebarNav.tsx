@@ -29,7 +29,9 @@ export function SidebarNav() {
             key={item.href}
             href={item.href}
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-              active ? "bg-ink-active text-brand" : "text-ink-text hover:bg-white/5"
+              active
+                ? "bg-teal-50 text-teal-700 border-r-[3px] border-teal-500"
+                : "text-slate-600 hover:bg-teal-50/60 hover:text-teal-700"
             }`}
           >
             <Icon className="h-5 w-5 shrink-0" />

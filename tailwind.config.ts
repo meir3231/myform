@@ -13,9 +13,9 @@ export default {
       colors: {
         // סגול — צבע ההדגשה האחיד של המותג, בשימוש גם בערכה הכהה וגם בבהירה
         brand: {
-          DEFAULT: "#9b6dff",
-          dark: "#7c4ddb",
-          light: "#c4abff",
+          DEFAULT: "#29b5a8",
+          dark: "#22a89c",
+          light: "#7de3dd",
         },
         // ערכת-הניהול הכהה (Sidebar קבוע + Header עליון)
         ink: {
