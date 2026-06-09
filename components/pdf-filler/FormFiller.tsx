@@ -74,7 +74,7 @@ function FillablePage({
   onRequestSignature: (f: FieldDraft) => void;
 }) {
   return (
-    <div dir="ltr" style={{ position: "relative", width }} className="shadow-sm">
+    <div dir="ltr" style={{ position: "relative", width }} className="mb-6 shadow-sm last:mb-0">
       <PdfPageCanvas pageNum={pageNum} width={width} onMeasure={onMeasure} />
       {size &&
         fields.map((f) => (
@@ -139,7 +139,6 @@ export default function FormFiller({
   const [invalidIds, setInvalidIds] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const { showToast } = useToast();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -184,7 +183,6 @@ export default function FormFiller({
     try {
       const result: SubmitState = await submitForm(token, { values, signatures });
       if (result.ok) {
-        setDownloadUrl(result.downloadUrl ?? null);
         setDone(true);
       } else {
         showToast(result.error ?? "השליחה נכשלה", "error");
@@ -201,16 +199,13 @@ export default function FormFiller({
       <div className="mx-auto max-w-md rounded-2xl bg-white p-8 text-center shadow-sm">
         <div className="mb-3 text-5xl">✓</div>
         <h2 className="mb-2 text-xl font-bold text-slate-800">הטופס נשלח בהצלחה</h2>
-        <p className="text-slate-500">תודה {recipientName}. הטופס נשמר ונחתם.</p>
-        {downloadUrl && (
-          <a
-            href={downloadUrl}
-            download
-            className="mt-5 inline-block w-full rounded-lg bg-brand py-2.5 font-medium text-white hover:bg-brand-dark"
-          >
-            הורדת עותק חתום (PDF)
-          </a>
-        )}
+        <p className="mb-5 text-slate-500">תודה {recipientName}. הטופס נשמר ונחתם.</p>
+        <a
+          href={`/api/download-completed?token=${encodeURIComponent(token)}`}
+          className="inline-block w-full rounded-lg bg-brand py-2.5 font-medium text-white hover:bg-brand-dark"
+        >
+          הורדת עותק חתום (PDF)
+        </a>
       </div>
     );
   }

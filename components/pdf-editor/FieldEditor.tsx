@@ -245,7 +245,7 @@ export default function FieldEditor({
         </p>
       )}
 
-      <div className={`grid gap-4 ${selected ? "lg:grid-cols-[1fr_300px]" : ""}`}>
+      <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
         {/* PDF area — scrollable */}
         <div ref={containerRef} className="card overflow-hidden p-0">
           <div
@@ -343,85 +343,97 @@ export default function FieldEditor({
           </div>
         </div>
 
-        {/* Field properties panel */}
-        {selected && (
-          <aside className="card h-fit space-y-3 p-4 lg:sticky lg:top-[80px]">
-            <h2 className="flex items-center gap-2 border-b border-slate-100 pb-3 text-sm font-semibold text-slate-700">
-              <span
-                className="flex h-7 w-7 items-center justify-center rounded-md"
-                style={{ backgroundColor: `${FIELD_META[selected.type].color}1a`, color: FIELD_META[selected.type].color }}
-              >
-                <FieldTypeIcon type={selected.type} />
-              </span>
-              מאפייני שדה
-            </h2>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500">תווית</label>
-              <input
-                value={selected.label}
-                onChange={(e) => updateField({ ...selected, label: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-right text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
-              />
-            </div>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={selected.required}
-                onChange={(e) => updateField({ ...selected, required: e.target.checked })}
-                className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand/30"
-              />
-              שדה חובה
-            </label>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500">גודל גופן</label>
-              <input
-                type="number"
-                min={6}
-                max={72}
-                value={selected.font_size}
-                onChange={(e) =>
-                  updateField({ ...selected, font_size: Number(e.target.value) || 12 })
-                }
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
-              />
-            </div>
-            {selected.type !== "signature" && selected.type !== "initials" && (
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">
-                  העתקת ערך משדה אחר
-                </label>
-                <select
-                  value={selected.copyFrom ?? ""}
-                  onChange={(e) =>
-                    updateField({ ...selected, copyFrom: e.target.value || null })
-                  }
-                  className="mb-1 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+        {/* Field properties panel — always present to prevent layout shift */}
+        <aside className="card h-fit space-y-3 p-4 lg:sticky lg:top-[80px]">
+          {selected ? (
+            <>
+              <h2 className="flex items-center gap-2 border-b border-slate-100 pb-3 text-sm font-semibold text-slate-700">
+                <span
+                  className="flex h-7 w-7 items-center justify-center rounded-md"
+                  style={{ backgroundColor: `${FIELD_META[selected.type].color}1a`, color: FIELD_META[selected.type].color }}
                 >
-                  <option value="">— ללא (מילוי עצמאי) —</option>
-                  {fields
-                    .filter(
-                      (f) =>
-                        f.id !== selected.id &&
-                        f.type === selected.type &&
-                        !f.copyFrom
-                    )
-                    .map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.label || FIELD_META[f.type].label} (עמ׳ {f.page})
-                      </option>
-                    ))}
-                </select>
-                <p className="text-xs leading-relaxed text-slate-400">
-                  הלקוח ימלא רק את שדה המקור — שאר השדות המקושרים יתמלאו
-                  אוטומטית באותו ערך.
-                </p>
+                  <FieldTypeIcon type={selected.type} />
+                </span>
+                מאפייני שדה
+              </h2>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">תווית</label>
+                <input
+                  value={selected.label}
+                  onChange={(e) => updateField({ ...selected, label: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-right text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+                />
               </div>
-            )}
-            <button onClick={() => deleteField(selected.id)} className="btn-danger-ghost w-full">
-              מחיקת שדה
-            </button>
-          </aside>
-        )}
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={selected.required}
+                  onChange={(e) => updateField({ ...selected, required: e.target.checked })}
+                  className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand/30"
+                />
+                שדה חובה
+              </label>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">גודל גופן</label>
+                <input
+                  type="number"
+                  min={6}
+                  max={72}
+                  value={selected.font_size}
+                  onChange={(e) =>
+                    updateField({ ...selected, font_size: Number(e.target.value) || 12 })
+                  }
+                  className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+                />
+              </div>
+              {selected.type !== "signature" && selected.type !== "initials" && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-500">
+                    העתקת ערך משדה אחר
+                  </label>
+                  <select
+                    value={selected.copyFrom ?? ""}
+                    onChange={(e) =>
+                      updateField({ ...selected, copyFrom: e.target.value || null })
+                    }
+                    className="mb-1 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+                  >
+                    <option value="">— ללא (מילוי עצמאי) —</option>
+                    {fields
+                      .filter(
+                        (f) =>
+                          f.id !== selected.id &&
+                          f.type === selected.type &&
+                          !f.copyFrom
+                      )
+                      .map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.label || FIELD_META[f.type].label} (עמ׳ {f.page})
+                        </option>
+                      ))}
+                  </select>
+                  <p className="text-xs leading-relaxed text-slate-400">
+                    הלקוח ימלא רק את שדה המקור — שאר השדות המקושרים יתמלאו
+                    אוטומטית באותו ערך.
+                  </p>
+                </div>
+              )}
+              <button onClick={() => deleteField(selected.id)} className="btn-danger-ghost w-full">
+                מחיקת שדה
+              </button>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+              <svg viewBox="0 0 24 24" fill="none" className="h-8 w-8 text-slate-300" aria-hidden>
+                <rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+                <rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+                <rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+                <rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+              <p className="text-xs text-slate-400">לחץ על שדה לעריכת מאפייניו</p>
+            </div>
+          )}
+        </aside>
       </div>
     </div>
   );

@@ -100,7 +100,7 @@ export function AdminPreviewFiller({
                 key={pageNum}
                 dir="ltr"
                 style={{ position: "relative", width: renderWidth }}
-                className="shadow-sm"
+                className="mb-6 shadow-sm last:mb-0"
               >
                 <PdfPageCanvas
                   pageNum={pageNum}

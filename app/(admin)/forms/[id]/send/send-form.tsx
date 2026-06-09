@@ -87,75 +87,70 @@ export function SendForm({
 
   return (
     <div
-      className="grid gap-0 lg:grid-cols-[1fr_380px]"
+      className="grid gap-0 lg:grid-cols-[420px_1fr]"
       style={{ height: "calc(100vh - 180px)" }}
     >
-      {/* Left: PDF preview — full-height scrollable */}
-      <div className="order-2 lg:order-1 hidden lg:block h-full overflow-hidden border-l border-paper-line bg-slate-50">
-        <SendPreviewLoader pdfUrl={pdfUrl} pageCount={pageCount} />
-      </div>
-
-      {/* Right: form — split into client info (fixed) + prefill (scrollable) */}
-      <div className="order-1 lg:order-2 flex h-full flex-col overflow-hidden border-paper-line">
-        {/* Client details — fixed, no scroll */}
+      {/* Left: form — client details (compact) + prefill (main) */}
+      <div className="flex h-full flex-col overflow-hidden border-r border-paper-line">
         <form
-          id="send-form"
           action={formAction}
-          className="flex flex-col overflow-hidden"
-          style={{ height: "100%" }}
+          className="flex h-full flex-col overflow-hidden"
         >
-          <div className="shrink-0 space-y-4 overflow-y-auto border-b border-paper-line bg-white p-5">
-            <h2 className="text-sm font-semibold text-slate-700">פרטי הלקוח</h2>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">שם הלקוח</label>
-              <input
-                name="recipient_name"
-                type="text"
-                required
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-right outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
-              />
+          {/* Client details — compact, no scroll */}
+          <div className="shrink-0 border-b border-paper-line bg-white px-5 py-4">
+            <h2 className="mb-3 text-sm font-semibold text-slate-700">פרטי הלקוח</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">שם הלקוח</label>
+                <input
+                  name="recipient_name"
+                  type="text"
+                  required
+                  className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-right text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">תוקף (ימים)</label>
+                <input
+                  name="expiry_days"
+                  type="number"
+                  min={1}
+                  max={90}
+                  defaultValue={14}
+                  className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+                />
+              </div>
             </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">אימייל הלקוח</label>
+            <div className="mt-3">
+              <label className="mb-1 block text-xs font-medium text-slate-600">אימייל הלקוח</label>
               <input
                 name="recipient_email"
                 type="email"
                 required
                 dir="ltr"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-right outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">תוקף הלינק (ימים)</label>
-              <input
-                name="expiry_days"
-                type="number"
-                min={1}
-                max={90}
-                defaultValue={14}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-right text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
             </div>
           </div>
 
-          {/* Prefill section — independently scrollable */}
-          {prefillable.length > 0 && (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50/60">
-              <div className="shrink-0 border-b border-paper-line bg-white px-5 py-3">
-                <h2 className="text-sm font-semibold text-slate-700">מילוי מקדים (אופציונלי)</h2>
-                <p className="mt-0.5 text-xs text-slate-400">
-                  ניתן למלא כאן שדות שכבר ידועים לכם — הלקוח יראה אותם ממולאים.
-                </p>
-              </div>
-              <div className="flex-1 overflow-y-auto p-5">
+          {/* Prefill — main scrollable section */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50/50">
+            <div className="shrink-0 border-b border-paper-line bg-white px-5 py-3">
+              <h2 className="text-sm font-semibold text-slate-700">מילוי מקדים</h2>
+              <p className="mt-0.5 text-xs text-slate-400">
+                {prefillable.length > 0
+                  ? "שדות שכבר ידועים לכם — הלקוח יראה אותם ממולאים."
+                  : "אין שדות הניתנים למילוי מקדים בטופס זה."}
+              </p>
+            </div>
+
+            {prefillable.length > 0 ? (
+              <div className="flex-1 overflow-y-auto p-4">
                 <div className="space-y-2">
                   {prefillable.map((f) => (
                     <div
                       key={f.id}
-                      className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2"
+                      className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2.5"
                     >
                       <span
                         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold text-white"
@@ -180,8 +175,12 @@ export function SendForm({
                   ))}
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="flex flex-1 items-center justify-center">
+                <p className="text-sm text-slate-400">—</p>
+              </div>
+            )}
+          </div>
 
           {/* Submit — pinned at bottom */}
           <div className="shrink-0 border-t border-paper-line bg-white p-4">
@@ -189,6 +188,11 @@ export function SendForm({
             <SubmitButton />
           </div>
         </form>
+      </div>
+
+      {/* Right: PDF preview — main area */}
+      <div className="hidden h-full overflow-hidden bg-slate-50 lg:block">
+        <SendPreviewLoader pdfUrl={pdfUrl} pageCount={pageCount} />
       </div>
     </div>
   );
