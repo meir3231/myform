@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { DashboardTabs } from "@/components/DashboardTabs";
+import { QuickActions } from "./quick-actions";
 import type { SubmissionStatus } from "@/lib/database.types";
 
 type SubmissionRow = {
@@ -77,6 +78,8 @@ export default async function DashboardPage() {
           לכל התבניות ←
         </Link>
       </div>
+
+      <QuickActions forms={(forms ?? []).filter((f) => !f.archived_at).map((f) => ({ id: f.id, name: f.name }))} />
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((s) => (

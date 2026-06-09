@@ -55,9 +55,6 @@ export function TemplatesClient({
     if (saved === "grid" || saved === "list") setView(saved as "list" | "grid");
   }, []);
 
-  // Bulk selection
-  const [selectedForms, setSelectedForms] = useState(new Set<string>());
-
   // Inline rename
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renamingValue, setRenamingValue] = useState("");
@@ -118,7 +115,6 @@ export function TemplatesClient({
         if (openMenuId) { setOpenMenuId(null); return; }
         if (movingFormId) { setMovingFormId(null); return; }
         if (renamingId) { setRenamingId(null); return; }
-        if (selectedForms.size > 0) { setSelectedForms(new Set()); return; }
         return;
       }
       if (isInput) return;
@@ -132,7 +128,7 @@ export function TemplatesClient({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [mergeStep, showNewModal, openMenuId, movingFormId, renamingId, selectedForms]);
+  }, [mergeStep, showNewModal, openMenuId, movingFormId, renamingId]);
 
   // Filtered + sorted forms
   const filteredForms = useMemo(() => {
@@ -167,18 +163,6 @@ export function TemplatesClient({
     localStorage.setItem("tmpl-view", v);
   }
 
-  function handleToggleSelect(id: string) {
-    setSelectedForms((prev) => {
-      const n = new Set(prev);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
-    });
-  }
-
-  function handleSelectAll(checked: boolean) {
-    setSelectedForms(checked ? new Set(filteredForms.map((f) => f.id)) : new Set());
-  }
-
   function handleStartRename(id: string, name: string) {
     setOpenMenuId(null);
     setRenamingId(id);
@@ -202,7 +186,6 @@ export function TemplatesClient({
     if (!confirm("למחוק טופס זה? לא ניתן לשחזר פעולה זו.")) return;
     startTransition(async () => {
       await svDeleteForm(id);
-      setSelectedForms((p) => { const n = new Set(p); n.delete(id); return n; });
       router.refresh();
     });
   }
@@ -218,23 +201,17 @@ export function TemplatesClient({
     startTransition(async () => { await svMoveForm(id, folderId); router.refresh(); });
   }
 
-  function handleBulkDelete() {
-    if (!confirm(`למחוק ${selectedForms.size} טפסים? לא ניתן לשחזר פעולה זו.`)) return;
-    const ids = [...selectedForms];
-    setSelectedForms(new Set());
-    startTransition(async () => {
-      await Promise.all(ids.map((id) => svDeleteForm(id)));
-      router.refresh();
-    });
-  }
-
   function handleCreateFolder(e: React.FormEvent) {
     e.preventDefault();
     const name = newFolderName.trim();
     if (!name) return;
     setNewFolderName("");
     setShowNewFolderInput(false);
-    startTransition(async () => { await svCreateFolder(name); router.refresh(); });
+    startTransition(async () => {
+      const result = await svCreateFolder(name);
+      if (result.error) { alert(result.error); return; }
+      router.refresh();
+    });
   }
 
   function handleDeleteFolder(id: string) {
@@ -470,14 +447,11 @@ export function TemplatesClient({
             <ListView
               forms={filteredForms}
               folders={folders}
-              selectedForms={selectedForms}
               renamingId={renamingId}
               renamingValue={renamingValue}
               renameInputRef={renameInputRef}
               openMenuId={openMenuId}
               isPending={isPending}
-              onToggleSelect={handleToggleSelect}
-              onSelectAll={handleSelectAll}
               onStartRename={handleStartRename}
               onRenameChange={setRenamingValue}
               onRenameSubmit={handleRenameSubmit}
@@ -491,13 +465,11 @@ export function TemplatesClient({
             <GridView
               forms={filteredForms}
               folders={folders}
-              selectedForms={selectedForms}
               renamingId={renamingId}
               renamingValue={renamingValue}
               renameInputRef={renameInputRef}
               openMenuId={openMenuId}
               isPending={isPending}
-              onToggleSelect={handleToggleSelect}
               onStartRename={handleStartRename}
               onRenameChange={setRenamingValue}
               onRenameSubmit={handleRenameSubmit}
@@ -510,26 +482,6 @@ export function TemplatesClient({
           )}
         </div>
       </div>
-
-      {/* Bulk action bar */}
-      {selectedForms.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-paper-line bg-white px-5 py-3 shadow-xl">
-          <span className="text-sm font-medium text-paper-text">{selectedForms.size} נבחרו</span>
-          <button
-            onClick={handleBulkDelete}
-            disabled={isPending}
-            className="rounded-lg bg-red-600 px-3.5 py-1.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
-          >
-            מחק נבחרים
-          </button>
-          <button
-            onClick={() => setSelectedForms(new Set())}
-            className="rounded-lg px-3 py-1.5 text-sm text-slate-500 transition hover:text-slate-700"
-          >
-            ביטול
-          </button>
-        </div>
-      )}
 
       {/* Modals */}
       {showNewModal && (
@@ -581,21 +533,18 @@ export function TemplatesClient({
 // ─── ListView ─────────────────────────────────────────────────────────────────
 
 function ListView({
-  forms, folders, selectedForms, renamingId, renamingValue, renameInputRef,
-  openMenuId, isPending, onToggleSelect, onSelectAll, onStartRename,
+  forms, folders, renamingId, renamingValue, renameInputRef,
+  openMenuId, isPending, onStartRename,
   onRenameChange, onRenameSubmit, onRenameCancel, onMenuToggle,
   onDuplicate, onDelete, onMoveOpen,
 }: {
   forms: FormRow[];
   folders: FolderRow[];
-  selectedForms: Set<string>;
   renamingId: string | null;
   renamingValue: string;
   renameInputRef: RefObject<HTMLInputElement | null>;
   openMenuId: string | null;
   isPending: boolean;
-  onToggleSelect: (id: string) => void;
-  onSelectAll: (checked: boolean) => void;
   onStartRename: (id: string, name: string) => void;
   onRenameChange: (v: string) => void;
   onRenameSubmit: (id: string) => void;
@@ -605,24 +554,13 @@ function ListView({
   onDelete: (id: string) => void;
   onMoveOpen: (id: string) => void;
 }) {
-  const allSelected = forms.length > 0 && forms.every((f) => selectedForms.has(f.id));
-  const someSelected = !allSelected && forms.some((f) => selectedForms.has(f.id));
   const folderMap = new Map(folders.map((f) => [f.id, f.name]));
 
   return (
-    <div className="card overflow-hidden">
+    <div className="card">
       <table className="w-full text-right text-sm">
         <thead className="text-paper-muted">
           <tr>
-            <th className="w-10 px-3 py-3">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                ref={(el) => { if (el) el.indeterminate = someSelected; }}
-                onChange={(e) => onSelectAll(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 accent-brand cursor-pointer"
-              />
-            </th>
             <th className="px-4 py-3 font-medium">שם הטופס</th>
             <th className="px-4 py-3 font-medium">עמ׳</th>
             <th className="px-4 py-3 font-medium">סוג</th>
@@ -635,16 +573,8 @@ function ListView({
           {forms.map((form) => (
             <tr
               key={form.id}
-              className={`stagger-item transition hover:bg-brand/5 ${selectedForms.has(form.id) ? "bg-brand/5" : ""}`}
+              className="stagger-item transition hover:bg-brand/5"
             >
-              <td className="px-3 py-3">
-                <input
-                  type="checkbox"
-                  checked={selectedForms.has(form.id)}
-                  onChange={() => onToggleSelect(form.id)}
-                  className="h-4 w-4 rounded border-slate-300 accent-brand cursor-pointer"
-                />
-              </td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
@@ -707,19 +637,17 @@ function ListView({
 // ─── GridView ─────────────────────────────────────────────────────────────────
 
 function GridView({
-  forms, folders, selectedForms, renamingId, renamingValue, renameInputRef,
-  openMenuId, isPending, onToggleSelect, onStartRename, onRenameChange,
+  forms, folders, renamingId, renamingValue, renameInputRef,
+  openMenuId, isPending, onStartRename, onRenameChange,
   onRenameSubmit, onRenameCancel, onMenuToggle, onDuplicate, onDelete, onMoveOpen,
 }: {
   forms: FormRow[];
   folders: FolderRow[];
-  selectedForms: Set<string>;
   renamingId: string | null;
   renamingValue: string;
   renameInputRef: RefObject<HTMLInputElement | null>;
   openMenuId: string | null;
   isPending: boolean;
-  onToggleSelect: (id: string) => void;
   onStartRename: (id: string, name: string) => void;
   onRenameChange: (v: string) => void;
   onRenameSubmit: (id: string) => void;
@@ -736,16 +664,8 @@ function GridView({
       {forms.map((form) => (
         <div
           key={form.id}
-          className={`card card-hover stagger-item relative flex flex-col p-5 ${selectedForms.has(form.id) ? "ring-2 ring-brand" : ""}`}
+          className="card card-hover stagger-item relative flex flex-col p-5"
         >
-          {/* Checkbox */}
-          <input
-            type="checkbox"
-            checked={selectedForms.has(form.id)}
-            onChange={() => onToggleSelect(form.id)}
-            className="absolute left-3 top-3 h-4 w-4 rounded border-slate-300 accent-brand cursor-pointer"
-          />
-
           <div className="mb-3 flex items-start gap-3 pe-1">
             <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-brand">
               <FormSmallIcon />

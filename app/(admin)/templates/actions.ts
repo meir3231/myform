@@ -14,7 +14,7 @@ function assertUUID(id: string, label = "מזהה") {
 
 // ─── Folder actions ────────────────────────────────────────────────────────────
 
-export async function createFolder(name: string): Promise<void> {
+export async function createFolder(name: string): Promise<{ error?: string }> {
   const { profile } = await requireProfile();
   const admin = createAdminClient();
   const { error } = await admin.from("folders").insert({
@@ -22,8 +22,9 @@ export async function createFolder(name: string): Promise<void> {
     name: name.slice(0, 100).trim(),
     created_by: profile.id,
   });
-  if (error) throw new Error("יצירת תיקייה נכשלה: " + error.message);
+  if (error) return { error: "יצירת תיקייה נכשלה: " + error.message };
   revalidatePath("/templates");
+  return {};
 }
 
 export async function renameFolder(id: string, name: string): Promise<void> {

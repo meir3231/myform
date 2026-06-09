@@ -11,6 +11,7 @@ export function FillFieldBox({
   signatureDataUrl,
   invalid,
   readOnly,
+  preview,
   onChange,
   onRequestSignature,
 }: {
@@ -21,6 +22,7 @@ export function FillFieldBox({
   signatureDataUrl?: string;
   invalid: boolean;
   readOnly?: boolean;
+  preview?: boolean;
   onChange: (value: string) => void;
   onRequestSignature: () => void;
 }) {
@@ -39,6 +41,22 @@ export function FillFieldBox({
   const highlightBg = "rgba(45, 212, 207, 0.18)";
   const ring = invalid ? "0 0 0 2px #ef4444" : highlightRing;
   const fontSize = Math.max(9, field.height * pageH * 0.5);
+
+  if (preview) {
+    const isSignature = field.type === "signature" || field.type === "initials";
+    return (
+      <div
+        style={{ ...style, backgroundColor: highlightBg, boxShadow: highlightRing, fontSize: `${fontSize}px` }}
+        className="flex items-center justify-center overflow-hidden rounded px-1 text-slate-500"
+      >
+        {isSignature ? (
+          <span className="text-xs opacity-60">{field.type === "initials" ? "ר״ת" : "חתימה"}</span>
+        ) : (
+          <span className="truncate opacity-60">{field.label}</span>
+        )}
+      </div>
+    );
+  }
 
   if (field.type === "signature" || field.type === "initials") {
     return (

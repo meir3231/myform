@@ -1,12 +1,11 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { getSignedUrl } from "@/lib/storage";
 import type { FieldDraft } from "@/lib/fields";
-import { FieldEditorLoader } from "@/components/pdf-editor/FieldEditorLoader";
+import { AdminPreviewFiller } from "@/components/pdf-filler/AdminPreviewFiller";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 
-export default async function EditFormPage({
+export default async function PreviewFormPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -46,27 +45,16 @@ export default async function EditFormPage({
       <Breadcrumbs
         items={[
           { label: "תבניות", href: "/templates" },
-          { label: form.name },
-          { label: "עריכת שדות" },
+          { label: form.name, href: `/forms/${form.id}/edit` },
+          { label: "תצוגה מקדימה" },
         ]}
       />
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">{form.name}</h1>
-        <div className="flex items-center gap-2">
-          <Link href={`/forms/${form.id}/preview`} className="btn-secondary">
-            תצוגה מקדימה
-          </Link>
-          <Link href={`/forms/${form.id}/send`} className="btn-primary">
-            שליחה ללקוח →
-          </Link>
-        </div>
-      </div>
 
-      <FieldEditorLoader
+      <AdminPreviewFiller
         formId={form.id}
         pdfUrl={pdfUrl}
         pageCount={form.page_count}
-        initialFields={initialFields}
+        fields={initialFields}
       />
     </div>
   );
