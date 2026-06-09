@@ -11,12 +11,16 @@ import { generateToken, hashToken } from "@/lib/tokens";
 import { sendFormLinkEmail } from "@/lib/email";
 import { serverEnv } from "@/lib/env";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20 MB
+
 // מאמת שהטופס שייך לארגון של המנהל המחובר. מחזיר את הטופס.
 async function assertFormOwnership(formId: string) {
+  if (!UUID_RE.test(formId)) throw new Error("מזהה טופס לא תקין");
   const { profile, supabase } = await requireProfile();
   const { data: form } = await supabase
     .from("forms")
-    .select("id, org_id, page_count, archived_at")
+    .select("id, org_id, name, page_count, archived_at")
     .eq("id", formId)
     .single();
   if (!form || form.org_id !== profile.org_id) throw new Error("טופס לא נמצא");
@@ -71,13 +75,14 @@ export async function saveFormFields(formId: string, fields: FieldDraft[]) {
     );
     if (insErr) throw new Error("שמירת השדות נכשלה: " + insErr.message);
 
-    // שלב 2: עדכון קישורי ההעתקה, אחרי שכל השדות כבר קיימים ב-DB
-    for (const row of rows) {
-      if (!row.copyFrom) continue;
-      const { error: linkErr } = await admin
-        .from("form_fields")
-        .update({ copy_from_field_id: row.copyFrom })
-        .eq("id", row.id);
+    // שלב 2: עדכון קישורי ההעתקה — כל ה-updates מקבילים
+    const linkUpdates = rows
+      .filter((row) => row.copyFrom)
+      .map((row) =>
+        admin.from("form_fields").update({ copy_from_field_id: row.copyFrom }).eq("id", row.id)
+      );
+    const linkResults = await Promise.all(linkUpdates);
+    for (const { error: linkErr } of linkResults) {
       if (linkErr) throw new Error("שמירת קישורי השדות נכשלה: " + linkErr.message);
     }
   }
@@ -113,6 +118,7 @@ export async function createSubmission(
   );
 
   if (!recipientName) return { error: "יש להזין שם לקוח" };
+  if (recipientName.length > 200) return { error: "שם הלקוח ארוך מדי (עד 200 תווים)" };
   if (!recipientEmail || !EMAIL_RE.test(recipientEmail))
     return { error: "כתובת אימייל לא תקינה" };
 
@@ -148,14 +154,22 @@ export async function createSubmission(
 
   // ערכי מילוי-מקדים שהמנהל הזין (prefill_<fieldId>) — נשמרים כבר עכשיו,
   // כך שהלקוח יראה אותם ממולאים כשיפתח את הלינק.
+  const { data: validFieldRows } = await admin
+    .from("form_fields")
+    .select("id")
+    .eq("form_id", formId);
+  const validFieldIds = new Set((validFieldRows ?? []).map((r) => r.id));
+
   const prefillRows: { submission_id: string; field_id: string; value: string }[] = [];
   for (const [key, raw] of formData.entries()) {
     if (!key.startsWith("prefill_")) continue;
+    const fieldId = key.slice("prefill_".length);
+    if (!validFieldIds.has(fieldId)) continue; // דחה field_id שלא שייך לטופס זה
     const value = (raw as string)?.trim();
     if (!value) continue;
     prefillRows.push({
       submission_id: submission.id,
-      field_id: key.slice("prefill_".length),
+      field_id: fieldId,
       value: value.slice(0, 2000),
     });
   }
@@ -166,21 +180,15 @@ export async function createSubmission(
   const { appUrl } = serverEnv();
   const link = `${appUrl}/fill/${token}`;
 
-  // שם הטופס לצורך המייל
-  const { data: formRow } = await admin
-    .from("forms")
-    .select("name")
-    .eq("id", formId)
-    .single();
-
   const emailResult = await sendFormLinkEmail({
     to: recipientEmail,
     recipientName,
-    formName: formRow?.name ?? "טופס",
+    formName: form.name,
     link,
   });
 
   revalidatePath("/submissions");
+  revalidatePath("/dashboard");
   return { link, emailSent: emailResult.sent, emailError: emailResult.error };
 }
 
@@ -200,11 +208,16 @@ export async function createForm(
 
   if (!name) return { error: "יש להזין שם לטופס" };
   if (!file || file.size === 0) return { error: "יש לבחור קובץ PDF" };
+  if (file.size > MAX_PDF_BYTES) return { error: "הקובץ גדול מדי (מקסימום 20 MB)" };
   if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
     return { error: "הקובץ חייב להיות PDF" };
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());
+  // בדיקת magic bytes של PDF (%PDF) — מונע זיוף MIME
+  if (bytes[0] !== 0x25 || bytes[1] !== 0x50 || bytes[2] !== 0x44 || bytes[3] !== 0x46) {
+    return { error: "הקובץ אינו PDF תקני" };
+  }
 
   let pageCount = 1;
   try {
@@ -255,7 +268,7 @@ export async function deleteForm(formId: string) {
   if (!form || form.org_id !== profile.org_id) throw new Error("טופס לא נמצא");
 
   const admin = createAdminClient();
-  await admin.from("forms").delete().eq("id", formId);
+  await admin.from("forms").delete().eq("id", formId).eq("org_id", profile.org_id);
   await admin.storage.from("originals").remove([form.original_pdf_path]);
 
   revalidatePath("/dashboard");

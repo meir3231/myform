@@ -28,7 +28,8 @@ function LoginForm() {
       return;
     }
 
-    const next = params.get("next") || "/dashboard";
+    const rawNext = params.get("next") || "/dashboard";
+    const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/dashboard";
     router.push(next);
     router.refresh();
   }

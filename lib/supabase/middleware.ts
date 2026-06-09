@@ -9,7 +9,9 @@ export async function updateSession(request: NextRequest) {
   const isAdminArea =
     path.startsWith("/dashboard") ||
     path.startsWith("/forms") ||
-    path.startsWith("/submissions");
+    path.startsWith("/submissions") ||
+    path.startsWith("/settings") ||
+    path.startsWith("/templates");
 
   // מסלולים ציבוריים (כמו /fill/[token]) לא צריכים בדיקת סשן מנהל בכלל —
   // קריאת auth.getUser() היא round-trip רשת אמיתי לשרת ה-Auth של Supabase

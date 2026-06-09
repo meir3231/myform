@@ -20,36 +20,17 @@ export default async function SubmissionDetailPage({
 
   if (!sub || sub.org_id !== profile.org_id) notFound();
 
-  const { data: form } = await supabase
-    .from("forms")
-    .select("name")
-    .eq("id", sub.form_id)
-    .single();
+  const [{ data: form }, { data: fields }, { data: values }, { data: audit }, downloadUrl] =
+    await Promise.all([
+      supabase.from("forms").select("name").eq("id", sub.form_id).single(),
+      supabase.from("form_fields").select("id, label, type, sort_order").eq("form_id", sub.form_id).order("sort_order", { ascending: true }),
+      supabase.from("submission_values").select("field_id, value").eq("submission_id", id),
+      supabase.from("signature_audit").select("*").eq("submission_id", id).order("signed_at", { ascending: false }).limit(1).maybeSingle(),
+      sub.completed_pdf_path ? getSignedUrl("completed", sub.completed_pdf_path, 60 * 10) : Promise.resolve(null),
+    ]);
 
-  const { data: fields } = await supabase
-    .from("form_fields")
-    .select("id, label, type, sort_order")
-    .eq("form_id", sub.form_id)
-    .order("sort_order", { ascending: true });
-
-  const { data: values } = await supabase
-    .from("submission_values")
-    .select("field_id, value")
-    .eq("submission_id", id);
   const valueMap = new Map((values ?? []).map((v) => [v.field_id, v.value]));
-
-  const { data: audit } = await supabase
-    .from("signature_audit")
-    .select("*")
-    .eq("submission_id", id)
-    .order("signed_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
   const meta = STATUS_META[sub.status];
-  const downloadUrl = sub.completed_pdf_path
-    ? await getSignedUrl("completed", sub.completed_pdf_path, 60 * 10)
-    : null;
 
   return (
     <div className="page-fade-in mx-auto max-w-4xl">

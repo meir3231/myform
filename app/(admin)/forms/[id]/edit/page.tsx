@@ -22,13 +22,10 @@ export default async function EditFormPage({
 
   if (!form || form.org_id !== profile.org_id) notFound();
 
-  const { data: fields } = await supabase
-    .from("form_fields")
-    .select("*")
-    .eq("form_id", id)
-    .order("sort_order", { ascending: true });
-
-  const pdfUrl = await getSignedUrl("originals", form.original_pdf_path, 60 * 30);
+  const [{ data: fields }, pdfUrl] = await Promise.all([
+    supabase.from("form_fields").select("*").eq("form_id", id).order("sort_order", { ascending: true }),
+    getSignedUrl("originals", form.original_pdf_path, 60 * 30),
+  ]);
 
   const initialFields: FieldDraft[] = (fields ?? []).map((f) => ({
     id: f.id,

@@ -27,15 +27,18 @@ function latestEvent(s: SubmissionRow): { at: string; text: string } {
 export default async function DashboardPage() {
   const { supabase } = await requireProfile();
 
-  const { data: forms } = await supabase
-    .from("forms")
-    .select("id, name, page_count, created_at")
-    .order("created_at", { ascending: false });
-
-  const [{ count: sentCount }, { count: completedCount }, { count: pendingCount }] = await Promise.all([
-    supabase.from("submissions").select("*", { count: "exact", head: true }).not("sent_at", "is", null),
-    supabase.from("submissions").select("*", { count: "exact", head: true }).eq("status", "completed"),
-    supabase.from("submissions").select("*", { count: "exact", head: true }).in("status", PENDING_STATUSES),
+  const [
+    { data: forms },
+    { data: submissions },
+    [{ count: sentCount }, { count: completedCount }, { count: pendingCount }],
+  ] = await Promise.all([
+    supabase.from("forms").select("id, name, page_count, created_at").order("created_at", { ascending: false }),
+    supabase.from("submissions").select("id, recipient_name, status, form_id, sent_at, opened_at, completed_at, created_at").order("created_at", { ascending: false }),
+    Promise.all([
+      supabase.from("submissions").select("*", { count: "exact", head: true }).not("sent_at", "is", null),
+      supabase.from("submissions").select("*", { count: "exact", head: true }).eq("status", "completed"),
+      supabase.from("submissions").select("*", { count: "exact", head: true }).in("status", PENDING_STATUSES),
+    ]),
   ]);
 
   const stats = [
@@ -44,11 +47,6 @@ export default async function DashboardPage() {
     { label: "הושלמו",           value: completedCount ?? 0, icon: <CheckIcon />,  accent: "#22c55e" },
     { label: "ממתינים לחתימה",  value: pendingCount ?? 0,  icon: <PendingIcon />, accent: "#f59e0b" },
   ];
-
-  const { data: submissions } = await supabase
-    .from("submissions")
-    .select("id, recipient_name, status, form_id, sent_at, opened_at, completed_at, created_at")
-    .order("created_at", { ascending: false });
 
   const subs: SubmissionRow[] = submissions ?? [];
   const formName = new Map((forms ?? []).map((f) => [f.id, f.name]));

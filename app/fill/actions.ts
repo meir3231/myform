@@ -2,6 +2,7 @@
 
 import { createHash } from "crypto";
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashToken } from "@/lib/tokens";
 import { downloadFile, getSignedUrl } from "@/lib/storage";
@@ -73,22 +74,17 @@ export async function submitForm(
   }
 
   // בניית קלט להשטחה + רשומות ערכים. מתבססים על שדות ה-DB בלבד.
+  // שדות טקסט מעובדים בו-זמנית; חתימות נאספות ומועלות במקביל לאחר מכן.
+  type SigJob = { f: typeof fields[0]; draft: FieldDraft; png: Uint8Array; sigPath: string };
   const inputs: FlattenInput[] = [];
   const valueRows: { submission_id: string; field_id: string; value: string }[] = [];
-  let primarySignaturePath: string | null = null;
+  const sigJobs: SigJob[] = [];
 
   for (const f of fields) {
     const draft: FieldDraft = {
-      id: f.id,
-      page: f.page,
-      x: f.x,
-      y: f.y,
-      width: f.width,
-      height: f.height,
-      type: f.type,
-      label: f.label,
-      required: f.required,
-      font_size: f.font_size,
+      id: f.id, page: f.page, x: f.x, y: f.y,
+      width: f.width, height: f.height, type: f.type,
+      label: f.label, required: f.required, font_size: f.font_size,
     };
 
     if (f.type === "signature" || f.type === "initials") {
@@ -96,21 +92,28 @@ export async function submitForm(
       if (!dataUrl) continue;
       const png = dataUrlToPng(dataUrl);
       if (!png) return { ok: false, error: "פורמט חתימה לא תקין" };
-
-      const sigPath = `${sub.org_id}/${sub.id}/${f.id}.png`;
-      const { error: upErr } = await admin.storage
-        .from("signatures")
-        .upload(sigPath, png, { contentType: "image/png", upsert: true });
-      if (upErr) return { ok: false, error: "שמירת החתימה נכשלה" };
-
-      inputs.push({ field: draft, signaturePng: png });
-      valueRows.push({ submission_id: sub.id, field_id: f.id, value: sigPath });
-      if (!primarySignaturePath) primarySignaturePath = sigPath;
+      sigJobs.push({ f, draft, png, sigPath: `${sub.org_id}/${sub.id}/${f.id}.png` });
     } else {
       const v = (payload.values[f.id] ?? "").slice(0, MAX_VALUE_LEN);
       inputs.push({ field: draft, value: v });
       valueRows.push({ submission_id: sub.id, field_id: f.id, value: v });
     }
+  }
+
+  // העלאת כל החתימות במקביל
+  const uploadResults = await Promise.all(
+    sigJobs.map(({ png, sigPath }) =>
+      admin.storage.from("signatures").upload(sigPath, png, { contentType: "image/png", upsert: true })
+    )
+  );
+  for (const { error: upErr } of uploadResults) {
+    if (upErr) return { ok: false, error: "שמירת החתימה נכשלה" };
+  }
+  let primarySignaturePath: string | null = null;
+  for (const { f, draft, png, sigPath } of sigJobs) {
+    inputs.push({ field: draft, signaturePng: png });
+    valueRows.push({ submission_id: sub.id, field_id: f.id, value: sigPath });
+    if (!primarySignaturePath) primarySignaturePath = sigPath;
   }
 
   // השטחת ה-PDF
@@ -133,33 +136,30 @@ export async function submitForm(
 
   const docHash = createHash("sha256").update(completed).digest("hex");
 
-  // שמירת הערכים (החלפה מלאה)
+  // שמירת הערכים (החלפה מלאה) — delete ואז insert סריאלי כי insert תלוי ב-delete
   await admin.from("submission_values").delete().eq("submission_id", sub.id);
   if (valueRows.length > 0) {
     await admin.from("submission_values").insert(valueRows);
   }
 
-  // תיעוד החתימה
+  // תיעוד + עדכון סטטוס — שתי הכתיבות עצמאיות, מריצים במקביל
   const hdrs = await headers();
   const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
   const ua = hdrs.get("user-agent") || null;
-  await admin.from("signature_audit").insert({
-    submission_id: sub.id,
-    signer_ip: ip,
-    user_agent: ua,
-    doc_sha256: docHash,
-    signature_image_path: primarySignaturePath,
-  });
-
-  // סימון כהושלם
-  await admin
-    .from("submissions")
-    .update({
+  await Promise.all([
+    admin.from("signature_audit").insert({
+      submission_id: sub.id,
+      signer_ip: ip,
+      user_agent: ua,
+      doc_sha256: docHash,
+      signature_image_path: primarySignaturePath,
+    }),
+    admin.from("submissions").update({
       status: "completed",
       completed_at: new Date().toISOString(),
       completed_pdf_path: completedPath,
-    })
-    .eq("id", sub.id);
+    }).eq("id", sub.id),
+  ]);
 
   // תבנית לשימוש חד-פעמי: מושבתת אוטומטית אחרי הגשה ראשונה (לא נמחקת —
   // כדי לשמר את ההגשה/החתימה/יומן-הביקורת המקושרים אליה ב-cascade)
@@ -190,13 +190,17 @@ export async function submitForm(
     // לא קריטי — אל תיכשל בגלל המייל
   }
 
-  // קישור הורדה זמני ללקוח, כדי שיוכל לשמור עותק חתום מיד לאחר החתימה
+  // קישור הורדה + ריענון קאש — שתי הפעולות עצמאיות
   let downloadUrl: string | undefined;
   try {
     downloadUrl = await getSignedUrl("completed", completedPath, 60 * 30);
   } catch {
-    // לא קריטי — אם נכשל, הלקוח עדיין יכול לקבל את הקובץ דרך המנהל
+    // לא קריטי — הלקוח יכול לקבל את הקובץ דרך המנהל
   }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/submissions");
+  revalidatePath("/templates");
 
   return { ok: true, downloadUrl };
 }

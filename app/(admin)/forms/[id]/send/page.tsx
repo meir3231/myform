@@ -20,13 +20,10 @@ export default async function SendPage({
 
   if (!form || form.org_id !== profile.org_id) notFound();
 
-  const { data: fields } = await supabase
-    .from("form_fields")
-    .select("id, page, type, label, required, sort_order")
-    .eq("form_id", form.id)
-    .order("sort_order", { ascending: true });
-
-  const pdfUrl = await getSignedUrl("originals", form.original_pdf_path, 60 * 30);
+  const [{ data: fields }, pdfUrl] = await Promise.all([
+    supabase.from("form_fields").select("id, page, type, label, required, sort_order").eq("form_id", form.id).order("sort_order", { ascending: true }),
+    getSignedUrl("originals", form.original_pdf_path, 60 * 30),
+  ]);
 
   return (
     <div className="mx-auto max-w-5xl">

@@ -33,7 +33,7 @@ export async function sendFormLinkEmail(opts: {
             פתיחת הטופס
           </a>
         </p>
-        <p style="font-size:13px;color:#64748b">אם הכפתור אינו עובד, העתק את הקישור:<br/>${opts.link}</p>
+        <p style="font-size:13px;color:#64748b">אם הכפתור אינו עובד, העתק את הקישור:<br/>${escapeHtml(opts.link)}</p>
       </div>
     `,
   });
