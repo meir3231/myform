@@ -15,6 +15,8 @@ import {
   duplicateForm as svDuplicate,
   renameForm as svRenameForm,
   mergeForms as svMergeForms,
+  shareForm as svShareForm,
+  unshareForm as svUnshareForm,
 } from "./actions";
 import { deleteForm as svDeleteForm } from "@/app/(admin)/forms/actions";
 
@@ -28,6 +30,9 @@ type FormRow = {
   archived_at: string | null;
   folder_id: string | null;
   created_at: string;
+  visibility: string;
+  created_by: string | null;
+  creatorName: string | null;
 };
 
 type FolderRow = { id: string; name: string; parent_id: string | null };
@@ -37,9 +42,13 @@ type FolderRow = { id: string; name: string; parent_id: string | null };
 export function TemplatesClient({
   forms,
   folders,
+  currentUserId,
+  currentUserRole,
 }: {
   forms: FormRow[];
   folders: FolderRow[];
+  currentUserId: string;
+  currentUserRole: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -201,6 +210,14 @@ export function TemplatesClient({
     const id = movingFormId!;
     setMovingFormId(null);
     startTransition(async () => { await svMoveForm(id, folderId); router.refresh(); });
+  }
+
+  function handleShare(id: string) {
+    startTransition(async () => { await svShareForm(id); router.refresh(); });
+  }
+
+  function handleUnshare(id: string) {
+    startTransition(async () => { await svUnshareForm(id); router.refresh(); });
   }
 
   function handleCreateFolder(e: React.FormEvent) {
@@ -445,10 +462,13 @@ export function TemplatesClient({
               onClearFilter={() => { setSearch(""); setFilter("all"); setSelectedFolder(null); }}
               onNewForm={() => setShowNewModal(true)}
             />
-          ) : view === "list" ? (
-            <ListView
+          ) : currentUserRole !== "admin" ? (
+            // member view: split into sections
+            <MemberFormsView
               forms={filteredForms}
               folders={folders}
+              currentUserId={currentUserId}
+              view={view}
               renamingId={renamingId}
               renamingValue={renamingValue}
               renameInputRef={renameInputRef}
@@ -463,10 +483,11 @@ export function TemplatesClient({
               onDelete={handleDelete}
               onMoveOpen={handleMoveOpen}
             />
-          ) : (
-            <GridView
+          ) : view === "list" ? (
+            <ListView
               forms={filteredForms}
               folders={folders}
+              currentUserRole={currentUserRole}
               renamingId={renamingId}
               renamingValue={renamingValue}
               renameInputRef={renameInputRef}
@@ -480,6 +501,29 @@ export function TemplatesClient({
               onDuplicate={handleDuplicate}
               onDelete={handleDelete}
               onMoveOpen={handleMoveOpen}
+              onShare={handleShare}
+              onUnshare={handleUnshare}
+            />
+          ) : (
+            <GridView
+              forms={filteredForms}
+              folders={folders}
+              currentUserRole={currentUserRole}
+              renamingId={renamingId}
+              renamingValue={renamingValue}
+              renameInputRef={renameInputRef}
+              openMenuId={openMenuId}
+              isPending={isPending}
+              onStartRename={handleStartRename}
+              onRenameChange={setRenamingValue}
+              onRenameSubmit={handleRenameSubmit}
+              onRenameCancel={() => setRenamingId(null)}
+              onMenuToggle={(id) => setOpenMenuId((prev) => (prev === id ? null : id))}
+              onDuplicate={handleDuplicate}
+              onDelete={handleDelete}
+              onMoveOpen={handleMoveOpen}
+              onShare={handleShare}
+              onUnshare={handleUnshare}
             />
           )}
         </div>
@@ -535,13 +579,14 @@ export function TemplatesClient({
 // ─── ListView ─────────────────────────────────────────────────────────────────
 
 function ListView({
-  forms, folders, renamingId, renamingValue, renameInputRef,
+  forms, folders, currentUserRole, renamingId, renamingValue, renameInputRef,
   openMenuId, isPending, onStartRename,
   onRenameChange, onRenameSubmit, onRenameCancel, onMenuToggle,
-  onDuplicate, onDelete, onMoveOpen,
+  onDuplicate, onDelete, onMoveOpen, onShare, onUnshare,
 }: {
   forms: FormRow[];
   folders: FolderRow[];
+  currentUserRole: string;
   renamingId: string | null;
   renamingValue: string;
   renameInputRef: RefObject<HTMLInputElement | null>;
@@ -555,6 +600,8 @@ function ListView({
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
   onMoveOpen: (id: string) => void;
+  onShare: (id: string) => void;
+  onUnshare: (id: string) => void;
 }) {
   const folderMap = new Map(folders.map((f) => [f.id, f.name]));
 
@@ -596,13 +643,32 @@ function ListView({
                       style={{ minWidth: 160 }}
                     />
                   ) : (
-                    <span
-                      className="font-medium text-paper-text cursor-default select-none"
-                      onDoubleClick={() => onStartRename(form.id, form.name)}
-                      title="לחץ פעמיים לשינוי שם"
-                    >
-                      {form.name}
+                    <div className="flex min-w-0 flex-col">
+                      <span
+                        className="font-medium text-paper-text cursor-default select-none"
+                        onDoubleClick={() => onStartRename(form.id, form.name)}
+                        title="לחץ פעמיים לשינוי שם"
+                      >
+                        {form.name}
+                      </span>
+                      {form.creatorName && (
+                        <span className="text-[11px] text-slate-400">{form.creatorName}</span>
+                      )}
+                    </div>
+                  )}
+                  {form.visibility === "shared" && (
+                    <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-700">
+                      משותף
                     </span>
+                  )}
+                  {currentUserRole === "admin" && (
+                    <button
+                      onClick={() => form.visibility === "shared" ? onUnshare(form.id) : onShare(form.id)}
+                      disabled={isPending}
+                      className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-500 transition hover:bg-slate-50 disabled:opacity-40"
+                    >
+                      {form.visibility === "shared" ? "הפוך לפרטי" : "שתף"}
+                    </button>
                   )}
                 </div>
               </td>
@@ -639,12 +705,14 @@ function ListView({
 // ─── GridView ─────────────────────────────────────────────────────────────────
 
 function GridView({
-  forms, folders, renamingId, renamingValue, renameInputRef,
+  forms, folders, currentUserRole, renamingId, renamingValue, renameInputRef,
   openMenuId, isPending, onStartRename, onRenameChange,
   onRenameSubmit, onRenameCancel, onMenuToggle, onDuplicate, onDelete, onMoveOpen,
+  onShare, onUnshare,
 }: {
   forms: FormRow[];
   folders: FolderRow[];
+  currentUserRole: string;
   renamingId: string | null;
   renamingValue: string;
   renameInputRef: RefObject<HTMLInputElement | null>;
@@ -658,6 +726,8 @@ function GridView({
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
   onMoveOpen: (id: string) => void;
+  onShare: (id: string) => void;
+  onUnshare: (id: string) => void;
 }) {
   const folderMap = new Map(folders.map((f) => [f.id, f.name]));
 
@@ -696,10 +766,16 @@ function GridView({
               )}
               <div className="mt-1 flex flex-wrap gap-1">
                 <TypeBadge form={form} />
+                {form.visibility === "shared" && (
+                  <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-700">
+                    משותף
+                  </span>
+                )}
               </div>
               <p className="mt-1 text-xs text-paper-muted">
                 {form.page_count} עמ׳
                 {form.folder_id ? ` · ${folderMap.get(form.folder_id) ?? ""}` : ""}
+                {form.creatorName ? ` · ${form.creatorName}` : ""}
               </p>
             </div>
           </div>
@@ -712,6 +788,15 @@ function GridView({
               <Link href={`/forms/${form.id}/send`} className="btn-primary !py-1 !px-2.5 !text-xs">
                 שליחה
               </Link>
+            )}
+            {currentUserRole === "admin" && (
+              <button
+                onClick={() => form.visibility === "shared" ? onUnshare(form.id) : onShare(form.id)}
+                disabled={isPending}
+                className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-500 transition hover:bg-slate-50 disabled:opacity-40"
+              >
+                {form.visibility === "shared" ? "הפוך לפרטי" : "שתף"}
+              </button>
             )}
             <span className="mr-auto">
               <FormMenu
@@ -728,6 +813,69 @@ function GridView({
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ─── MemberFormsView (split: shared + mine) ───────────────────────────────────
+
+function MemberFormsView({
+  forms, folders, currentUserId, view,
+  renamingId, renamingValue, renameInputRef, openMenuId, isPending,
+  onStartRename, onRenameChange, onRenameSubmit, onRenameCancel,
+  onMenuToggle, onDuplicate, onDelete, onMoveOpen,
+}: {
+  forms: FormRow[];
+  folders: FolderRow[];
+  currentUserId: string;
+  view: "list" | "grid";
+  renamingId: string | null;
+  renamingValue: string;
+  renameInputRef: RefObject<HTMLInputElement | null>;
+  openMenuId: string | null;
+  isPending: boolean;
+  onStartRename: (id: string, name: string) => void;
+  onRenameChange: (v: string) => void;
+  onRenameSubmit: (id: string) => void;
+  onRenameCancel: () => void;
+  onMenuToggle: (id: string) => void;
+  onDuplicate: (id: string) => void;
+  onDelete: (id: string) => void;
+  onMoveOpen: (id: string) => void;
+}) {
+  const sharedForms = forms.filter((f) => f.visibility === "shared" && f.created_by !== currentUserId);
+  const myForms = forms.filter((f) => f.created_by === currentUserId);
+
+  const noOp = () => {};
+  const sharedProps = {
+    folders, currentUserRole: "member",
+    renamingId, renamingValue, renameInputRef, openMenuId, isPending,
+    onStartRename, onRenameChange, onRenameSubmit, onRenameCancel,
+    onMenuToggle, onDuplicate, onDelete, onMoveOpen,
+    onShare: noOp, onUnshare: noOp,
+  };
+
+  return (
+    <div className="space-y-6">
+      {myForms.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-sm font-semibold text-slate-600">הטפסים שלי</h2>
+          {view === "list"
+            ? <ListView forms={myForms} {...sharedProps} />
+            : <GridView forms={myForms} {...sharedProps} />}
+        </div>
+      )}
+      {sharedForms.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-sm font-semibold text-slate-600">טפסים משותפים</h2>
+          {view === "list"
+            ? <ListView forms={sharedForms} {...sharedProps} />
+            : <GridView forms={sharedForms} {...sharedProps} />}
+        </div>
+      )}
+      {myForms.length === 0 && sharedForms.length === 0 && (
+        <p className="py-8 text-center text-sm text-slate-400">אין טפסים להצגה</p>
+      )}
     </div>
   );
 }

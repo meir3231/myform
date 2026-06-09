@@ -20,7 +20,7 @@ export default async function AdminLayout({
           <Image src="/logo.png" alt="TofSync" width={774} height={336} className="h-auto" priority />
         </Link>
       </header>
-      <Sidebar userName={profile.full_name || "מנהל"} signOutAction={signOut} />
+      <Sidebar userName={profile.full_name || "מנהל"} role={profile.role} signOutAction={signOut} />
       <div className="mr-[220px] flex min-h-screen flex-col">
         <AdminMain>{children}</AdminMain>
         <SiteFooter />

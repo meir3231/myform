@@ -62,6 +62,7 @@ export interface Database {
           archived_at: string | null;
           folder_id: string | null;
           created_by: string | null;
+          visibility: string;
           created_at: string;
         };
         Insert: {
@@ -74,9 +75,10 @@ export interface Database {
           archived_at?: string | null;
           folder_id?: string | null;
           created_by?: string | null;
+          visibility?: string;
           created_at?: string;
         };
-        Update: Partial<{ name: string; page_count: number; archived_at: string | null; folder_id: string | null }>;
+        Update: Partial<{ name: string; page_count: number; archived_at: string | null; folder_id: string | null; visibility: string }>;
         Relationships: [];
       };
       form_fields: {

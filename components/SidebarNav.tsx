@@ -16,12 +16,19 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/settings", label: "הגדרות", icon: SettingsIcon },
 ];
 
-export function SidebarNav() {
+export function SidebarNav({ role }: { role: string }) {
   const pathname = usePathname();
+
+  const items = [
+    ...NAV_ITEMS,
+    ...(role === "admin"
+      ? [{ href: "/settings/users", label: "ניהול משתמשים", icon: UsersIcon }]
+      : []),
+  ];
 
   return (
     <nav className="flex-1 space-y-1 p-3">
-      {NAV_ITEMS.map((item) => {
+      {items.map((item) => {
         const active = pathname === item.href || pathname.startsWith(item.href + "/");
         const Icon = item.icon;
         return (
@@ -88,6 +95,17 @@ function SettingsIcon({ className }: { className?: string }) {
         strokeWidth="1.4"
         strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+function UsersIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="9" cy="7" r="3" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M3 20c0-4 2.7-6 6-6s6 2 6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="17" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M21 20c0-3-1.8-4.5-4-4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }

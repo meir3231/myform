@@ -265,3 +265,35 @@ export async function mergeForms(
 
   return { ok: true, formId: newFormId };
 }
+
+// ─── Visibility actions (admin only) ───────────────────────────────────────────
+
+export async function shareForm(formId: string): Promise<{ error?: string }> {
+  assertUUID(formId, "טופס");
+  const { profile } = await requireProfile();
+  if (profile.role !== "admin") return { error: "רק מנהל יכול לשתף טפסים" };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("forms")
+    .update({ visibility: "shared" })
+    .eq("id", formId)
+    .eq("org_id", profile.org_id);
+  if (error) return { error: "שיתוף הטופס נכשל: " + error.message };
+  revalidatePath("/templates");
+  return {};
+}
+
+export async function unshareForm(formId: string): Promise<{ error?: string }> {
+  assertUUID(formId, "טופס");
+  const { profile } = await requireProfile();
+  if (profile.role !== "admin") return { error: "רק מנהל יכול לשנות חשיפה" };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("forms")
+    .update({ visibility: "private" })
+    .eq("id", formId)
+    .eq("org_id", profile.org_id);
+  if (error) return { error: "עדכון הטופס נכשל: " + error.message };
+  revalidatePath("/templates");
+  return {};
+}

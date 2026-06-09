@@ -19,11 +19,14 @@ export function SubmissionsClient({
   submissions,
   formName,
   formOptions,
+  currentUserRole,
 }: {
   submissions: SubmissionRow[];
   formName: Map<string, string>;
   formOptions: Array<{ id: string; name: string }>;
+  currentUserRole: string;
 }) {
+  void currentUserRole; // reserved for future admin-only filters
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<SubmissionStatus | "all">("all");
   const [formFilter, setFormFilter] = useState<string>("all");
