@@ -1,7 +1,7 @@
 import "server-only";
 import { readFileSync } from "fs";
 import path from "path";
-import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { PDFDocument, rgb, LineCapStyle, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import bidiFactory from "bidi-js";
 import type { FieldDraft } from "@/lib/fields";
@@ -101,10 +101,23 @@ export async function flattenPdf(
       const by = topPdfY - boxH;
       page.drawRectangle({ x: bx, y: by, width: boxW, height: boxH, borderWidth: 1, borderColor: rgb(0.3, 0.3, 0.3), color: rgb(1, 1, 1) });
       if (value === "true") {
-        const size = Math.max(6, boxH * 0.78);
-        const checkX = bx + boxW * 0.08;
-        const checkY = by + (boxH - size) / 2 + size * 0.12;
-        page.drawText("✓", { x: checkX, y: checkY, size, font, color: rgb(0.06, 0.09, 0.16) });
+        // ציור ✓ כקווים וקטוריים — לא תלוי בקיום הסימן בגופן (Heebo חסר את הגליף ✓)
+        const thickness = Math.max(1.2, boxH * 0.12);
+        const color = rgb(0.06, 0.09, 0.16);
+        page.drawLine({
+          start: { x: bx + boxW * 0.18, y: by + boxH * 0.52 },
+          end: { x: bx + boxW * 0.42, y: by + boxH * 0.22 },
+          thickness,
+          color,
+          lineCap: LineCapStyle.Round,
+        });
+        page.drawLine({
+          start: { x: bx + boxW * 0.42, y: by + boxH * 0.22 },
+          end: { x: bx + boxW * 0.84, y: by + boxH * 0.78 },
+          thickness,
+          color,
+          lineCap: LineCapStyle.Round,
+        });
       }
     } else if (value && value.trim()) {
       const size = Math.max(6, Math.min(field.font_size, boxH * 0.85));
