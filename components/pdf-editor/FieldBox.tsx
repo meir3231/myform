@@ -14,6 +14,7 @@ export function FieldBox({
   selected,
   onSelect,
   onChange,
+  onContextMenu,
 }: {
   field: FieldDraft;
   pageW: number;
@@ -21,6 +22,7 @@ export function FieldBox({
   selected: boolean;
   onSelect: () => void;
   onChange: (f: FieldDraft) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
 }) {
   const drag = useRef<
     | null
@@ -70,6 +72,12 @@ export function FieldBox({
       onPointerDown={(e) => onPointerDown(e, "move")}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onSelect();
+        onContextMenu?.(e);
+      }}
       style={{
         position: "absolute",
         left: `${field.x * pageW}px`,

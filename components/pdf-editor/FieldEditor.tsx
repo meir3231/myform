@@ -87,6 +87,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 type PageSizes = Record<number, { w: number; h: number }>;
 type GhostPos = { x: number; y: number; page: number } | null;
+type ContextMenuState =
+  | { kind: "field"; x: number; y: number; fieldId: string }
+  | { kind: "page"; x: number; y: number; page: number; pos: { x: number; y: number } }
+  | null;
 
 export default function FieldEditor({
   formId,
@@ -107,6 +111,8 @@ export default function FieldEditor({
   const { showToast } = useToast();
   const [placing, setPlacing] = useState<FieldType | null>(null);
   const [ghostPos, setGhostPos] = useState<GhostPos>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>(null);
+  const [clipboard, setClipboard] = useState<FieldDraft | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<Record<number, HTMLDivElement | null>>({});
@@ -139,14 +145,30 @@ export default function FieldEditor({
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && placing) {
-        setPlacing(null);
-        setGhostPos(null);
+      if (e.key === "Escape") {
+        if (placing) {
+          setPlacing(null);
+          setGhostPos(null);
+        }
+        if (contextMenu) setContextMenu(null);
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [placing]);
+  }, [placing, contextMenu]);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    function close() {
+      setContextMenu(null);
+    }
+    window.addEventListener("click", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [contextMenu]);
 
   function startPlacing(type: FieldType) {
     setPlacing((prev) => (prev === type ? null : type));
@@ -154,7 +176,7 @@ export default function FieldEditor({
     setSelectedId(null);
   }
 
-  function normalizedFromPage(pageNum: number, e: React.PointerEvent) {
+  function normalizedFromPage(pageNum: number, e: { clientX: number; clientY: number }) {
     const el = pageRefs.current[pageNum];
     if (!el) return null;
     const rect = el.getBoundingClientRect();
@@ -194,6 +216,23 @@ export default function FieldEditor({
   function deleteField(id: string) {
     setFields((prev) => prev.filter((f) => f.id !== id));
     if (selectedId === id) setSelectedId(null);
+    setStatus("idle");
+  }
+
+  function copyField(id: string) {
+    const f = fields.find((x) => x.id === id);
+    if (f) setClipboard(f);
+    setContextMenu(null);
+  }
+
+  function pasteField(pageNum: number, centerX: number, centerY: number) {
+    if (!clipboard) return;
+    const x = Math.min(Math.max(centerX - clipboard.width / 2, 0), 1 - clipboard.width);
+    const y = Math.min(Math.max(centerY - clipboard.height / 2, 0), 1 - clipboard.height);
+    const f: FieldDraft = { ...clipboard, id: randomUUID(), page: pageNum, x, y };
+    setFields((prev) => [...prev, f]);
+    setSelectedId(f.id);
+    setContextMenu(null);
     setStatus("idle");
   }
 
@@ -306,6 +345,12 @@ export default function FieldEditor({
                             }
                             if (e.target === e.currentTarget) setSelectedId(null);
                           }}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            if (placing) return;
+                            const pos = normalizedFromPage(pageNum, e);
+                            if (pos) setContextMenu({ kind: "page", x: e.clientX, y: e.clientY, page: pageNum, pos });
+                          }}
                         >
                           {size &&
                             pageFields.map((f) => (
@@ -317,6 +362,9 @@ export default function FieldEditor({
                                 selected={f.id === selectedId}
                                 onSelect={() => setSelectedId(f.id)}
                                 onChange={updateField}
+                                onContextMenu={(e) =>
+                                  setContextMenu({ kind: "field", x: e.clientX, y: e.clientY, fieldId: f.id })
+                                }
                               />
                             ))}
 
@@ -445,6 +493,30 @@ export default function FieldEditor({
           )}
         </aside>
       </div>
+
+      {contextMenu && (
+        <div
+          className="fixed z-50 min-w-[140px] overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          {contextMenu.kind === "field" ? (
+            <button
+              onClick={() => copyField(contextMenu.fieldId)}
+              className="flex w-full items-center px-3 py-1.5 text-start text-sm text-slate-700 transition hover:bg-slate-50"
+            >
+              העתק
+            </button>
+          ) : (
+            <button
+              onClick={() => pasteField(contextMenu.page, contextMenu.pos.x, contextMenu.pos.y)}
+              disabled={!clipboard}
+              className="flex w-full items-center px-3 py-1.5 text-start text-sm text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+            >
+              הדבק
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

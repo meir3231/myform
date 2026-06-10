@@ -10,7 +10,7 @@ export const FIELD_META: Record<
   date: { label: "תאריך", color: "#14b8a6", defaultW: 0.11, defaultH: 0.026 },
   signature: { label: "חתימה", color: "#ef4444", defaultW: 0.22, defaultH: 0.065 },
   initials: { label: "ראשי תיבות", color: "#f59e0b", defaultW: 0.09, defaultH: 0.045 },
-  checkbox: { label: "תיבת סימון", color: "#6366f1", defaultW: 0.028, defaultH: 0.028 },
+  checkbox: { label: "תיבת סימון", color: "#6366f1", defaultW: 0.022, defaultH: 0.016 },
 };
 
 export const FIELD_TYPES = Object.keys(FIELD_META) as FieldType[];
