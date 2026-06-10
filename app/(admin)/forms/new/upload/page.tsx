@@ -22,7 +22,6 @@ export default function NewFormUploadPage() {
       <Breadcrumbs
         items={[
           { label: "תבניות", href: "/templates" },
-          { label: "טופס חדש", href: "/forms/new" },
           { label: "העלאת PDF" },
         ]}
       />

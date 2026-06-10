@@ -1,25 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { NewFormModal } from "@/components/NewFormModal";
 
-type FormOption = { id: string; name: string };
+type FormOption = { id: string; name: string; page_count: number };
+type FolderOption = { id: string; name: string };
 
-export function QuickActions({ forms }: { forms: FormOption[] }) {
+export function QuickActions({ forms, folders }: { forms: FormOption[]; folders: FolderOption[] }) {
   const router = useRouter();
   const [showPicker, setShowPicker] = useState(false);
+  const [showNewModal, setShowNewModal] = useState(false);
 
   return (
     <>
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Link
-          href="/forms/new"
+        <button
+          onClick={() => setShowNewModal(true)}
           className="flex items-center gap-2 rounded-xl border border-brand bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark hover:shadow-md"
         >
           <PlusIcon />
           יצירת טופס חדש
-        </Link>
+        </button>
 
         <button
           onClick={() => setShowPicker(true)}
@@ -37,6 +39,13 @@ export function QuickActions({ forms }: { forms: FormOption[] }) {
           onClose={() => setShowPicker(false)}
         />
       )}
+
+      <NewFormModal
+        open={showNewModal}
+        onClose={() => setShowNewModal(false)}
+        forms={forms}
+        folders={folders}
+      />
     </>
   );
 }

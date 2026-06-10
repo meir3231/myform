@@ -14,11 +14,12 @@ import {
   moveFormToFolder as svMoveForm,
   duplicateForm as svDuplicate,
   renameForm as svRenameForm,
-  mergeForms as svMergeForms,
   shareForm as svShareForm,
   unshareForm as svUnshareForm,
 } from "./actions";
 import { deleteForm as svDeleteForm } from "@/app/(admin)/forms/actions";
+import { Modal } from "@/components/Modal";
+import { NewFormModal } from "@/components/NewFormModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -79,15 +80,6 @@ export function TemplatesClient({
   // New form modal
   const [showNewModal, setShowNewModal] = useState(false);
 
-  // Merge modal (0=closed, 1=select forms, 2=configure)
-  const [mergeStep, setMergeStep] = useState(0);
-  const [mergeSelectedIds, setMergeSelectedIds] = useState(new Set<string>());
-  const [mergeName, setMergeName] = useState("");
-  const [mergeIsReusable, setMergeIsReusable] = useState(true);
-  const [mergeFolderId, setMergeFolderId] = useState<string | null>(null);
-  const [merging, setMerging] = useState(false);
-  const [mergeError, setMergeError] = useState("");
-
   // Folder management
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
@@ -121,7 +113,6 @@ export function TemplatesClient({
       const isInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
 
       if (e.key === "Escape") {
-        if (mergeStep > 0) { setMergeStep(0); return; }
         if (showNewModal) { setShowNewModal(false); return; }
         if (openMenuId) { setOpenMenuId(null); return; }
         if (movingFormId) { setMovingFormId(null); return; }
@@ -139,7 +130,7 @@ export function TemplatesClient({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [mergeStep, showNewModal, openMenuId, movingFormId, renamingId]);
+  }, [showNewModal, openMenuId, movingFormId, renamingId]);
 
   // Filtered + sorted forms
   const filteredForms = useMemo(() => {
@@ -247,37 +238,6 @@ export function TemplatesClient({
     setRenamingFolderId(null);
     if (!name) return;
     startTransition(async () => { await svRenameFolder(id, name); router.refresh(); });
-  }
-
-  function handleMergeToggle(id: string) {
-    setMergeSelectedIds((prev) => {
-      const n = new Set(prev);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
-    });
-  }
-
-  async function handleMergeSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (mergeSelectedIds.size < 2) { setMergeError("יש לבחור לפחות 2 טפסים"); return; }
-    if (!mergeName.trim()) { setMergeError("נא להזין שם לטופס הממוזג"); return; }
-    setMerging(true);
-    setMergeError("");
-    const result = await svMergeForms(
-      [...mergeSelectedIds],
-      mergeName.trim(),
-      mergeIsReusable,
-      mergeFolderId ?? undefined
-    );
-    setMerging(false);
-    if (result.ok && result.formId) {
-      setMergeStep(0);
-      setMergeSelectedIds(new Set());
-      setMergeName("");
-      router.push(`/forms/${result.formId}/edit`);
-    } else {
-      setMergeError(result.error ?? "שגיאה לא ידועה במיזוג");
-    }
   }
 
   const currentFolderName = selectedFolder
@@ -530,39 +490,12 @@ export function TemplatesClient({
       </div>
 
       {/* Modals */}
-      {showNewModal && (
-        <NewFormModal
-          onUploadClick={() => setShowNewModal(false)}
-          onMergeClick={() => { setShowNewModal(false); setMergeStep(1); }}
-          onClose={() => setShowNewModal(false)}
-        />
-      )}
-
-      {mergeStep > 0 && (
-        <MergeModal
-          step={mergeStep}
-          allForms={forms.filter((f) => !f.archived_at)}
-          folders={folders}
-          selectedIds={mergeSelectedIds}
-          name={mergeName}
-          isReusable={mergeIsReusable}
-          folderId={mergeFolderId}
-          error={mergeError}
-          merging={merging}
-          onToggleForm={handleMergeToggle}
-          onNextStep={() => {
-            if (mergeSelectedIds.size < 2) { setMergeError("יש לבחור לפחות 2 טפסים"); return; }
-            setMergeError("");
-            setMergeStep(2);
-          }}
-          onNameChange={setMergeName}
-          onIsReusableChange={setMergeIsReusable}
-          onFolderChange={setMergeFolderId}
-          onSubmit={handleMergeSubmit}
-          onBack={() => { setMergeStep(1); setMergeError(""); }}
-          onClose={() => { setMergeStep(0); setMergeSelectedIds(new Set()); setMergeError(""); }}
-        />
-      )}
+      <NewFormModal
+        open={showNewModal}
+        onClose={() => setShowNewModal(false)}
+        forms={forms.filter((f) => !f.archived_at).map((f) => ({ id: f.id, name: f.name, page_count: f.page_count }))}
+        folders={folders}
+      />
 
       {movingFormId && (
         <MoveFolderModal
@@ -973,221 +906,6 @@ function FormMenu({
 
 // ─── Modals ───────────────────────────────────────────────────────────────────
 
-function Modal({
-  children,
-  title,
-  onClose,
-}: {
-  children: React.ReactNode;
-  title: string;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-paper-text">{title}</h2>
-          <button
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-          >
-            <XIcon />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function NewFormModal({
-  onUploadClick,
-  onMergeClick,
-  onClose,
-}: {
-  onUploadClick: () => void;
-  onMergeClick: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <Modal title="טופס חדש" onClose={onClose}>
-      <p className="mb-5 text-sm text-paper-muted">בחר כיצד לייצור את הטופס החדש:</p>
-      <div className="grid grid-cols-2 gap-4">
-        <Link
-          href="/forms/new"
-          onClick={onUploadClick}
-          className="flex flex-col items-center gap-3 rounded-xl border-2 border-paper-line p-5 text-center transition hover:border-brand hover:bg-brand/5"
-        >
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand/10 text-brand">
-            <UploadIcon />
-          </span>
-          <div>
-            <div className="font-semibold text-paper-text">העלאת PDF</div>
-            <div className="mt-1 text-xs text-paper-muted">העלה קובץ PDF חדש</div>
-          </div>
-        </Link>
-        <button
-          onClick={onMergeClick}
-          className="flex flex-col items-center gap-3 rounded-xl border-2 border-paper-line p-5 text-center transition hover:border-brand hover:bg-brand/5"
-        >
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-purple-600">
-            <MergeIcon />
-          </span>
-          <div>
-            <div className="font-semibold text-paper-text">מיזוג טפסים קיימים</div>
-            <div className="mt-1 text-xs text-paper-muted">שלב מספר טפסים לאחד</div>
-          </div>
-        </button>
-      </div>
-      <p className="mt-4 text-center text-xs text-slate-400">קיצור מקלדת: N | Esc לסגירה</p>
-    </Modal>
-  );
-}
-
-function MergeModal({
-  step, allForms, folders, selectedIds, name, isReusable, folderId, error, merging,
-  onToggleForm, onNextStep, onNameChange, onIsReusableChange, onFolderChange,
-  onSubmit, onBack, onClose,
-}: {
-  step: number;
-  allForms: FormRow[];
-  folders: FolderRow[];
-  selectedIds: Set<string>;
-  name: string;
-  isReusable: boolean;
-  folderId: string | null;
-  error: string;
-  merging: boolean;
-  onToggleForm: (id: string) => void;
-  onNextStep: () => void;
-  onNameChange: (v: string) => void;
-  onIsReusableChange: (v: boolean) => void;
-  onFolderChange: (v: string | null) => void;
-  onSubmit: (e: React.FormEvent) => void;
-  onBack: () => void;
-  onClose: () => void;
-}) {
-  const orderedIds = [...selectedIds];
-  const selectedFormsList = allForms.filter((f) => selectedIds.has(f.id));
-  const totalPages = selectedFormsList.reduce((acc, f) => acc + f.page_count, 0);
-
-  return (
-    <Modal title="מיזוג טפסים" onClose={onClose}>
-      {/* Steps indicator */}
-      <div className="mb-5 flex items-center gap-2 text-sm">
-        <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${step >= 1 ? "bg-brand text-white" : "bg-slate-100 text-slate-500"}`}>1</span>
-        <span className={step >= 1 ? "text-paper-text" : "text-paper-muted"}>בחירת טפסים</span>
-        <span className="h-px w-6 bg-slate-200" />
-        <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${step >= 2 ? "bg-brand text-white" : "bg-slate-100 text-slate-500"}`}>2</span>
-        <span className={step >= 2 ? "text-paper-text" : "text-paper-muted"}>הגדרות</span>
-      </div>
-
-      {step === 1 && (
-        <div>
-          <p className="mb-3 text-sm text-paper-muted">בחר לפחות 2 טפסים (הסדר קובע את סדר הדפים):</p>
-          <div className="max-h-60 overflow-y-auto divide-y divide-paper-line rounded-xl border border-paper-line">
-            {allForms.map((form) => (
-              <label key={form.id} className="flex cursor-pointer items-center gap-3 px-4 py-2.5 transition hover:bg-brand/5">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(form.id)}
-                  onChange={() => onToggleForm(form.id)}
-                  className="h-4 w-4 rounded border-slate-300 accent-brand"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium text-paper-text">{form.name}</div>
-                  <div className="text-xs text-paper-muted">{form.page_count} עמ׳</div>
-                </div>
-                {selectedIds.has(form.id) && (
-                  <span className="shrink-0 text-xs font-bold text-brand">
-                    #{orderedIds.indexOf(form.id) + 1}
-                  </span>
-                )}
-              </label>
-            ))}
-          </div>
-          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-          <div className="mt-4 flex justify-between">
-            <button onClick={onClose} className="btn-secondary">ביטול</button>
-            <button
-              onClick={onNextStep}
-              disabled={selectedIds.size < 2}
-              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              הבא ←
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 2 && (
-        <form onSubmit={onSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-paper-text">שם הטופס הממוזג</label>
-              <input
-                autoFocus
-                value={name}
-                onChange={(e) => onNameChange(e.target.value)}
-                placeholder="לדוגמה: חוזה שכירות + נספח"
-                className="w-full rounded-lg border border-paper-line px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-paper-text">סוג תבנית</label>
-              <div className="flex gap-5">
-                {[{ val: true, label: "שימוש חוזר" }, { val: false, label: "חד-פעמי" }].map(({ val, label }) => (
-                  <label key={String(val)} className="flex cursor-pointer items-center gap-2">
-                    <input
-                      type="radio"
-                      checked={isReusable === val}
-                      onChange={() => onIsReusableChange(val)}
-                      className="accent-brand"
-                    />
-                    <span className="text-sm text-paper-text">{label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            {folders.length > 0 && (
-              <div>
-                <label className="mb-1 block text-sm font-medium text-paper-text">תיקייה (אופציונלי)</label>
-                <select
-                  value={folderId ?? ""}
-                  onChange={(e) => onFolderChange(e.target.value || null)}
-                  className="w-full rounded-lg border border-paper-line px-3 py-2 text-sm focus:border-brand focus:outline-none"
-                >
-                  <option value="">ללא תיקייה</option>
-                  {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-                </select>
-              </div>
-            )}
-          </div>
-          <div className="mt-3 rounded-lg bg-blue-50 px-3 py-2.5 text-xs text-blue-700">
-            {selectedIds.size} טפסים · סה"כ {totalPages} עמ׳ · שדות הטפסים יועתקו עם התאמת מספרי עמוד.
-          </div>
-          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-          <div className="mt-4 flex justify-between">
-            <button type="button" onClick={onBack} className="btn-secondary">← חזרה</button>
-            <button type="submit" disabled={merging} className="btn-primary disabled:opacity-50">
-              {merging ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  ממזג...
-                </span>
-              ) : "צור טופס ממוזג"}
-            </button>
-          </div>
-        </form>
-      )}
-    </Modal>
-  );
-}
-
 function MoveFolderModal({
   folders,
   currentFolderId,
@@ -1286,14 +1004,6 @@ function FolderIcon({ className }: { className?: string }) {
   );
 }
 
-function XIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
-      <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function XSmallIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" aria-hidden>
@@ -1381,18 +1091,3 @@ function TrashIcon() {
   );
 }
 
-function UploadIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden>
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function MergeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden>
-      <path d="M8 6H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3M16 6h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3M12 3v18M8 9l4-4 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}

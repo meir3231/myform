@@ -30,10 +30,12 @@ export default async function DashboardPage() {
 
   const [
     { data: forms },
+    { data: folders },
     { data: submissions },
     [{ count: sentCount }, { count: completedCount }, { count: pendingCount }],
   ] = await Promise.all([
     supabase.from("forms").select("id, name, page_count, is_reusable, archived_at, created_at").order("created_at", { ascending: false }),
+    supabase.from("folders").select("id, name").order("name"),
     supabase.from("submissions").select("id, recipient_name, status, form_id, sent_at, opened_at, completed_at, created_at").order("created_at", { ascending: false }),
     Promise.all([
       supabase.from("submissions").select("*", { count: "exact", head: true }).not("sent_at", "is", null),
@@ -79,7 +81,10 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      <QuickActions forms={(forms ?? []).filter((f) => !f.archived_at).map((f) => ({ id: f.id, name: f.name }))} />
+      <QuickActions
+        forms={(forms ?? []).filter((f) => !f.archived_at).map((f) => ({ id: f.id, name: f.name, page_count: f.page_count }))}
+        folders={folders ?? []}
+      />
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((s) => (
