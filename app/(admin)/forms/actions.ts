@@ -96,6 +96,7 @@ export type SendActionState = {
   link?: string;
   emailSent?: boolean;
   emailError?: string;
+  submissionId?: string;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -189,7 +190,7 @@ export async function createSubmission(
 
   revalidatePath("/submissions");
   revalidatePath("/dashboard");
-  return { link, emailSent: emailResult.sent, emailError: emailResult.error };
+  return { link, emailSent: emailResult.sent, emailError: emailResult.error, submissionId: submission.id };
 }
 
 

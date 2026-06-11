@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { NewFormModal } from "@/components/NewFormModal";
+import { Stepper } from "@/components/Stepper";
 
-type FormOption = { id: string; name: string; page_count: number };
+type FormOption = { id: string; name: string; page_count: number; folder_id: string | null };
 type FolderOption = { id: string; name: string };
 
 export function QuickActions({ forms, folders }: { forms: FormOption[]; folders: FolderOption[] }) {
@@ -29,6 +30,7 @@ export function QuickActions({ forms, folders }: { forms: FormOption[]; folders:
       {showPicker && (
         <FormPickerModal
           forms={forms}
+          folders={folders}
           onSelect={(id) => { setShowPicker(false); router.push(`/forms/${id}/send`); }}
           onClose={() => setShowPicker(false)}
         />
@@ -46,73 +48,128 @@ export function QuickActions({ forms, folders }: { forms: FormOption[]; folders:
 
 function FormPickerModal({
   forms,
+  folders,
   onSelect,
   onClose,
 }: {
   forms: FormOption[];
+  folders: FolderOption[];
   onSelect: (id: string) => void;
   onClose: () => void;
 }) {
   const [search, setSearch] = useState("");
-  const filtered = forms.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
+  const [categoryId, setCategoryId] = useState("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const filtered = forms.filter((f) => {
+    if (categoryId !== "all" && (f.folder_id ?? "") !== categoryId) return false;
+    if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
 
   return (
     <div
       className="modal-overlay"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="modal-panel max-w-md">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-paper-text">בחר טופס לשליחה</h2>
-          <button
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-          >
+      <div className="modal-panel w-[700px] max-w-full px-7 py-6">
+        <div className="mb-4 flex h-11 items-center justify-between">
+          <h2 className="text-[26px] font-bold text-paper-text">בחר טופס לשליחה</h2>
+          <button onClick={onClose} className="btn-icon">
             <XIcon />
           </button>
+        </div>
+
+        <div className="mb-4 border-b border-soft-border pb-4">
+          <Stepper current={1} />
         </div>
 
         {forms.length === 0 ? (
           <p className="py-6 text-center text-paper-muted">אין טפסים זמינים לשליחה.</p>
         ) : (
           <>
-            <div className="relative mb-3">
-              <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-              </svg>
-              <input
-                type="text"
-                autoFocus
-                placeholder="חיפוש לפי שם הטופס..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-9 w-full rounded-lg border border-paper-line bg-white py-1.5 pr-9 pl-3 text-sm text-paper-text placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-              />
+            <div className="mb-3 flex gap-3">
+              <div className="relative w-[420px] max-w-full">
+                <svg className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                </svg>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="חיפוש לפי שם הטופס..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="input-field pr-10"
+                />
+              </div>
+              {folders.length > 0 && (
+                <select
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  className="select-field w-[200px] shrink-0"
+                >
+                  <option value="all">כל הקטגוריות</option>
+                  {folders.map((f) => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+              )}
             </div>
 
-            {filtered.length === 0 ? (
-              <p className="py-6 text-center text-paper-muted">לא נמצאו טפסים התואמים את החיפוש.</p>
-            ) : (
-              <div className="max-h-80 overflow-y-auto divide-y divide-paper-line rounded-xl border border-paper-line">
-                {filtered.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => onSelect(f.id)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-right text-sm transition hover:bg-brand/5"
-                  >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
-                      <FormSmallIcon />
-                    </span>
-                    <span className="flex-1 truncate font-medium text-paper-text">{f.name}</span>
-                    <span className="shrink-0 text-slate-400">←</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="w-[644px] max-w-full overflow-y-auto rounded-xl border border-border" style={{ maxHeight: 300 }}>
+              {filtered.length === 0 ? (
+                <p className="py-6 text-center text-paper-muted">לא נמצאו טפסים התואמים את החיפוש.</p>
+              ) : (
+                filtered.map((f, i) => {
+                  const selected = selectedId === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => setSelectedId(f.id)}
+                      className={`flex h-12 w-full items-center gap-3 px-4 text-right text-sm transition ${
+                        i > 0 ? "border-t border-soft-border" : ""
+                      } ${selected ? "bg-brand-light shadow-[inset_0_0_0_1px_#14B8A6]" : "hover:bg-background"}`}
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
+                        <FormSmallIcon />
+                      </span>
+                      <span className="flex-1 truncate font-medium text-paper-text">{f.name}</span>
+                      <span className="shrink-0 text-xs text-text-secondary">{f.page_count} עמ׳</span>
+                      {selected ? (
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-white">
+                          <CheckIcon />
+                        </span>
+                      ) : (
+                        <span className="h-5 w-5 shrink-0" />
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </>
         )}
+
+        <div className="mt-4 flex h-11 items-center justify-between">
+          <button onClick={onClose} className="btn-outline h-11 w-24 min-w-0">ביטול</button>
+          <button
+            onClick={() => selectedId && onSelect(selectedId)}
+            disabled={!selectedId}
+            className="btn-primary h-11 w-[110px] min-w-0"
+          >
+            המשך
+          </button>
+        </div>
       </div>
     </div>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-3 w-3" aria-hidden>
+      <path d="M5 12.5 10 17.5 19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

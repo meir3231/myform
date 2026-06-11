@@ -76,7 +76,7 @@ export default async function DashboardPage() {
     { data: submissions },
     [{ count: completedCount }, { count: pendingCount }],
   ] = await Promise.all([
-    supabase.from("forms").select("id, name, page_count, is_reusable, archived_at, created_at").order("created_at", { ascending: false }),
+    supabase.from("forms").select("id, name, page_count, is_reusable, archived_at, folder_id, created_at").order("created_at", { ascending: false }),
     supabase.from("folders").select("id, name").order("name"),
     supabase.from("submissions").select("id, recipient_name, status, form_id, sent_at, opened_at, completed_at, created_at").order("created_at", { ascending: false }),
     Promise.all([
@@ -212,7 +212,7 @@ export default async function DashboardPage() {
           <p className="mt-0.5 text-sm text-paper-muted">ברוך הבא, {userName}. הנה סקירה כללית של הפעילות שלך.</p>
         </div>
         <QuickActions
-          forms={(forms ?? []).filter((f) => !f.archived_at).map((f) => ({ id: f.id, name: f.name, page_count: f.page_count }))}
+          forms={(forms ?? []).filter((f) => !f.archived_at).map((f) => ({ id: f.id, name: f.name, page_count: f.page_count, folder_id: f.folder_id }))}
           folders={folders ?? []}
         />
       </div>

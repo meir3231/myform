@@ -42,6 +42,7 @@ export default async function SendPage({
       <div className="min-h-0 flex-1">
         <SendForm
           formId={form.id}
+          formName={form.name}
           fields={fields ?? []}
           pdfUrl={pdfUrl}
           pageCount={form.page_count}
