@@ -1,9 +1,10 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Document, pdfjs } from "react-pdf";
 import type { FieldDraft } from "@/lib/fields";
 import { FillFieldBox } from "./FillFieldBox";
+import { PdfPageCanvas } from "./PdfPageCanvas";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -11,34 +12,6 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 type Sizes = Record<number, { w: number; h: number }>;
-
-const PdfPageCanvas = memo(function PdfPageCanvas({
-  pageNum,
-  width,
-  onMeasure,
-}: {
-  pageNum: number;
-  width: number;
-  onMeasure: (w: number, h: number) => void;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  function measure() {
-    const c = canvasRef.current;
-    if (!c) return;
-    const rect = c.getBoundingClientRect();
-    if (rect.width) onMeasure(rect.width, rect.height);
-  }
-  return (
-    <Page
-      pageNumber={pageNum}
-      width={width}
-      renderTextLayer={false}
-      renderAnnotationLayer={false}
-      canvasRef={canvasRef}
-      onRenderSuccess={measure}
-    />
-  );
-});
 
 export function AdminPreviewFiller({
   formId,

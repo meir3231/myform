@@ -6,6 +6,9 @@ import { requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { downloadFile, getSignedUrl } from "@/lib/storage";
 import type { FieldDraft } from "@/lib/fields";
+import type { createClient } from "@/lib/supabase/server";
+
+type SupabaseRLSClient = Awaited<ReturnType<typeof createClient>>;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -307,23 +310,15 @@ export type FormPreviewData = {
   pageCount: number;
 };
 
-export async function getFormPreview(
-  formId: string
-): Promise<FormPreviewData | { error: string }> {
-  assertUUID(formId, "טופס");
-  const { profile } = await requireProfile();
-  const admin = createAdminClient();
-
-  const { data: form } = await admin.from("forms")
-    .select("id, original_pdf_path, page_count")
-    .eq("id", formId)
-    .eq("org_id", profile.org_id)
-    .single();
-  if (!form) return { error: "טופס לא נמצא" };
-
+async function buildFormPreview(
+  admin: ReturnType<typeof createAdminClient>,
+  formId: string,
+  pdfPath: string,
+  pageCount: number
+): Promise<FormPreviewData> {
   const [{ data: fieldRows }, pdfUrl] = await Promise.all([
     admin.from("form_fields").select("*").eq("form_id", formId).order("sort_order", { ascending: true }),
-    getSignedUrl("originals", form.original_pdf_path, 60 * 10),
+    getSignedUrl("originals", pdfPath, 60 * 10),
   ]);
 
   const fields: FieldDraft[] = (fieldRows ?? []).map((f) => ({
@@ -340,5 +335,42 @@ export async function getFormPreview(
     copyFrom: f.copy_from_field_id,
   }));
 
-  return { pdfUrl, fields, pageCount: form.page_count };
+  return { pdfUrl, fields, pageCount };
+}
+
+export async function getFormPreview(
+  formId: string
+): Promise<FormPreviewData | { error: string }> {
+  assertUUID(formId, "טופס");
+  const { profile } = await requireProfile();
+  const admin = createAdminClient();
+
+  const { data: form } = await admin.from("forms")
+    .select("id, original_pdf_path, page_count")
+    .eq("id", formId)
+    .eq("org_id", profile.org_id)
+    .single();
+  if (!form) return { error: "טופס לא נמצא" };
+
+  return buildFormPreview(admin, formId, form.original_pdf_path, form.page_count);
+}
+
+// גרסה לטעינה ראשונית של עמוד /templates: מאתרת את הטופס הראשון (לפי אותו
+// מיון/RLS שמשמש את שאילתת ה-forms הראשית) ומחזירה את נתוני התצוגה המקדימה
+// שלו. נועדה לרוץ בתוך אותו Promise.all עם שאר השאילתות של העמוד, כך
+// שהאיתור של הטופס הראשון לא ממתין לסיום שאילתת ה-forms המלאה.
+export async function getInitialFormPreview(
+  supabase: SupabaseRLSClient,
+  admin: ReturnType<typeof createAdminClient>
+): Promise<{ formId: string; data: FormPreviewData } | null> {
+  const { data: form } = await supabase
+    .from("forms")
+    .select("id, original_pdf_path, page_count")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!form) return null;
+
+  const data = await buildFormPreview(admin, form.id, form.original_pdf_path, form.page_count);
+  return { formId: form.id, data };
 }

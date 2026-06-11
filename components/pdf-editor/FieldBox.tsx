@@ -1,13 +1,16 @@
 "use client";
 
-import { useRef } from "react";
+import { memo, useRef } from "react";
 import { FIELD_META, type FieldDraft } from "@/lib/fields";
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
 // תיבת שדה הניתנת לגרירה ולשינוי גודל מעל עמוד ה-PDF בעורך.
 // pageW/pageH = מידות העמוד המרונדר בפיקסלים. הקואורדינטות מנורמלות 0..1.
-export function FieldBox({
+// עטוף ב-memo: onSelect/onChange/onContextMenu מקבלים את מזהה השדה כפרמטר
+// כדי שהקריאות שמועברות מההורה יישארו יציבות (useCallback) בין רינדורים,
+// כך שגרירת שדה אחד לא מרנדרת מחדש את כל שאר השדות בעמוד.
+export const FieldBox = memo(function FieldBox({
   field,
   pageW,
   pageH,
@@ -20,9 +23,9 @@ export function FieldBox({
   pageW: number;
   pageH: number;
   selected: boolean;
-  onSelect: () => void;
+  onSelect: (id: string) => void;
   onChange: (f: FieldDraft) => void;
-  onContextMenu?: (e: React.MouseEvent) => void;
+  onContextMenu?: (id: string, e: React.MouseEvent) => void;
 }) {
   const drag = useRef<
     | null
@@ -33,7 +36,7 @@ export function FieldBox({
   function onPointerDown(e: React.PointerEvent, mode: "move" | "resize") {
     e.stopPropagation();
     e.preventDefault();
-    onSelect();
+    onSelect(field.id);
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     drag.current = { mode, startX: e.clientX, startY: e.clientY, orig: { ...field } };
   }
@@ -75,8 +78,8 @@ export function FieldBox({
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        onSelect();
-        onContextMenu?.(e);
+        onSelect(field.id);
+        onContextMenu?.(field.id, e);
       }}
       style={{
         position: "absolute",
@@ -116,4 +119,4 @@ export function FieldBox({
       />
     </div>
   );
-}
+});

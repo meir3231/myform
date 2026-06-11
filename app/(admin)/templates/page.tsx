@@ -1,11 +1,13 @@
 import { requireProfile } from "@/lib/auth";
 import { TemplatesClient } from "./templates-client";
-import { getFormPreview } from "./actions";
+import { getInitialFormPreview } from "./actions";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export default async function TemplatesPage() {
   const { profile, supabase } = await requireProfile();
+  const admin = createAdminClient();
 
-  const [{ data: forms }, { data: folders }, { data: profiles }, { data: fieldRows }] = await Promise.all([
+  const [{ data: forms }, { data: folders }, { data: profiles }, { data: fieldRows }, initialPreview] = await Promise.all([
     supabase
       .from("forms")
       .select("id, name, page_count, is_reusable, archived_at, folder_id, created_at, visibility, created_by")
@@ -21,6 +23,7 @@ export default async function TemplatesPage() {
     supabase
       .from("form_fields")
       .select("form_id"),
+    getInitialFormPreview(supabase, admin),
   ]);
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
@@ -37,19 +40,14 @@ export default async function TemplatesPage() {
     fieldCount: fieldCounts.get(f.id) ?? 0,
   }));
 
-  const initialPreviewFormId = normalizedForms[0]?.id ?? null;
-  const initialPreviewData = initialPreviewFormId
-    ? await getFormPreview(initialPreviewFormId)
-    : null;
-
   return (
     <TemplatesClient
       forms={normalizedForms}
       folders={folders ?? []}
       currentUserId={profile.id}
       currentUserRole={profile.role}
-      initialPreviewFormId={initialPreviewFormId}
-      initialPreviewData={initialPreviewData && !("error" in initialPreviewData) ? initialPreviewData : null}
+      initialPreviewFormId={initialPreview?.formId ?? null}
+      initialPreviewData={initialPreview?.data ?? null}
     />
   );
 }

@@ -26,7 +26,7 @@ export async function loadSubmissionForFill(token: string): Promise<LoadResult> 
 
   const { data: sub } = await admin
     .from("submissions")
-    .select("id, form_id, status, expires_at")
+    .select("id, form_id, status, expires_at, recipient_name")
     .eq("token_hash", tokenHash)
     .single();
 
@@ -63,13 +63,6 @@ export async function loadSubmissionForFill(token: string): Promise<LoadResult> 
 
   const pdfUrl = await getSignedUrl("originals", form.original_pdf_path, 60 * 30);
 
-  // צריך גם שם הלקוח לתצוגה
-  const { data: subFull } = await admin
-    .from("submissions")
-    .select("recipient_name")
-    .eq("id", sub.id)
-    .single();
-
   // ערכים שמולאו מראש ע"י המנהל (prefill) — נטענים כך שהלקוח יראה אותם ממולאים
   const { data: existingValues } = await admin
     .from("submission_values")
@@ -85,7 +78,7 @@ export async function loadSubmissionForFill(token: string): Promise<LoadResult> 
     status: "ok",
     submissionId: sub.id,
     formName: form.name,
-    recipientName: subFull?.recipient_name ?? "",
+    recipientName: sub.recipient_name ?? "",
     pageCount: form.page_count,
     pdfUrl,
     fields: (fields ?? []).map((f) => ({

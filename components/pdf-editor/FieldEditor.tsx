@@ -220,10 +220,14 @@ export default function FieldEditor({
     setStatus("idle");
   }
 
-  function updateField(updated: FieldDraft) {
+  const updateField = useCallback((updated: FieldDraft) => {
     setFields((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
     setStatus("idle");
-  }
+  }, []);
+
+  const handleFieldContextMenu = useCallback((fieldId: string, e: React.MouseEvent) => {
+    setContextMenu({ kind: "field", x: e.clientX, y: e.clientY, fieldId });
+  }, []);
 
   function deleteField(id: string) {
     setFields((prev) => prev.filter((f) => f.id !== id));
@@ -389,11 +393,9 @@ export default function FieldEditor({
                                 pageW={size.w}
                                 pageH={size.h}
                                 selected={f.id === selectedId}
-                                onSelect={() => setSelectedId(f.id)}
+                                onSelect={setSelectedId}
                                 onChange={updateField}
-                                onContextMenu={(e) =>
-                                  setContextMenu({ kind: "field", x: e.clientX, y: e.clientY, fieldId: f.id })
-                                }
+                                onContextMenu={handleFieldContextMenu}
                               />
                             ))}
 

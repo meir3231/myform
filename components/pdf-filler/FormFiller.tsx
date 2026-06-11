@@ -1,11 +1,12 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Document, pdfjs } from "react-pdf";
 import type { FieldDraft } from "@/lib/fields";
 import { submitForm, type SubmitState } from "@/app/fill/actions";
 import { useToast } from "@/components/Toast";
 import { FillFieldBox } from "./FillFieldBox";
+import { PdfPageCanvas } from "./PdfPageCanvas";
 import { SignatureModal } from "./SignatureModal";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -14,38 +15,6 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 type Sizes = Record<number, { w: number; h: number }>;
-
-// ה-canvas של ה-PDF מבודד ב-memo: מרונדר רק כשהעמוד/הרוחב משתנים, ולא בכל הקשה.
-// זה מונע רסטור מחדש יקר של ה-PDF בזמן מילוי הטופס.
-const PdfPageCanvas = memo(
-  function PdfPageCanvas({
-    pageNum,
-    width,
-    onMeasure,
-  }: {
-    pageNum: number;
-    width: number;
-    onMeasure: (w: number, h: number) => void;
-  }) {
-    const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    function measure() {
-      const c = canvasRef.current;
-      if (!c) return;
-      const rect = c.getBoundingClientRect();
-      if (rect.width) onMeasure(rect.width, rect.height);
-    }
-    return (
-      <Page
-        pageNumber={pageNum}
-        width={width}
-        renderTextLayer={false}
-        renderAnnotationLayer={false}
-        canvasRef={canvasRef}
-        onRenderSuccess={measure}
-      />
-    );
-  }
-);
 
 // עמוד בודד: ה-PDF (ממומואיז) + שכבת שדות המילוי שמעליו.
 function FillablePage({
