@@ -118,7 +118,7 @@ export default async function SubmissionDetailPage({
           <h2 className="mb-3 font-semibold text-paper-text">תצוגה מקדימה</h2>
           <iframe
             src={downloadUrl}
-            className="h-[800px] w-full rounded-lg border border-paper-line"
+            className="h-[70vh] w-full rounded-lg border border-paper-line"
             title="PDF חתום"
           />
         </section>

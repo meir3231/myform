@@ -14,7 +14,7 @@ export function QuickActions({ forms, folders }: { forms: FormOption[]; folders:
 
   return (
     <>
-      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center">
+      <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
         <button
           onClick={() => setShowNewModal(true)}
           className="flex items-center gap-2 rounded-xl border border-brand bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark hover:shadow-md"
@@ -59,6 +59,9 @@ function FormPickerModal({
   onSelect: (id: string) => void;
   onClose: () => void;
 }) {
+  const [search, setSearch] = useState("");
+  const filtered = forms.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -79,21 +82,41 @@ function FormPickerModal({
         {forms.length === 0 ? (
           <p className="py-6 text-center text-paper-muted">אין טפסים זמינים לשליחה.</p>
         ) : (
-          <div className="max-h-80 overflow-y-auto divide-y divide-paper-line rounded-xl border border-paper-line">
-            {forms.map((f) => (
-              <button
-                key={f.id}
-                onClick={() => onSelect(f.id)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-right text-sm transition hover:bg-brand/5"
-              >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
-                  <FormSmallIcon />
-                </span>
-                <span className="flex-1 truncate font-medium text-paper-text">{f.name}</span>
-                <span className="shrink-0 text-slate-400">←</span>
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="relative mb-3">
+              <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+              </svg>
+              <input
+                type="text"
+                autoFocus
+                placeholder="חיפוש לפי שם הטופס..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-9 w-full rounded-lg border border-paper-line bg-white py-1.5 pr-9 pl-3 text-sm text-paper-text placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+              />
+            </div>
+
+            {filtered.length === 0 ? (
+              <p className="py-6 text-center text-paper-muted">לא נמצאו טפסים התואמים את החיפוש.</p>
+            ) : (
+              <div className="max-h-80 overflow-y-auto divide-y divide-paper-line rounded-xl border border-paper-line">
+                {filtered.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => onSelect(f.id)}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-right text-sm transition hover:bg-brand/5"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
+                      <FormSmallIcon />
+                    </span>
+                    <span className="flex-1 truncate font-medium text-paper-text">{f.name}</span>
+                    <span className="shrink-0 text-slate-400">←</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

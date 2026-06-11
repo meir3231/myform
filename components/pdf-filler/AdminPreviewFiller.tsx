@@ -59,7 +59,7 @@ export function AdminPreviewFiller({
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver(() => {
-      const w = Math.min(800, el.clientWidth - 2);
+      const w = Math.min(1000, el.clientWidth - 2);
       if (w > 0) setRenderWidth(w);
     });
     ro.observe(el);
@@ -73,7 +73,7 @@ export function AdminPreviewFiller({
   }, []);
 
   return (
-    <div className="mx-auto max-w-3xl pb-10">
+    <div className="mx-auto max-w-5xl pb-10">
       {/* Preview banner */}
       <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
         <span className="text-lg">👁</span>

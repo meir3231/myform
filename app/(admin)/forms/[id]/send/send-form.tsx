@@ -86,10 +86,7 @@ export function SendForm({
   }
 
   return (
-    <div
-      className="grid gap-3 lg:grid-cols-[420px_1fr]"
-      style={{ height: "calc(100vh - 180px)" }}
-    >
+    <div className="grid h-full gap-3 lg:grid-cols-[420px_1fr]">
       {/* Left: form — client details (compact) + prefill (main) */}
       <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-paper-line shadow-sm">
         <form

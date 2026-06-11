@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
-import { DashboardTabs } from "@/components/DashboardTabs";
 import { QuickActions } from "./quick-actions";
+import { DonutChart, WeeklyTrendChart } from "./charts";
+import { STATUS_META } from "@/lib/status";
 import type { SubmissionStatus } from "@/lib/database.types";
 
 type SubmissionRow = {
@@ -16,43 +17,130 @@ type SubmissionRow = {
 };
 
 const PENDING_STATUSES: SubmissionStatus[] = ["pending", "opened"];
+const DAY_MS = 24 * 60 * 60 * 1000;
+const DONUT_ORDER: SubmissionStatus[] = ["completed", "pending", "opened", "expired"];
+const STATUS_COLORS: Record<SubmissionStatus, string> = {
+  completed: "#22C55E",
+  pending: "#F59E0B",
+  opened: "#3B82F6",
+  expired: "#94A3B8",
+};
+
+type ActivityType = "completed" | "opened" | "sent" | "created";
+const ACTIVITY_COLORS: Record<ActivityType, string> = {
+  completed: "#22C55E",
+  opened: "#3B82F6",
+  sent: "#14B8A6",
+  created: "#94A3B8",
+};
+
+function within(at: string | null, startMs: number, endMs: number) {
+  if (!at) return false;
+  const t = new Date(at).getTime();
+  return t >= startMs && t < endMs;
+}
 
 // האירוע העדכני ביותר שאירע בהגשה — לשימוש בפיד הפעילות.
-function latestEvent(s: SubmissionRow): { at: string; text: string } {
-  if (s.completed_at) return { at: s.completed_at, text: `${s.recipient_name} השלים/ה ומילא/ה את הטופס` };
-  if (s.opened_at) return { at: s.opened_at, text: `${s.recipient_name} פתח/ה את הטופס` };
-  if (s.sent_at) return { at: s.sent_at, text: `נשלח טופס ל${s.recipient_name}` };
-  return { at: s.created_at, text: `נוצרה הגשה עבור ${s.recipient_name}` };
+function latestEvent(s: SubmissionRow): { at: string; text: string; type: ActivityType } {
+  if (s.completed_at) return { at: s.completed_at, text: `${s.recipient_name} השלים/ה ומילא/ה את הטופס`, type: "completed" };
+  if (s.opened_at) return { at: s.opened_at, text: `${s.recipient_name} פתח/ה את הטופס`, type: "opened" };
+  if (s.sent_at) return { at: s.sent_at, text: `נשלח טופס ל${s.recipient_name}`, type: "sent" };
+  return { at: s.created_at, text: `נוצרה הגשה עבור ${s.recipient_name}`, type: "created" };
+}
+
+function formatActivityTime(at: string): string {
+  const d = new Date(at);
+  const now = new Date();
+  const time = d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === now.toDateString()) return `${time} · היום`;
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) return `${time} · אתמול`;
+  return d.toLocaleDateString("he-IL", { day: "2-digit", month: "2-digit" });
+}
+
+// יום בשבוע בעברית, באות אחת (לתוויות ציר ה-X של גרף המגמה).
+function shortWeekday(d: Date): string {
+  const full = d.toLocaleDateString("he-IL", { weekday: "short" });
+  if (full.startsWith("יום ")) return full.slice(4);
+  return full === "שבת" ? "ש׳" : full;
 }
 
 export default async function DashboardPage() {
-  const { supabase } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
+  const userName = profile.full_name || "מנהל";
 
   const [
     { data: forms },
     { data: folders },
     { data: submissions },
-    [{ count: sentCount }, { count: completedCount }, { count: pendingCount }],
+    [{ count: completedCount }, { count: pendingCount }],
   ] = await Promise.all([
     supabase.from("forms").select("id, name, page_count, is_reusable, archived_at, created_at").order("created_at", { ascending: false }),
     supabase.from("folders").select("id, name").order("name"),
     supabase.from("submissions").select("id, recipient_name, status, form_id, sent_at, opened_at, completed_at, created_at").order("created_at", { ascending: false }),
     Promise.all([
-      supabase.from("submissions").select("*", { count: "exact", head: true }).not("sent_at", "is", null),
       supabase.from("submissions").select("*", { count: "exact", head: true }).eq("status", "completed"),
       supabase.from("submissions").select("*", { count: "exact", head: true }).in("status", PENDING_STATUSES),
     ]),
   ]);
 
-  const stats = [
-    { label: "סה״כ טפסים",      value: forms?.length ?? 0, icon: <FormIcon />,    accent: "#9b6dff" },
-    { label: "נשלחו ללקוחות",   value: sentCount ?? 0,     icon: <SentIcon />,    accent: "#4f83ff" },
-    { label: "הושלמו",           value: completedCount ?? 0, icon: <CheckIcon />,  accent: "#22c55e" },
-    { label: "ממתינים לחתימה",  value: pendingCount ?? 0,  icon: <PendingIcon />, accent: "#f59e0b" },
-  ];
-
   const subs: SubmissionRow[] = submissions ?? [];
   const formName = new Map((forms ?? []).map((f) => [f.id, f.name]));
+
+  const now = Date.now();
+  const weekAgo = now - 7 * DAY_MS;
+  const twoWeeksAgo = now - 14 * DAY_MS;
+  const monthAgo = now - 30 * DAY_MS;
+  const twoMonthsAgo = now - 60 * DAY_MS;
+
+  const pendingThisWeek = subs.filter((s) => PENDING_STATUSES.includes(s.status) && within(s.created_at, weekAgo, now)).length;
+  const pendingPrevWeek = subs.filter((s) => PENDING_STATUSES.includes(s.status) && within(s.created_at, twoWeeksAgo, weekAgo)).length;
+
+  const completedThisWeek = subs.filter((s) => within(s.completed_at, weekAgo, now)).length;
+  const completedPrevWeek = subs.filter((s) => within(s.completed_at, twoWeeksAgo, weekAgo)).length;
+
+  const sentThisWeek = subs.filter((s) => within(s.sent_at, weekAgo, now)).length;
+  const sentPrevWeek = subs.filter((s) => within(s.sent_at, twoWeeksAgo, weekAgo)).length;
+
+  const activeFormsCount = (forms ?? []).filter((f) => !f.archived_at).length;
+  const formsThisMonth = (forms ?? []).filter((f) => within(f.created_at, monthAgo, now)).length;
+  const formsPrevMonth = (forms ?? []).filter((f) => within(f.created_at, twoMonthsAgo, monthAgo)).length;
+
+  const kpis = [
+    {
+      label: "ממתינים לחתימה",
+      value: pendingCount ?? 0,
+      icon: <PendingIcon />,
+      color: "#F59E0B",
+      trend: pendingThisWeek - pendingPrevWeek,
+      trendLabel: "מהשבוע שעבר",
+    },
+    {
+      label: "הושלמו",
+      value: completedCount ?? 0,
+      icon: <CheckIcon />,
+      color: "#22C55E",
+      trend: completedThisWeek - completedPrevWeek,
+      trendLabel: "מהשבוע שעבר",
+    },
+    {
+      label: "נשלחו השבוע",
+      value: sentThisWeek,
+      icon: <SentIcon />,
+      color: "#3B82F6",
+      trend: sentThisWeek - sentPrevWeek,
+      trendLabel: "מהשבוע שעבר",
+    },
+    {
+      label: "טפסים פעילים",
+      value: activeFormsCount,
+      icon: <FormIcon />,
+      color: "#14B8A6",
+      trend: formsThisMonth - formsPrevMonth,
+      trendLabel: "מהחודש שעבר",
+    },
+  ];
 
   // גרף שימוש: מספר ההגשות לכל טופס, ה-6 הגבוהים ביותר
   const usageCounts = new Map<string, number>();
@@ -69,63 +157,88 @@ export default async function DashboardPage() {
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
     .slice(0, 6);
 
-  // טבלת ממתינים לחתימה
-  const pendingSubs = subs.filter((s) => PENDING_STATUSES.includes(s.status)).slice(0, 8);
+  // סקירת שליחות: התפלגות ההגשות לפי סטטוס
+  const statusCounts: Record<SubmissionStatus, number> = { pending: 0, opened: 0, completed: 0, expired: 0 };
+  for (const s of subs) statusCounts[s.status] += 1;
+  const donutData = DONUT_ORDER
+    .map((status) => ({ label: STATUS_META[status].label, value: statusCounts[status], color: STATUS_COLORS[status] }))
+    .filter((d) => d.value > 0);
+
+  // מגמה שבועית: מספר הגשות חדשות בכל אחד מ-7 הימים האחרונים
+  const weekTrend = Array.from({ length: 7 }, (_, i) => {
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    dayStart.setDate(dayStart.getDate() - (6 - i));
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayStart.getDate() + 1);
+    const count = subs.filter((s) => within(s.created_at, dayStart.getTime(), dayEnd.getTime())).length;
+    return { label: shortWeekday(dayStart), count };
+  });
+
+  // משימות מהירות: פריטים שדורשים תשומת לב
+  const quickTasks = [
+    {
+      label: "טפסים שנפתחו וטרם הושלמו",
+      count: subs.filter((s) => s.status === "opened").length,
+      icon: <EyeIcon />,
+      color: "#3B82F6",
+    },
+    {
+      label: "ממתינים לחתימה מעל 3 ימים",
+      count: subs.filter((s) => s.status === "pending" && s.sent_at && now - new Date(s.sent_at).getTime() > 3 * DAY_MS).length,
+      icon: <PendingIcon />,
+      color: "#F59E0B",
+    },
+    {
+      label: "טפסים שפג תוקפם",
+      count: subs.filter((s) => s.status === "expired").length,
+      icon: <WarningIcon />,
+      color: "#EF4444",
+    },
+  ];
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-paper-text">לוח בקרה</h1>
-        <Link href="/templates" className="btn-ghost">
-          לכל התבניות ←
-        </Link>
+    <div className="flex h-full flex-col gap-3 overflow-hidden">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-paper-text">לוח בקרה</h1>
+          <p className="mt-1 text-sm text-paper-muted">ברוך הבא, {userName}. הנה סקירה כללית של הפעילות שלך.</p>
+        </div>
+        <QuickActions
+          forms={(forms ?? []).filter((f) => !f.archived_at).map((f) => ({ id: f.id, name: f.name, page_count: f.page_count }))}
+          folders={folders ?? []}
+        />
       </div>
 
-      <QuickActions
-        forms={(forms ?? []).filter((f) => !f.archived_at).map((f) => ({ id: f.id, name: f.name, page_count: f.page_count }))}
-        folders={folders ?? []}
-      />
-
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {stats.map((s) => (
-          <div
-            key={s.label}
-            className="stat-card flex items-center gap-3 border border-paper-line bg-white"
-            style={{ borderTop: `3px solid ${s.accent}` }}
-          >
-            <span
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-              style={{ backgroundColor: `${s.accent}1f`, color: s.accent }}
-            >
-              {s.icon}
-            </span>
-            <div>
-              <p className="text-2xl font-bold text-paper-text">{s.value}</p>
-              <p className="text-sm text-paper-muted">{s.label}</p>
-            </div>
-          </div>
+      <div className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
+        {kpis.map((k) => (
+          <KpiCard key={k.label} {...k} />
         ))}
       </div>
 
-      <div className="mb-6 grid gap-4 lg:grid-cols-2">
-        {/* גרף שימוש לפי טופס */}
-        <section className="card p-5">
-          <h2 className="mb-4 font-semibold text-paper-text">שימוש לפי טופס</h2>
+      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-2">
+        {/* שימוש לפי טופס */}
+        <section className="card flex min-h-0 flex-col overflow-hidden p-4">
+          <div className="mb-3 flex shrink-0 items-center justify-between">
+            <h2 className="font-semibold text-paper-text">שימוש לפי טופס</h2>
+            <Link href="/templates" className="text-sm text-brand transition hover:underline">
+              צפה בהכל
+            </Link>
+          </div>
           {usage.length === 0 ? (
-            <p className="text-sm text-paper-muted">אין עדיין הגשות להצגה.</p>
+            <div className="empty-state-pattern flex flex-1 items-center justify-center rounded-xl">
+              <p className="text-sm text-paper-muted">אין עדיין הגשות להצגה.</p>
+            </div>
           ) : (
-            <div className="space-y-3">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
               {usage.map((u) => (
                 <div key={u.formId}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
+                  <div className="mb-1.5 flex items-center justify-between text-sm">
                     <span className="truncate text-paper-text">{u.name}</span>
                     <span className="shrink-0 text-paper-muted">{u.count}</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-paper-line">
-                    <div
-                      className="h-full rounded-full bg-brand"
-                      style={{ width: `${(u.count / maxUsage) * 100}%` }}
-                    />
+                    <div className="h-full rounded-full bg-brand" style={{ width: `${(u.count / maxUsage) * 100}%` }} />
                   </div>
                 </div>
               ))}
@@ -133,20 +246,30 @@ export default async function DashboardPage() {
           )}
         </section>
 
-        {/* פיד פעילות אחרונה */}
-        <section className="card p-5">
-          <h2 className="mb-4 font-semibold text-paper-text">פעילות אחרונה</h2>
+        {/* פעילות אחרונה */}
+        <section className="card flex min-h-0 flex-col overflow-hidden p-4">
+          <div className="mb-3 flex shrink-0 items-center justify-between">
+            <h2 className="font-semibold text-paper-text">פעילות אחרונה</h2>
+            <Link href="/submissions" className="text-sm text-brand transition hover:underline">
+              צפה בהכל
+            </Link>
+          </div>
           {activity.length === 0 ? (
-            <p className="text-sm text-paper-muted">אין עדיין פעילות להצגה.</p>
+            <div className="empty-state-pattern flex flex-1 items-center justify-center rounded-xl">
+              <p className="text-sm text-paper-muted">אין עדיין פעילות להצגה.</p>
+            </div>
           ) : (
-            <ul className="space-y-3 text-sm">
+            <ul className="min-h-0 flex-1 space-y-2.5 overflow-y-auto text-sm">
               {activity.map((a, i) => (
-                <li key={i} className="flex items-start gap-2.5 border-b border-paper-line pb-3 last:border-0 last:pb-0">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
-                  <div className="min-w-0">
-                    <p className="text-paper-text">{a.text}</p>
-                    <p className="text-xs text-paper-muted">{new Date(a.at).toLocaleString("he-IL")}</p>
-                  </div>
+                <li key={i} className="flex items-center gap-3 border-b border-paper-line pb-2.5 last:border-0 last:pb-0">
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                    style={{ backgroundColor: `${ACTIVITY_COLORS[a.type]}1a`, color: ACTIVITY_COLORS[a.type] }}
+                  >
+                    <ActivityIcon type={a.type} />
+                  </span>
+                  <p className="min-w-0 flex-1 truncate text-paper-text">{a.text}</p>
+                  <span className="shrink-0 text-xs text-paper-muted">{formatActivityTime(a.at)}</span>
                 </li>
               ))}
             </ul>
@@ -154,14 +277,162 @@ export default async function DashboardPage() {
         </section>
       </div>
 
-      {/* Tabs: ממתינים לחתימה ↔ תבניות — מיתוג עם אנימציה */}
-      <DashboardTabs
-        pendingSubs={pendingSubs}
-        forms={forms ?? []}
-        formName={formName}
-      />
+      <div className="grid h-48 shrink-0 gap-3 lg:grid-cols-3">
+        {/* משימות מהירות */}
+        <section className="card flex h-full flex-col overflow-hidden p-4">
+          <div className="mb-3 flex shrink-0 items-center justify-between">
+            <h2 className="font-semibold text-paper-text">משימות מהירות</h2>
+            <Link href="/submissions" className="text-sm text-brand transition hover:underline">
+              לכל המשימות
+            </Link>
+          </div>
+          <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+            {quickTasks.map((t) => (
+              <li key={t.label}>
+                <Link
+                  href="/submissions"
+                  className="flex items-center gap-2.5 rounded-xl border border-paper-line p-1.5 transition hover:bg-background"
+                >
+                  <span
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg"
+                    style={{ backgroundColor: `${t.color}1a`, color: t.color }}
+                  >
+                    {t.icon}
+                  </span>
+                  <span className="flex-1 truncate text-sm text-paper-text">{t.label}</span>
+                  <span className="shrink-0 text-base font-bold text-paper-text">{t.count}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
 
+        {/* סקירת שליחות */}
+        <section className="card flex h-full flex-col overflow-hidden p-4">
+          <h2 className="mb-3 shrink-0 font-semibold text-paper-text">סקירת שליחות</h2>
+          {subs.length === 0 ? (
+            <div className="empty-state-pattern flex flex-1 items-center justify-center rounded-xl py-6">
+              <p className="text-sm text-paper-muted">אין עדיין הגשות להצגה.</p>
+            </div>
+          ) : (
+            <DonutChart data={donutData} total={subs.length} size={92} />
+          )}
+        </section>
+
+        {/* מגמה שבועית */}
+        <section className="card flex h-full flex-col overflow-hidden p-4">
+          <div className="mb-3 flex shrink-0 items-center justify-between">
+            <h2 className="font-semibold text-paper-text">מגמה שבועית</h2>
+            <span className="text-xs text-paper-muted">7 הימים האחרונים</span>
+          </div>
+          <WeeklyTrendChart data={weekTrend} />
+        </section>
+      </div>
     </div>
+  );
+}
+
+function KpiCard({
+  label,
+  value,
+  icon,
+  color,
+  trend,
+  trendLabel,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  color: string;
+  trend: number;
+  trendLabel: string;
+}) {
+  const trendColor = trend > 0 ? "text-success" : trend < 0 ? "text-error" : "text-paper-muted";
+  const trendText = trend === 0 ? `ללא שינוי ${trendLabel}` : `${Math.abs(trend)} ${trendLabel}`;
+  return (
+    <div className="card flex items-center gap-3 p-3">
+      <span
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+        style={{ backgroundColor: `${color}1a`, color }}
+      >
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-xl font-bold leading-tight text-paper-text">{value}</p>
+        <p className="truncate text-xs text-paper-muted">{label}</p>
+      </div>
+      <p className={`flex shrink-0 items-center gap-0.5 text-xs font-medium ${trendColor}`} title={trendText}>
+        {trend > 0 && <ArrowUpIcon />}
+        {trend < 0 && <ArrowDownIcon />}
+        {trend !== 0 && Math.abs(trend)}
+      </p>
+    </div>
+  );
+}
+
+function ActivityIcon({ type }: { type: ActivityType }) {
+  switch (type) {
+    case "completed":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+          <path d="M5 12.5 10 17.5 19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "opened":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+          <path d="M2.5 12S5.5 5.5 12 5.5 21.5 12 21.5 12 18.5 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+          <circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+        </svg>
+      );
+    case "sent":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+          <path d="M4 12 20 4l-5 16-3-7-8-1Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        </svg>
+      );
+    case "created":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+          <path d="M7 3.5h7l3 3V20a.5.5 0 0 1-.5.5h-9.5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M9 13h6M9 16h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
+  }
+}
+
+function ArrowUpIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-3 w-3" aria-hidden="true">
+      <path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ArrowDownIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-3 w-3" aria-hidden="true">
+      <path d="M12 5v14M6 13l6 6 6-6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <path d="M2.5 12S5.5 5.5 12 5.5 21.5 12 21.5 12 18.5 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+function WarningIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <path d="M12 4 21.5 20h-19L12 4Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M12 10v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="12" cy="17" r="0.9" fill="currentColor" />
+    </svg>
   );
 }
 

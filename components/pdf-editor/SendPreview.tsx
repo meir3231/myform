@@ -22,7 +22,7 @@ export default function SendPreview({
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver(() => {
-      const w = Math.min(700, el.clientWidth - 2);
+      const w = Math.min(900, el.clientWidth - 2);
       if (w > 0) setWidth(w);
     });
     ro.observe(el);

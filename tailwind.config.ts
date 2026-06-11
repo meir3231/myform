@@ -11,30 +11,28 @@ export default {
         sans: ["var(--font-heebo)", "system-ui", "sans-serif"],
       },
       colors: {
-        // סגול — צבע ההדגשה האחיד של המותג, בשימוש גם בערכה הכהה וגם בבהירה
+        // טורקיז — צבע המותג, לפי טבלה 3.1 במסמך העיצוב
         brand: {
-          DEFAULT: "#29b5a8",
-          dark: "#22a89c",
-          light: "#7de3dd",
+          DEFAULT: "#14B8A6",
+          dark: "#0F9F98",
+          light: "#DCF4F3",
         },
-        // ערכת-הניהול הכהה (Sidebar קבוע + Header עליון)
-        ink: {
-          DEFAULT: "#1a1429",
-          panel: "#221a35",
-          line: "#352a4f",
-          text: "#e8e4f5",
-          muted: "#8878b0",
-          active: "#2d2245",
-        },
-        // ערכת-העבודה הבהירה (עריכת טופס / שליחה / מילוי לקוח)
+        // טקסט/רקעים/גבולות — לפי טבלה 3.1
+        navy: "#0F1F37",
+        "text-secondary": "#667085",
+        background: "#F6F8FB",
+        border: "#E4EAF2",
+        success: "#22C55E",
+        warning: "#F59E0B",
+        error: "#EF4444",
+        info: "#3B82F6",
+        // ערכת-העבודה (עריכת טופס / שליחה / מילוי לקוח / כל מסכי הניהול)
         paper: {
-          DEFAULT: "#f8f7ff",
-          line: "#e8e4f5",
-          text: "#1a1429",
-          muted: "#6b6385",
+          DEFAULT: "#F6F8FB",
+          line: "#E4EAF2",
+          text: "#0F1F37",
+          muted: "#667085",
         },
-        // רקע אזורי-הניהול (דשבורד / הגשות / הגדרות) — בהיר וסגלגל עדין
-        surface: "#f0eeff",
       },
       keyframes: {
         "fade-in": {

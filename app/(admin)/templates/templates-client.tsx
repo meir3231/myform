@@ -249,9 +249,9 @@ export function TemplatesClient({
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div>
+    <div className="flex h-full flex-col overflow-hidden">
       {/* Toolbar */}
-      <div className="mb-5 flex flex-wrap items-center gap-2">
+      <div className="mb-5 flex shrink-0 flex-wrap items-center gap-2">
         <h1 className="text-2xl font-bold text-paper-text ml-2">תבניות</h1>
 
         {/* Search */}
@@ -324,9 +324,9 @@ export function TemplatesClient({
       </div>
 
       {/* Layout: folder panel + content */}
-      <div className="flex gap-4">
+      <div className="flex flex-1 min-h-0 gap-4 overflow-hidden">
         {/* Folder panel */}
-        <aside className="w-44 shrink-0">
+        <aside className="w-44 shrink-0 overflow-y-auto">
           <div className="rounded-xl border border-paper-line bg-white p-2">
             <button
               onClick={() => setSelectedFolder(null)}
@@ -406,7 +406,7 @@ export function TemplatesClient({
         </aside>
 
         {/* Forms area */}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 overflow-y-auto">
           {currentFolderName && (
             <div className="mb-3 flex items-center gap-1.5 text-sm text-paper-muted">
               <button onClick={() => setSelectedFolder(null)} className="hover:text-brand">כל התבניות</button>
@@ -541,7 +541,7 @@ function ListView({
   return (
     <div className="card">
       <table className="w-full text-right text-sm">
-        <thead className="text-paper-muted">
+        <thead className="sticky top-0 z-10 bg-white text-paper-muted">
           <tr>
             <th className="px-4 py-3 font-medium">שם הטופס</th>
             <th className="px-4 py-3 font-medium">עמ׳</th>
@@ -961,7 +961,7 @@ function EmptyState({
     );
   }
   return (
-    <div className="card border-dashed p-12 text-center">
+    <div className={`card border-dashed p-12 text-center ${!hasAnyForms ? "empty-state-pattern" : ""}`}>
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand/15 text-brand">
         <FormSmallIcon />
       </div>

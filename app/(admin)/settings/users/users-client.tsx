@@ -54,17 +54,17 @@ export function UsersClient({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-1 min-h-0 flex-col gap-4 overflow-hidden">
+      <div className="flex shrink-0 items-center justify-between">
         <p className="text-sm text-slate-500">{users.length} משתמשים בארגון</p>
         <button onClick={() => setShowModal(true)} className="btn-primary">
           + הוסף משתמש
         </button>
       </div>
 
-      <div className="card overflow-hidden">
+      <div className="card flex-1 min-h-0 overflow-y-auto">
         <table className="w-full text-sm">
-          <thead className="border-b border-paper-line bg-slate-50 text-xs text-slate-500">
+          <thead className="sticky top-0 z-10 border-b border-paper-line bg-slate-50 text-xs text-slate-500">
             <tr>
               <th className="px-4 py-3 text-right font-medium">שם</th>
               <th className="px-4 py-3 text-right font-medium">אימייל</th>

@@ -42,8 +42,8 @@ export default async function UsersPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <h1 className="mb-6 text-2xl font-bold text-paper-text">ניהול משתמשים</h1>
+    <div className="mx-auto flex h-full max-w-4xl flex-col overflow-hidden">
+      <h1 className="mb-6 shrink-0 text-2xl font-bold text-paper-text">ניהול משתמשים</h1>
       <UsersClient users={users} currentUserId={profile.id} />
     </div>
   );

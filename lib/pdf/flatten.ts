@@ -17,11 +17,24 @@ function loadHebrewFont(): Buffer {
   return fontCache;
 }
 
+// בודק אם המחרוזת מכילה תווים עבריים (כולל ניקוד וצורות מיוחדות).
+function hasHebrewChar(text: string): boolean {
+  for (const ch of text) {
+    const code = ch.charCodeAt(0);
+    if ((code >= 0x0590 && code <= 0x05ff) || (code >= 0xfb1d && code <= 0xfb4f)) return true;
+  }
+  return false;
+}
+
 // כיווניות (bidi): bidi-js מפיק את הסדר הוויזואלי הנכון (ספרות נשמרות בכיוונן).
 // אבל מנועי pdfium (Chrome/Edge/Acrobat) מסדרים מחדש מחרוזת שלמה בעצמם וגורמים
 // להיפוך כפול. לכן מציירים תו-תו במיקום מפורש — כך המנוע אינו מסדר מחדש.
+// הערה: מחרוזת ללא תווים עבריים (למשל תאריך "10/06/2026") אינה זקוקה לבסיס RTL —
+// אילוץ "rtl" על מחרוזת כזו גורם ל-bidi-js להפיק היפוך שגוי (פס יחיד במקום שני
+// פסים שמבטלים זה את זה), כך שהיא מוצגת הפוכה.
 function toVisualChars(text: string): string[] {
-  const levels = bidi.getEmbeddingLevels(text, "rtl");
+  const baseDir = hasHebrewChar(text) ? "rtl" : "ltr";
+  const levels = bidi.getEmbeddingLevels(text, baseDir);
   const segments = bidi.getReorderSegments(text, levels);
   const chars = [...text];
   for (const [start, end] of segments) {
@@ -59,6 +72,14 @@ function drawRtlText(
     }
     x += widths[i];
   }
+}
+
+// ממיר תאריך מפורמט ISO (YYYY-MM-DD, מ-input type="date") לפורמט יום/חודש/שנה הנהוג בטפסים.
+function formatDateValue(value: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return value;
+  const [, y, mo, d] = m;
+  return `${d}/${mo}/${y}`;
 }
 
 export interface FlattenInput {
@@ -120,9 +141,10 @@ export async function flattenPdf(
         });
       }
     } else if (value && value.trim()) {
+      const text = field.type === "date" ? formatDateValue(value.trim()) : value.trim();
       const size = Math.max(6, Math.min(field.font_size, boxH * 0.85));
       const baselineY = topPdfY - boxH + (boxH - size) / 2 + size * 0.18;
-      drawRtlText(page, font, value.trim(), boxX, boxW, baselineY, size);
+      drawRtlText(page, font, text, boxX, boxW, baselineY, size);
     }
   }
 

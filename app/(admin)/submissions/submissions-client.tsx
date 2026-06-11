@@ -75,9 +75,9 @@ export function SubmissionsClient({
   }
 
   return (
-    <div>
+    <div className="flex h-full flex-col overflow-hidden">
       {/* Header */}
-      <div className="mb-5 flex flex-wrap items-center gap-2">
+      <div className="mb-5 flex shrink-0 flex-wrap items-center gap-2">
         <h1 className="text-2xl font-bold text-paper-text ml-2">הגשות</h1>
 
         <div className="relative">
@@ -148,7 +148,7 @@ export function SubmissionsClient({
       </div>
 
       {submissions.length === 0 ? (
-        <div className="card border-dashed p-12 text-center text-paper-muted">
+        <div className="card empty-state-pattern border-dashed p-12 text-center text-paper-muted">
           עדיין אין הגשות. שלח טופס ללקוח מתוך עמוד התבניות.
         </div>
       ) : filtered.length === 0 ? (
@@ -162,9 +162,9 @@ export function SubmissionsClient({
           </button>
         </div>
       ) : (
-        <div className="card overflow-hidden">
+        <div className="card flex-1 min-h-0 overflow-y-auto">
           <table className="w-full text-right text-sm">
-            <thead className="text-paper-muted">
+            <thead className="sticky top-0 z-10 bg-white text-paper-muted">
               <tr>
                 <th className="px-4 py-3 text-right font-medium">לקוח</th>
                 <th className="px-4 py-3 text-right font-medium">טופס</th>
