@@ -205,11 +205,11 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-hidden">
+    <div className="flex h-full flex-col gap-3 overflow-hidden">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="h1">לוח בקרה</h1>
-          <p className="mt-1 text-sm text-paper-muted">ברוך הבא, {userName}. הנה סקירה כללית של הפעילות שלך.</p>
+          <h1 className="text-2xl font-bold text-paper-text">לוח בקרה</h1>
+          <p className="mt-0.5 text-sm text-paper-muted">ברוך הבא, {userName}. הנה סקירה כללית של הפעילות שלך.</p>
         </div>
         <QuickActions
           forms={(forms ?? []).filter((f) => !f.archived_at).map((f) => ({ id: f.id, name: f.name, page_count: f.page_count }))}
@@ -217,16 +217,16 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid shrink-0 grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
         {kpis.map((k) => (
           <KpiCard key={k.label} {...k} />
         ))}
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-2">
+      <div className="grid min-h-0 flex-[3] gap-3 lg:grid-cols-2">
         {/* שימוש לפי טופס */}
-        <section className="card flex min-h-0 flex-col overflow-hidden p-4">
-          <div className="mb-3 flex shrink-0 items-center justify-between">
+        <section className="card flex h-full min-h-0 flex-col overflow-hidden p-3">
+          <div className="mb-2 flex shrink-0 items-center justify-between">
             <h2 className="h2">שימוש לפי טופס</h2>
             <Link href="/templates" className="text-sm text-brand transition hover:underline">
               צפה בהכל
@@ -237,14 +237,14 @@ export default async function DashboardPage() {
               <p className="text-sm text-paper-muted">אין עדיין הגשות להצגה.</p>
             </div>
           ) : (
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
+            <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
               {usage.map((u) => (
                 <div key={u.formId}>
-                  <div className="mb-1.5 flex items-center justify-between text-sm">
+                  <div className="mb-0.5 flex items-center justify-between text-xs">
                     <span className="truncate text-paper-text">{u.name}</span>
                     <span className="shrink-0 text-paper-muted">{u.count}</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-paper-line">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-paper-line">
                     <div className="h-full rounded-full bg-brand" style={{ width: `${(u.count / maxUsage) * 100}%` }} />
                   </div>
                 </div>
@@ -254,8 +254,8 @@ export default async function DashboardPage() {
         </section>
 
         {/* פעילות אחרונה */}
-        <section className="card flex min-h-0 flex-col overflow-hidden p-4">
-          <div className="mb-3 flex shrink-0 items-center justify-between">
+        <section className="card flex h-full min-h-0 flex-col overflow-hidden p-3">
+          <div className="mb-2 flex shrink-0 items-center justify-between">
             <h2 className="h2">פעילות אחרונה</h2>
             <Link href="/submissions" className="text-sm text-brand transition hover:underline">
               צפה בהכל
@@ -266,17 +266,17 @@ export default async function DashboardPage() {
               <p className="text-sm text-paper-muted">אין עדיין פעילות להצגה.</p>
             </div>
           ) : (
-            <ul className="min-h-0 flex-1 space-y-2.5 overflow-y-auto text-sm">
+            <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto text-sm">
               {activity.map((a, i) => (
-                <li key={i} className="border-b border-paper-line pb-2.5 last:border-0 last:pb-0">
-                  <Link href={`/submissions/${a.id}`} className="flex items-center gap-3 rounded-lg transition hover:bg-background">
+                <li key={i} className="border-b border-paper-line pb-1.5 last:border-0 last:pb-0">
+                  <Link href={`/submissions/${a.id}`} className="flex items-center gap-2.5 rounded-lg transition hover:bg-background">
                     <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                       style={{ backgroundColor: `${ACTIVITY_COLORS[a.type]}1a`, color: ACTIVITY_COLORS[a.type] }}
                     >
                       <ActivityIcon type={a.type} />
                     </span>
-                    <p className="min-w-0 flex-1 truncate text-paper-text">{a.text}</p>
+                    <p className="min-w-0 flex-1 truncate text-xs text-paper-text">{a.text}</p>
                     <span className="shrink-0 text-xs text-paper-muted">{formatActivityTime(a.at)}</span>
                   </Link>
                 </li>
@@ -286,31 +286,31 @@ export default async function DashboardPage() {
         </section>
       </div>
 
-      <div className="grid h-48 shrink-0 gap-4 lg:grid-cols-3">
+      <div className="grid min-h-0 flex-[2] gap-3 lg:grid-cols-3">
         {/* משימות מהירות */}
-        <section className="card flex h-full flex-col overflow-hidden p-4">
-          <div className="mb-3 flex shrink-0 items-center justify-between">
+        <section className="card flex h-full min-h-0 flex-col overflow-hidden p-3">
+          <div className="mb-2 flex shrink-0 items-center justify-between">
             <h2 className="h2">משימות מהירות</h2>
             <Link href="/submissions" className="text-sm text-brand transition hover:underline">
               לכל המשימות
             </Link>
           </div>
-          <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
+          <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
             {quickTasks.map((t) => (
               <li key={t.label}>
                 <Link
                   href={t.href}
-                  className="flex h-12 items-center gap-2.5 rounded-xl border border-paper-line px-2.5 transition hover:bg-background"
+                  className="flex h-9 items-center gap-2 rounded-xl border border-paper-line px-2 transition hover:bg-background"
                 >
                   <span
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg"
                     style={{ backgroundColor: `${t.color}1a`, color: t.color }}
                   >
                     {t.icon}
                   </span>
-                  <span className="flex-1 truncate text-sm text-paper-text">{t.label}</span>
+                  <span className="flex-1 truncate text-xs text-paper-text">{t.label}</span>
                   <span
-                    className="flex h-6 min-w-[28px] shrink-0 items-center justify-center rounded-full px-2 text-xs font-bold"
+                    className="flex h-5 min-w-[24px] shrink-0 items-center justify-center rounded-full px-1.5 text-xs font-bold"
                     style={{ backgroundColor: `${t.color}1a`, color: t.color }}
                   >
                     {t.count}
@@ -322,8 +322,8 @@ export default async function DashboardPage() {
         </section>
 
         {/* סקירת שליחות */}
-        <section className="card flex h-full flex-col overflow-hidden p-4">
-          <div className="mb-3 flex shrink-0 items-center justify-between">
+        <section className="card flex h-full min-h-0 flex-col overflow-hidden p-3">
+          <div className="mb-2 flex shrink-0 items-center justify-between">
             <h2 className="h2">סקירת שליחות</h2>
             <Link href="/submissions" className="text-sm text-brand transition hover:underline">
               צפה בהכל
@@ -334,13 +334,13 @@ export default async function DashboardPage() {
               <p className="text-sm text-paper-muted">אין עדיין הגשות להצגה.</p>
             </div>
           ) : (
-            <DonutChart data={donutData} total={subs.length} size={120} />
+            <DonutChart data={donutData} total={subs.length} size={84} />
           )}
         </section>
 
         {/* מגמה שבועית */}
-        <section className="card flex h-full flex-col overflow-hidden p-4">
-          <div className="mb-3 flex shrink-0 items-center justify-between">
+        <section className="card flex h-full min-h-0 flex-col overflow-hidden p-3">
+          <div className="mb-2 flex shrink-0 items-center justify-between">
             <h2 className="h2">מגמה שבועית</h2>
             <div className="flex items-center gap-3">
               <span className="text-xs text-paper-muted">7 הימים האחרונים</span>
@@ -378,25 +378,23 @@ function KpiCard({
   return (
     <Link
       href={href}
-      className="card flex min-h-[136px] flex-col justify-between p-4 transition hover:shadow-[0_8px_24px_rgba(15,23,42,0.10)]"
+      className="card flex items-center gap-2.5 p-2.5 transition hover:shadow-[0_8px_24px_rgba(15,23,42,0.10)]"
     >
-      <div className="flex items-start justify-between">
-        <span
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full"
-          style={{ backgroundColor: `${color}1a`, color }}
-        >
-          {icon}
-        </span>
-        <p className={`flex shrink-0 items-center gap-0.5 text-xs font-medium ${trendColor}`} title={trendText}>
-          {trend > 0 && <ArrowUpIcon />}
-          {trend < 0 && <ArrowDownIcon />}
-          {trend !== 0 && Math.abs(trend)}
-        </p>
+      <span
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+        style={{ backgroundColor: `${color}1a`, color }}
+      >
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-2xl font-bold leading-tight text-paper-text">{value}</p>
+        <p className="truncate text-xs text-paper-muted">{label}</p>
       </div>
-      <div>
-        <p className="kpi-number">{value}</p>
-        <p className="mt-1 truncate text-sm text-paper-muted">{label}</p>
-      </div>
+      <p className={`flex shrink-0 items-center gap-0.5 self-start text-xs font-medium ${trendColor}`} title={trendText}>
+        {trend > 0 && <ArrowUpIcon />}
+        {trend < 0 && <ArrowDownIcon />}
+        {trend !== 0 && Math.abs(trend)}
+      </p>
     </Link>
   );
 }
