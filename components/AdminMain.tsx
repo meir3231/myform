@@ -36,14 +36,21 @@ export function AdminMain({ children }: { children: React.ReactNode }) {
   const breadcrumb = getBreadcrumb(pathname);
 
   const isDashboard = pathname === "/dashboard";
+  // עורך השדות זקוק לרוחב גדול יותר מ-max-w-6xl כדי להציג את 3 פאנלי
+  // העריכה (פאלטה / מסמך / מאפיינים) לפי מידות מסמך העיצוב v2 (סעיף 11.1).
+  const isFormEditor = /^\/forms\/[^/]+\/edit/.test(pathname);
 
   return (
     <main
       className="h-full overflow-y-auto bg-background text-navy"
       style={{ viewTransitionName: "main-content" }}
     >
-      <div className={`mx-auto h-full px-8 py-8 lg:px-10 ${isDashboard ? "" : "max-w-6xl"}`}>
-        {breadcrumb && (
+      <div
+        className={`mx-auto h-full px-8 lg:px-10 ${isFormEditor ? "py-4" : "py-8"} ${
+          isDashboard || isFormEditor ? "" : "max-w-6xl"
+        }`}
+      >
+        {breadcrumb && !isFormEditor && (
           <nav className="mb-3 flex items-center gap-1.5 text-sm text-text-secondary">
             <Link href="/dashboard" className="transition hover:text-brand">
               לוח בקרה

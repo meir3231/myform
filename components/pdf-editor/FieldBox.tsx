@@ -90,7 +90,7 @@ export function FieldBox({
         cursor: "move",
         touchAction: "none",
       }}
-      className="flex items-center justify-center overflow-hidden rounded border-2 text-[10px] font-medium text-slate-700 select-none"
+      className="flex items-center justify-center overflow-hidden rounded border text-[10px] font-medium text-slate-700 select-none"
     >
       <span className="pointer-events-none truncate px-1">
         {field.copyFrom ? "🔗 " : ""}

@@ -5,9 +5,9 @@ export interface Crumb {
   href?: string;
 }
 
-export function Breadcrumbs({ items }: { items: Crumb[] }) {
+export function Breadcrumbs({ items, compact }: { items: Crumb[]; compact?: boolean }) {
   return (
-    <nav aria-label="ניווט" className="mb-3 flex flex-wrap items-center gap-1.5 text-sm">
+    <nav aria-label="ניווט" className={`flex flex-wrap items-center gap-1.5 text-sm ${compact ? "mb-1" : "mb-3"}`}>
       {items.map((item, i) => (
         <span key={i} className="flex items-center gap-1.5">
           {i > 0 && <span className="text-slate-300">‹</span>}

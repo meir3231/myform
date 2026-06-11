@@ -1,6 +1,8 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Document, Page, pdfjs } from "react-pdf";
 import { randomUUID } from "@/lib/uuid";
 import { FIELD_META, FIELD_TYPES, type FieldDraft } from "@/lib/fields";
@@ -9,11 +11,11 @@ import { saveFormFields } from "@/app/(admin)/forms/actions";
 import { useToast } from "@/components/Toast";
 import { FieldBox } from "./FieldBox";
 
-function FieldTypeIcon({ type }: { type: FieldType }) {
+function FieldTypeIcon({ type, className = "h-4 w-4" }: { type: FieldType; className?: string }) {
   const common = {
     viewBox: "0 0 24 24",
     fill: "none" as const,
-    className: "h-4 w-4",
+    className,
     "aria-hidden": true,
   };
   switch (type) {
@@ -94,15 +96,18 @@ type ContextMenuState =
 
 export default function FieldEditor({
   formId,
+  formName,
   pdfUrl,
   pageCount,
   initialFields,
 }: {
   formId: string;
+  formName: string;
   pdfUrl: string;
   pageCount: number;
   initialFields: FieldDraft[];
 }) {
+  const router = useRouter();
   const [fields, setFields] = useState<FieldDraft[]>(initialFields);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [fieldSearch, setFieldSearch] = useState("");
@@ -248,45 +253,34 @@ export default function FieldEditor({
     try {
       await saveFormFields(formId, fields);
       showToast("השדות נשמרו בהצלחה", "success");
+      return true;
     } catch (e) {
       showToast(e instanceof Error ? e.message : "השמירה נכשלה", "error");
+      return false;
     } finally {
       setStatus("idle");
     }
   }
 
+  async function handleSaveAndSend() {
+    const ok = await handleSave();
+    if (ok) router.push(`/forms/${formId}/send`);
+  }
+
   return (
     <div className="flex h-full flex-col gap-4 overflow-hidden">
-      {/* Toolbar */}
-      <div className="card flex shrink-0 flex-wrap items-center gap-3 bg-white/95 p-3 backdrop-blur-sm">
-        <h2 className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-slate-700">
-          <span className="text-brand">＋</span> הוספת שדה
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          {FIELD_TYPES.map((t) => (
-            <button
-              key={t}
-              onClick={() => startPlacing(t)}
-              className={`group flex items-center gap-2 rounded-lg border px-2.5 py-2 text-xs font-medium transition hover:-translate-y-0.5 hover:shadow-sm ${
-                placing === t
-                  ? "border-brand bg-brand/10 text-brand"
-                  : "border-slate-200 bg-white text-slate-700 hover:border-brand/50"
-              }`}
-            >
-              <span
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
-                style={{ backgroundColor: `${FIELD_META[t].color}1a`, color: FIELD_META[t].color }}
-              >
-                <FieldTypeIcon type={t} />
-              </span>
-              {FIELD_META[t].label}
-            </button>
-          ))}
-        </div>
-        <div className="ms-auto flex shrink-0 items-center gap-3">
-          <span className="text-xs text-slate-400">{fields.length} שדות בסך הכל</span>
-          <button onClick={handleSave} disabled={status === "saving"} className="btn-primary !px-5">
-            {status === "saving" ? "שומר..." : "שמירת שדות"}
+      {/* Action row */}
+      <div className="flex shrink-0 items-center justify-between gap-4">
+        <h1 className="h1 truncate">{formName}</h1>
+        <div className="flex shrink-0 items-center gap-3">
+          <button onClick={handleSave} disabled={status === "saving"} className="btn-outline h-12">
+            {status === "saving" ? "שומר..." : "שמירה"}
+          </button>
+          <Link href={`/forms/${formId}/preview`} target="_blank" className="btn-secondary">
+            תצוגה מקדימה
+          </Link>
+          <button onClick={handleSaveAndSend} disabled={status === "saving"} className="btn-primary-lg">
+            שמירה ושליחה
           </button>
         </div>
       </div>
@@ -298,9 +292,40 @@ export default function FieldEditor({
         </p>
       )}
 
-      <div className="grid min-h-0 flex-1 gap-4 overflow-hidden lg:grid-cols-[1fr_300px]">
-        {/* PDF area — scrollable */}
-        <div ref={containerRef} className="card overflow-hidden p-0">
+      <div
+        className="grid min-h-0 flex-1 gap-6 overflow-hidden"
+        style={{ gridTemplateColumns: "minmax(240px,286px) minmax(400px,1fr) minmax(260px,292px)" }}
+      >
+        {/* Field palette (left) */}
+        <aside className="card flex h-full w-full min-w-0 flex-col overflow-hidden p-[18px]">
+          <h2 className="mb-3 flex shrink-0 items-center gap-1.5 text-sm font-semibold text-slate-700">
+            <span className="text-brand">＋</span> הוספת שדה
+          </h2>
+          <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto">
+            {FIELD_TYPES.map((t) => (
+              <button
+                key={t}
+                onClick={() => startPlacing(t)}
+                className={`flex h-[46px] w-full items-center gap-3 rounded-[10px] border px-3 text-sm font-medium transition ${
+                  placing === t
+                    ? "border-brand bg-brand/10 text-brand"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-brand/50"
+                }`}
+              >
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
+                  style={{ backgroundColor: `${FIELD_META[t].color}1a`, color: FIELD_META[t].color }}
+                >
+                  <FieldTypeIcon type={t} className="h-[22px] w-[22px]" />
+                </span>
+                {FIELD_META[t].label}
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        {/* Document area (center) — scrollable */}
+        <div ref={containerRef} className="min-w-0 overflow-hidden rounded-2xl border border-border bg-background">
           <div className="h-full overflow-y-auto">
             <Document
               file={pdfUrl}
@@ -403,7 +428,7 @@ export default function FieldEditor({
         </div>
 
         {/* Right panel: all-fields list + selected field properties */}
-        <aside className="card flex h-full flex-col overflow-hidden">
+        <aside className="card flex h-full w-full min-w-0 flex-col overflow-hidden">
           {/* All fields list */}
           <div className="flex max-h-[40%] shrink-0 flex-col overflow-hidden border-b border-slate-100 p-3">
             <div className="mb-2 flex shrink-0 items-center justify-between">

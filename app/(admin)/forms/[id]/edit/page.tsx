@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { getSignedUrl } from "@/lib/storage";
@@ -45,23 +44,19 @@ export default async function EditFormPage({
     <div className="page-fade-in flex h-full flex-col overflow-hidden">
       <div className="shrink-0">
         <Breadcrumbs
+          compact
           items={[
             { label: "תבניות", href: "/templates" },
             { label: form.name },
             { label: "עריכת שדות" },
           ]}
         />
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-slate-800">{form.name}</h1>
-          <Link href={`/forms/${form.id}/send`} className="btn-primary">
-            שליחה ללקוח →
-          </Link>
-        </div>
       </div>
 
       <div className="min-h-0 flex-1">
         <FieldEditorLoader
           formId={form.id}
+          formName={form.name}
           pdfUrl={pdfUrl}
           pageCount={form.page_count}
           initialFields={initialFields}

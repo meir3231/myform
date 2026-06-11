@@ -106,7 +106,7 @@ export function FillFieldBox({
     return (
       <div
         title="הערך מועתק אוטומטית משדה אחר בטופס"
-        style={{ ...style, boxShadow: ring, fontSize: `${fontSize}px` }}
+        style={{ ...style, boxShadow: ring, fontSize: `${fontSize}px`, fontFamily: "Arial, Helvetica, sans-serif" }}
         className="flex items-center overflow-hidden rounded bg-slate-100/90 px-1 text-slate-500"
       >
         <span className="truncate">{value || field.label}</span>
@@ -123,7 +123,7 @@ export function FillFieldBox({
       value={value}
       placeholder={field.label}
       onChange={(e) => onChange(e.target.value)}
-      style={{ ...style, boxShadow: ring, backgroundColor: highlightBg, fontSize: `${fontSize}px` }}
+      style={{ ...style, boxShadow: ring, backgroundColor: highlightBg, fontSize: `${fontSize}px`, fontFamily: "Arial, Helvetica, sans-serif" }}
       className={`rounded px-1 text-slate-900 outline-none focus:bg-white focus:shadow-[0_0_0_2px_#3b82f6] ${
         field.type === "text" ? "text-right" : ""
       }`}
