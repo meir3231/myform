@@ -2,7 +2,6 @@
 
 import {
   useState, useEffect, useMemo, useRef, useTransition,
-  type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
@@ -16,10 +15,12 @@ import {
   renameForm as svRenameForm,
   shareForm as svShareForm,
   unshareForm as svUnshareForm,
+  getFormPreview,
 } from "./actions";
 import { deleteForm as svDeleteForm } from "@/app/(admin)/forms/actions";
 import { Modal } from "@/components/Modal";
 import { NewFormModal } from "@/components/NewFormModal";
+import { TemplatePreviewPane, type TemplatePreviewData } from "@/components/pdf-filler/TemplatePreviewPane";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,9 +35,12 @@ type FormRow = {
   visibility: string;
   created_by: string | null;
   creatorName: string | null;
+  fieldCount: number;
 };
 
 type FolderRow = { id: string; name: string; parent_id: string | null };
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
@@ -45,26 +49,38 @@ export function TemplatesClient({
   folders,
   currentUserId,
   currentUserRole,
+  initialPreviewFormId,
+  initialPreviewData,
 }: {
   forms: FormRow[];
   folders: FolderRow[];
   currentUserId: string;
   currentUserRole: string;
+  initialPreviewFormId: string | null;
+  initialPreviewData: TemplatePreviewData | null;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const isAdmin = currentUserRole === "admin";
 
-  // View / filter / sort
-  const [view, setView] = useState<"list" | "grid">("list");
+  // Search / filter / sort
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "reusable" | "single_use">("all");
   const [sort, setSort] = useState<"newest" | "oldest" | "name_asc" | "name_desc">("newest");
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("tmpl-view");
-    if (saved === "grid" || saved === "list") setView(saved as "list" | "grid");
-  }, []);
+  // Pagination (admin list)
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  // Preview pane state
+  const [selectedFormId, setSelectedFormId] = useState<string | null>(initialPreviewFormId);
+  const [previewCache, setPreviewCache] = useState<Map<string, TemplatePreviewData>>(() => {
+    const m = new Map<string, TemplatePreviewData>();
+    if (initialPreviewFormId && initialPreviewData) m.set(initialPreviewFormId, initialPreviewData);
+    return m;
+  });
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
 
   // Inline rename
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -77,14 +93,21 @@ export function TemplatesClient({
   // Move to folder dialog
   const [movingFormId, setMovingFormId] = useState<string | null>(null);
 
+  // Delete confirmation dialog
+  const [deletingFormId, setDeletingFormId] = useState<string | null>(null);
+
   // New form modal
   const [showNewModal, setShowNewModal] = useState(false);
 
-  // Folder management
+  // Folder dropdown + management
+  const [showFolderDropdown, setShowFolderDropdown] = useState(false);
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
   const [renamingFolderValue, setRenamingFolderValue] = useState("");
+
+  // Filters popover
+  const [showFilters, setShowFilters] = useState(false);
 
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -93,18 +116,24 @@ export function TemplatesClient({
     if (renamingId) renameInputRef.current?.focus();
   }, [renamingId]);
 
-  // Close ⋮ menu on outside click
+  // Close ⋮ menu / folder dropdown / filters popover on outside click
   useEffect(() => {
-    if (!openMenuId) return;
+    if (!openMenuId && !showFolderDropdown && !showFilters) return;
     function handleDocClick(e: MouseEvent) {
       const t = e.target as Element;
-      if (!t.closest("[data-form-menu]") && !t.closest("[data-form-menu-portal]")) {
+      if (openMenuId && !t.closest("[data-form-menu]") && !t.closest("[data-form-menu-portal]")) {
         setOpenMenuId(null);
+      }
+      if (showFolderDropdown && !t.closest("[data-folder-dropdown]")) {
+        setShowFolderDropdown(false);
+      }
+      if (showFilters && !t.closest("[data-filters-popover]")) {
+        setShowFilters(false);
       }
     }
     document.addEventListener("mousedown", handleDocClick);
     return () => document.removeEventListener("mousedown", handleDocClick);
-  }, [openMenuId]);
+  }, [openMenuId, showFolderDropdown, showFilters]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -115,7 +144,10 @@ export function TemplatesClient({
       if (e.key === "Escape") {
         if (showNewModal) { setShowNewModal(false); return; }
         if (openMenuId) { setOpenMenuId(null); return; }
+        if (showFolderDropdown) { setShowFolderDropdown(false); return; }
+        if (showFilters) { setShowFilters(false); return; }
         if (movingFormId) { setMovingFormId(null); return; }
+        if (deletingFormId) { setDeletingFormId(null); return; }
         if (renamingId) { setRenamingId(null); return; }
         return;
       }
@@ -130,7 +162,7 @@ export function TemplatesClient({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [showNewModal, openMenuId, movingFormId, renamingId]);
+  }, [showNewModal, openMenuId, showFolderDropdown, showFilters, movingFormId, deletingFormId, renamingId]);
 
   // Filtered + sorted forms
   const filteredForms = useMemo(() => {
@@ -158,12 +190,55 @@ export function TemplatesClient({
     return m;
   }, [forms]);
 
-  // ─── Handlers ───────────────────────────────────────────────────────────────
+  // Reset to page 1 whenever the result set or page size changes
+  useEffect(() => {
+    setPage(1);
+  }, [search, filter, sort, selectedFolder, pageSize]);
 
-  function handleViewChange(v: "list" | "grid") {
-    setView(v);
-    localStorage.setItem("tmpl-view", v);
+  const totalPages = Math.max(1, Math.ceil(filteredForms.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedForms = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredForms.slice(start, start + pageSize);
+  }, [filteredForms, currentPage, pageSize]);
+
+  // ─── Preview pane ───────────────────────────────────────────────────────────
+
+  const activePreviewId = selectedFormId;
+
+  // Keep selection valid if the underlying form list changes (e.g. after delete)
+  useEffect(() => {
+    if (selectedFormId && !forms.some((f) => f.id === selectedFormId)) {
+      setSelectedFormId(forms[0]?.id ?? null);
+    }
+  }, [forms, selectedFormId]);
+
+  // Lazily load preview data for the selected form
+  useEffect(() => {
+    const id = activePreviewId;
+    if (!id) return;
+    if (previewCache.has(id) || previewLoadingId === id) return;
+
+    setPreviewLoadingId(id);
+    getFormPreview(id).then((res) => {
+      setPreviewLoadingId((cur) => (cur === id ? null : cur));
+      if ("error" in res) return;
+      setPreviewCache((prev) => {
+        const next = new Map(prev);
+        next.set(id, res);
+        return next;
+      });
+    });
+  }, [activePreviewId, previewCache, previewLoadingId]);
+
+  const activeForm = forms.find((f) => f.id === activePreviewId) ?? null;
+  const activePreviewData = activePreviewId ? previewCache.get(activePreviewId) ?? null : null;
+
+  function handleRowClick(id: string) {
+    setSelectedFormId(id);
   }
+
+  // ─── Handlers ───────────────────────────────────────────────────────────────
 
   function handleStartRename(id: string, name: string) {
     setOpenMenuId(null);
@@ -185,7 +260,12 @@ export function TemplatesClient({
 
   function handleDelete(id: string) {
     setOpenMenuId(null);
-    if (!confirm("למחוק טופס זה? לא ניתן לשחזר פעולה זו.")) return;
+    setDeletingFormId(id);
+  }
+
+  function handleDeleteConfirm() {
+    const id = deletingFormId!;
+    setDeletingFormId(null);
     startTransition(async () => {
       await svDeleteForm(id);
       router.refresh();
@@ -204,10 +284,12 @@ export function TemplatesClient({
   }
 
   function handleShare(id: string) {
+    setOpenMenuId(null);
     startTransition(async () => { await svShareForm(id); router.refresh(); });
   }
 
   function handleUnshare(id: string) {
+    setOpenMenuId(null);
     startTransition(async () => { await svUnshareForm(id); router.refresh(); });
   }
 
@@ -240,252 +322,155 @@ export function TemplatesClient({
     startTransition(async () => { await svRenameFolder(id, name); router.refresh(); });
   }
 
-  const currentFolderName = selectedFolder
-    ? folders.find((f) => f.id === selectedFolder)?.name
-    : null;
-
   const isFiltered = search !== "" || filter !== "all" || selectedFolder !== null;
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      {/* Toolbar */}
-      <div className="mb-5 flex shrink-0 flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-bold text-paper-text ml-2">תבניות</h1>
-
-        {/* Search */}
-        <div className="relative">
-          <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-          </svg>
-          <input
-            ref={searchRef}
-            type="text"
-            placeholder="חיפוש..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-9 rounded-lg border border-paper-line bg-white py-1.5 pr-9 pl-3 text-sm text-paper-text placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-            style={{ minWidth: 180 }}
-          />
+      {/* Page header */}
+      <div className="mb-3 flex shrink-0 flex-wrap items-baseline justify-between gap-3">
+        <div className="flex items-baseline gap-3">
+          <h1 className="h1">תבניות</h1>
+          <p className="text-sm text-paper-muted">ניהול תבניות הטפסים של המשרד - יצירה, עריכה ושליחה ללקוחות.</p>
         </div>
-
-        {/* Filter */}
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as typeof filter)}
-          className="h-9 rounded-lg border border-paper-line bg-white px-3 text-sm text-paper-text focus:border-brand focus:outline-none"
-        >
-          <option value="all">כל הסוגים</option>
-          <option value="reusable">שימוש חוזר</option>
-          <option value="single_use">חד-פעמי</option>
-        </select>
-
-        {/* Sort */}
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value as typeof sort)}
-          className="h-9 rounded-lg border border-paper-line bg-white px-3 text-sm text-paper-text focus:border-brand focus:outline-none"
-        >
-          <option value="newest">חדש לישן</option>
-          <option value="oldest">ישן לחדש</option>
-          <option value="name_asc">שם: א-ת</option>
-          <option value="name_desc">שם: ת-א</option>
-        </select>
-
-        {/* View toggle */}
-        <div className="flex overflow-hidden rounded-lg border border-paper-line">
-          <button
-            onClick={() => handleViewChange("list")}
-            className={`flex h-9 w-9 items-center justify-center transition ${view === "list" ? "bg-brand text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}
-            title="רשימה"
-          >
-            <ListViewIcon />
-          </button>
-          <button
-            onClick={() => handleViewChange("grid")}
-            className={`flex h-9 w-9 items-center justify-center transition ${view === "grid" ? "bg-brand text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}
-            title="רשת"
-          >
-            <GridViewIcon />
-          </button>
-        </div>
-
-        <div className="flex-1" />
-
-        {/* New form button */}
         <button
           onClick={() => setShowNewModal(true)}
-          className="btn-new-form"
+          className="btn-primary-lg w-[200px]"
           title="טופס חדש (N)"
         >
-          <span className="text-xl font-bold leading-none">+</span> טופס חדש
+          <PlusIcon />
+          טופס חדש
         </button>
       </div>
 
-      {/* Layout: folder panel + content */}
+      {/* Layout: list panel (right) + preview pane (left) */}
       <div className="flex flex-1 min-h-0 gap-4 overflow-hidden">
-        {/* Folder panel */}
-        <aside className="w-44 shrink-0 overflow-y-auto">
-          <div className="rounded-xl border border-paper-line bg-white p-2">
-            <button
-              onClick={() => setSelectedFolder(null)}
-              className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition ${selectedFolder === null ? "bg-brand/10 font-semibold text-brand" : "text-paper-text hover:bg-slate-50"}`}
-            >
-              <FolderIcon className="h-4 w-4 shrink-0 text-slate-400" />
-              <span className="flex-1 truncate text-right">כל התבניות</span>
-              <span className="text-xs text-slate-400">{forms.length}</span>
-            </button>
+        {/* List panel */}
+        <aside className="flex w-[520px] shrink-0 flex-col overflow-hidden">
+          {/* Toolbar */}
+          <div className="mb-3 flex h-11 shrink-0 items-center gap-2">
+            <FolderDropdown
+              folders={folders}
+              folderCounts={folderCounts}
+              totalCount={forms.length}
+              selectedFolder={selectedFolder}
+              onSelectFolder={(id) => { setSelectedFolder(id); setShowFolderDropdown(false); }}
+              open={showFolderDropdown}
+              onToggle={() => setShowFolderDropdown((o) => !o)}
+              showNewFolderInput={showNewFolderInput}
+              setShowNewFolderInput={setShowNewFolderInput}
+              newFolderName={newFolderName}
+              setNewFolderName={setNewFolderName}
+              onCreateFolder={handleCreateFolder}
+              renamingFolderId={renamingFolderId}
+              renamingFolderValue={renamingFolderValue}
+              setRenamingFolderId={setRenamingFolderId}
+              setRenamingFolderValue={setRenamingFolderValue}
+              onFolderRenameSubmit={handleFolderRenameSubmit}
+              onDeleteFolder={handleDeleteFolder}
+            />
 
-            {folders.length > 0 && <div className="my-1.5 border-t border-paper-line" />}
-
-            {folders.map((folder) => (
-              <div key={folder.id} className="group relative">
-                {renamingFolderId === folder.id ? (
-                  <input
-                    autoFocus
-                    value={renamingFolderValue}
-                    onChange={(e) => setRenamingFolderValue(e.target.value)}
-                    onBlur={() => handleFolderRenameSubmit(folder.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleFolderRenameSubmit(folder.id);
-                      if (e.key === "Escape") setRenamingFolderId(null);
-                    }}
-                    className="w-full rounded-lg border border-brand px-2 py-1.5 text-sm focus:outline-none"
-                  />
-                ) : (
-                  <button
-                    onClick={() => setSelectedFolder(folder.id)}
-                    onDoubleClick={() => {
-                      setRenamingFolderId(folder.id);
-                      setRenamingFolderValue(folder.name);
-                    }}
-                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition ${selectedFolder === folder.id ? "bg-brand/10 font-semibold text-brand" : "text-paper-text hover:bg-slate-50"}`}
-                  >
-                    <FolderIcon className="h-4 w-4 shrink-0 text-slate-400" />
-                    <span className="flex-1 truncate text-right">{folder.name}</span>
-                    <span className="text-xs text-slate-400">{folderCounts.get(folder.id) ?? 0}</span>
-                  </button>
-                )}
-                <button
-                  onClick={() => handleDeleteFolder(folder.id)}
-                  className="absolute left-0.5 top-1/2 hidden h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-slate-400 transition hover:text-red-500 group-hover:flex"
-                  title="מחיקת תיקייה"
-                >
-                  <XSmallIcon />
-                </button>
-              </div>
-            ))}
-
-            <div className="mt-1.5 border-t border-paper-line pt-1.5">
-              {showNewFolderInput ? (
-                <form onSubmit={handleCreateFolder}>
-                  <input
-                    autoFocus
-                    placeholder="שם תיקייה"
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    onBlur={() => { if (!newFolderName.trim()) setShowNewFolderInput(false); }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") { setShowNewFolderInput(false); setNewFolderName(""); }
-                    }}
-                    className="w-full rounded-lg border border-brand px-2 py-1.5 text-sm focus:outline-none"
-                  />
-                </form>
-              ) : (
-                <button
-                  onClick={() => setShowNewFolderInput(true)}
-                  className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-brand"
-                >
-                  <PlusSmallIcon />
-                  תיקייה חדשה
-                </button>
-              )}
+            {/* Search */}
+            <div className="relative min-w-0 flex-1">
+              <SearchIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                ref={searchRef}
+                type="text"
+                placeholder="חיפוש תבניות..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="input-field !h-11 pr-10"
+              />
             </div>
+
+            <FiltersPopover
+              filter={filter}
+              setFilter={setFilter}
+              sort={sort}
+              setSort={setSort}
+              open={showFilters}
+              onToggle={() => setShowFilters((o) => !o)}
+            />
           </div>
+
+          {/* List (scroll) */}
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {filteredForms.length === 0 ? (
+              <EmptyState
+                hasAnyForms={forms.length > 0}
+                isFiltered={isFiltered}
+                onClearFilter={() => { setSearch(""); setFilter("all"); setSelectedFolder(null); }}
+                onNewForm={() => setShowNewModal(true)}
+              />
+            ) : !isAdmin ? (
+              <MemberFormsView
+                forms={filteredForms}
+                folders={folders}
+                currentUserId={currentUserId}
+                renamingId={renamingId}
+                renamingValue={renamingValue}
+                renameInputRef={renameInputRef}
+                openMenuId={openMenuId}
+                isPending={isPending}
+                selectedFormId={selectedFormId}
+                onRowClick={handleRowClick}
+                onStartRename={handleStartRename}
+                onRenameChange={setRenamingValue}
+                onRenameSubmit={handleRenameSubmit}
+                onRenameCancel={() => setRenamingId(null)}
+                onMenuToggle={(id) => setOpenMenuId((prev) => (prev === id ? null : id))}
+                onDuplicate={handleDuplicate}
+                onDelete={handleDelete}
+                onMoveOpen={handleMoveOpen}
+              />
+            ) : (
+              <ListView
+                forms={pagedForms}
+                folders={folders}
+                isAdmin={isAdmin}
+                renamingId={renamingId}
+                renamingValue={renamingValue}
+                renameInputRef={renameInputRef}
+                openMenuId={openMenuId}
+                isPending={isPending}
+                selectedFormId={selectedFormId}
+                onRowClick={handleRowClick}
+                onStartRename={handleStartRename}
+                onRenameChange={setRenamingValue}
+                onRenameSubmit={handleRenameSubmit}
+                onRenameCancel={() => setRenamingId(null)}
+                onMenuToggle={(id) => setOpenMenuId((prev) => (prev === id ? null : id))}
+                onDuplicate={handleDuplicate}
+                onDelete={handleDelete}
+                onMoveOpen={handleMoveOpen}
+                onShare={handleShare}
+                onUnshare={handleUnshare}
+              />
+            )}
+          </div>
+
+          {/* Pagination */}
+          {isAdmin && filteredForms.length > 0 && (
+            <Pagination
+              page={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={filteredForms.length}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          )}
         </aside>
 
-        {/* Forms area */}
-        <div className="min-w-0 flex-1 overflow-y-auto">
-          {currentFolderName && (
-            <div className="mb-3 flex items-center gap-1.5 text-sm text-paper-muted">
-              <button onClick={() => setSelectedFolder(null)} className="hover:text-brand">כל התבניות</button>
-              <span>/</span>
-              <span className="font-medium text-paper-text">{currentFolderName}</span>
-            </div>
-          )}
-
-          {filteredForms.length === 0 ? (
-            <EmptyState
-              hasAnyForms={forms.length > 0}
-              isFiltered={isFiltered}
-              onClearFilter={() => { setSearch(""); setFilter("all"); setSelectedFolder(null); }}
-              onNewForm={() => setShowNewModal(true)}
-            />
-          ) : currentUserRole !== "admin" ? (
-            // member view: split into sections
-            <MemberFormsView
-              forms={filteredForms}
-              folders={folders}
-              currentUserId={currentUserId}
-              view={view}
-              renamingId={renamingId}
-              renamingValue={renamingValue}
-              renameInputRef={renameInputRef}
-              openMenuId={openMenuId}
-              isPending={isPending}
-              onStartRename={handleStartRename}
-              onRenameChange={setRenamingValue}
-              onRenameSubmit={handleRenameSubmit}
-              onRenameCancel={() => setRenamingId(null)}
-              onMenuToggle={(id) => setOpenMenuId((prev) => (prev === id ? null : id))}
-              onDuplicate={handleDuplicate}
-              onDelete={handleDelete}
-              onMoveOpen={handleMoveOpen}
-            />
-          ) : view === "list" ? (
-            <ListView
-              forms={filteredForms}
-              folders={folders}
-              currentUserRole={currentUserRole}
-              renamingId={renamingId}
-              renamingValue={renamingValue}
-              renameInputRef={renameInputRef}
-              openMenuId={openMenuId}
-              isPending={isPending}
-              onStartRename={handleStartRename}
-              onRenameChange={setRenamingValue}
-              onRenameSubmit={handleRenameSubmit}
-              onRenameCancel={() => setRenamingId(null)}
-              onMenuToggle={(id) => setOpenMenuId((prev) => (prev === id ? null : id))}
-              onDuplicate={handleDuplicate}
-              onDelete={handleDelete}
-              onMoveOpen={handleMoveOpen}
-              onShare={handleShare}
-              onUnshare={handleUnshare}
-            />
-          ) : (
-            <GridView
-              forms={filteredForms}
-              folders={folders}
-              currentUserRole={currentUserRole}
-              renamingId={renamingId}
-              renamingValue={renamingValue}
-              renameInputRef={renameInputRef}
-              openMenuId={openMenuId}
-              isPending={isPending}
-              onStartRename={handleStartRename}
-              onRenameChange={setRenamingValue}
-              onRenameSubmit={handleRenameSubmit}
-              onRenameCancel={() => setRenamingId(null)}
-              onMenuToggle={(id) => setOpenMenuId((prev) => (prev === id ? null : id))}
-              onDuplicate={handleDuplicate}
-              onDelete={handleDelete}
-              onMoveOpen={handleMoveOpen}
-              onShare={handleShare}
-              onUnshare={handleUnshare}
-            />
-          )}
+        {/* Preview pane */}
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <TemplatePreviewPane
+            formId={activePreviewId}
+            formName={activeForm?.name}
+            data={activePreviewData}
+            loading={previewLoadingId === activePreviewId}
+          />
         </div>
       </div>
 
@@ -505,6 +490,14 @@ export function TemplatesClient({
           onClose={() => setMovingFormId(null)}
         />
       )}
+
+      {deletingFormId && (
+        <DeleteFormModal
+          formName={forms.find((f) => f.id === deletingFormId)?.name ?? ""}
+          onConfirm={handleDeleteConfirm}
+          onClose={() => setDeletingFormId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -512,19 +505,21 @@ export function TemplatesClient({
 // ─── ListView ─────────────────────────────────────────────────────────────────
 
 function ListView({
-  forms, folders, currentUserRole, renamingId, renamingValue, renameInputRef,
-  openMenuId, isPending, onStartRename,
+  forms, folders, isAdmin, renamingId, renamingValue, renameInputRef,
+  openMenuId, isPending, selectedFormId, onRowClick, onStartRename,
   onRenameChange, onRenameSubmit, onRenameCancel, onMenuToggle,
   onDuplicate, onDelete, onMoveOpen, onShare, onUnshare,
 }: {
   forms: FormRow[];
   folders: FolderRow[];
-  currentUserRole: string;
+  isAdmin: boolean;
   renamingId: string | null;
   renamingValue: string;
-  renameInputRef: RefObject<HTMLInputElement | null>;
+  renameInputRef: React.RefObject<HTMLInputElement | null>;
   openMenuId: string | null;
   isPending: boolean;
+  selectedFormId: string | null;
+  onRowClick: (id: string) => void;
   onStartRename: (id: string, name: string) => void;
   onRenameChange: (v: string) => void;
   onRenameSubmit: (id: string) => void;
@@ -539,237 +534,116 @@ function ListView({
   const folderMap = new Map(folders.map((f) => [f.id, f.name]));
 
   return (
-    <div className="card">
-      <table className="w-full text-right text-sm">
-        <thead className="sticky top-0 z-10 bg-white text-paper-muted">
-          <tr>
-            <th className="px-4 py-3 font-medium">שם הטופס</th>
-            <th className="px-4 py-3 font-medium">עמ׳</th>
-            <th className="px-4 py-3 font-medium">סוג</th>
-            <th className="px-4 py-3 font-medium">תיקייה</th>
-            <th className="px-4 py-3 font-medium">נוצר</th>
-            <th className="w-8 px-3 py-3" />
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-paper-line">
-          {forms.map((form) => (
-            <tr
-              key={form.id}
-              className="stagger-item transition hover:bg-brand/5"
-            >
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
-                    <FormSmallIcon />
-                  </span>
-                  {renamingId === form.id ? (
-                    <input
-                      ref={renameInputRef}
-                      value={renamingValue}
-                      onChange={(e) => onRenameChange(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") onRenameSubmit(form.id);
-                        if (e.key === "Escape") onRenameCancel();
-                      }}
-                      onBlur={() => onRenameSubmit(form.id)}
-                      className="rounded border border-brand px-2 py-0.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand/20"
-                      style={{ minWidth: 160 }}
-                    />
-                  ) : (
-                    <div className="flex min-w-0 flex-col">
-                      <span
-                        className="font-medium text-paper-text cursor-default select-none"
-                        onDoubleClick={() => onStartRename(form.id, form.name)}
-                        title="לחץ פעמיים לשינוי שם"
-                      >
-                        {form.name}
-                      </span>
-                      {form.creatorName && (
-                        <span className="text-[11px] text-slate-400">{form.creatorName}</span>
-                      )}
-                    </div>
-                  )}
-                  {form.visibility === "shared" && (
-                    <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-700">
-                      משותף
-                    </span>
-                  )}
-                  {currentUserRole === "admin" && (
-                    <button
-                      onClick={() => form.visibility === "shared" ? onUnshare(form.id) : onShare(form.id)}
-                      disabled={isPending}
-                      className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-500 transition hover:bg-slate-50 disabled:opacity-40"
+    <div className="card overflow-hidden">
+      {/* Header row */}
+      <div className="flex h-10 items-center gap-3 border-b border-paper-line px-3 text-xs font-medium text-paper-muted">
+        <div className="min-w-0 flex-1">שם המסמך</div>
+        <div className="w-20 shrink-0">יוצר</div>
+        <div className="w-28 shrink-0">תיקייה</div>
+        <div className="w-8 shrink-0" />
+      </div>
+
+      <div className="divide-y divide-paper-line">
+        {forms.map((form) => (
+          <div
+            key={form.id}
+            onClick={() => onRowClick(form.id)}
+            className={`stagger-item flex h-16 cursor-pointer items-center gap-3 px-3 transition ${
+              selectedFormId === form.id ? "bg-brand/5" : "hover:bg-slate-50"
+            }`}
+          >
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
+                <FormSmallIcon />
+              </span>
+              <div className="min-w-0">
+                {renamingId === form.id ? (
+                  <input
+                    ref={renameInputRef}
+                    value={renamingValue}
+                    onChange={(e) => onRenameChange(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") onRenameSubmit(form.id);
+                      if (e.key === "Escape") onRenameCancel();
+                    }}
+                    onBlur={() => onRenameSubmit(form.id)}
+                    className="w-full rounded border border-brand px-2 py-0.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand/20"
+                  />
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="truncate font-medium text-paper-text cursor-default select-none"
+                      onDoubleClick={() => onStartRename(form.id, form.name)}
+                      title={form.name}
                     >
-                      {form.visibility === "shared" ? "הפוך לפרטי" : "שתף"}
-                    </button>
-                  )}
-                </div>
-              </td>
-              <td className="px-4 py-3 text-paper-muted">{form.page_count}</td>
-              <td className="px-4 py-3">
-                <TypeBadge form={form} />
-              </td>
-              <td className="px-4 py-3 text-xs text-paper-muted">
-                {form.folder_id ? (folderMap.get(form.folder_id) ?? "—") : "—"}
-              </td>
-              <td className="px-4 py-3 text-paper-muted">
-                {new Date(form.created_at).toLocaleDateString("he-IL")}
-              </td>
-              <td className="relative px-2 py-3">
-                <FormMenu
-                  form={form}
-                  isOpen={openMenuId === form.id}
-                  isPending={isPending}
-                  onToggle={() => onMenuToggle(form.id)}
-                  onDuplicate={() => onDuplicate(form.id)}
-                  onRename={() => onStartRename(form.id, form.name)}
-                  onMove={() => onMoveOpen(form.id)}
-                  onDelete={() => onDelete(form.id)}
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ─── GridView ─────────────────────────────────────────────────────────────────
-
-function GridView({
-  forms, folders, currentUserRole, renamingId, renamingValue, renameInputRef,
-  openMenuId, isPending, onStartRename, onRenameChange,
-  onRenameSubmit, onRenameCancel, onMenuToggle, onDuplicate, onDelete, onMoveOpen,
-  onShare, onUnshare,
-}: {
-  forms: FormRow[];
-  folders: FolderRow[];
-  currentUserRole: string;
-  renamingId: string | null;
-  renamingValue: string;
-  renameInputRef: RefObject<HTMLInputElement | null>;
-  openMenuId: string | null;
-  isPending: boolean;
-  onStartRename: (id: string, name: string) => void;
-  onRenameChange: (v: string) => void;
-  onRenameSubmit: (id: string) => void;
-  onRenameCancel: () => void;
-  onMenuToggle: (id: string) => void;
-  onDuplicate: (id: string) => void;
-  onDelete: (id: string) => void;
-  onMoveOpen: (id: string) => void;
-  onShare: (id: string) => void;
-  onUnshare: (id: string) => void;
-}) {
-  const folderMap = new Map(folders.map((f) => [f.id, f.name]));
-
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {forms.map((form) => (
-        <div
-          key={form.id}
-          className="card card-hover stagger-item relative flex flex-col p-5"
-        >
-          <div className="mb-3 flex items-start gap-3 pe-1">
-            <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-brand">
-              <FormSmallIcon />
-            </span>
-            <div className="min-w-0 flex-1">
-              {renamingId === form.id ? (
-                <input
-                  ref={renameInputRef}
-                  value={renamingValue}
-                  onChange={(e) => onRenameChange(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") onRenameSubmit(form.id);
-                    if (e.key === "Escape") onRenameCancel();
-                  }}
-                  onBlur={() => onRenameSubmit(form.id)}
-                  className="w-full rounded border border-brand px-2 py-0.5 text-sm font-semibold focus:outline-none"
-                />
-              ) : (
-                <h2
-                  className="truncate text-base font-semibold text-paper-text cursor-default select-none"
-                  onDoubleClick={() => onStartRename(form.id, form.name)}
-                  title="לחץ פעמיים לשינוי שם"
-                >
-                  {form.name}
-                </h2>
-              )}
-              <div className="mt-1 flex flex-wrap gap-1">
-                <TypeBadge form={form} />
-                {form.visibility === "shared" && (
-                  <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-700">
-                    משותף
-                  </span>
+                      {form.name}
+                    </span>
+                    {form.visibility === "shared" && (
+                      <span className="shrink-0 rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-700">
+                        משותף
+                      </span>
+                    )}
+                  </div>
                 )}
+                <p className="mt-0.5 truncate text-xs text-paper-muted">
+                  {form.page_count} עמ׳ · {form.fieldCount} שדות
+                  {form.archived_at ? " · הושבתה" : !form.is_reusable ? " · חד-פעמי" : ""}
+                </p>
               </div>
-              <p className="mt-1 text-xs text-paper-muted">
-                {form.page_count} עמ׳
-                {form.folder_id ? ` · ${folderMap.get(form.folder_id) ?? ""}` : ""}
-                {form.creatorName ? ` · ${form.creatorName}` : ""}
-              </p>
             </div>
-          </div>
-
-          <div className="mt-auto flex items-center gap-2 border-t border-paper-line pt-3">
-            <Link href={`/forms/${form.id}/edit`} className="btn-ghost !py-1 !px-2.5 !text-xs">
-              עריכת שדות
-            </Link>
-            {!form.archived_at && (
-              <Link
-                href={`/forms/${form.id}/send`}
-                className="inline-flex items-center justify-center rounded-lg bg-brand px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-brand-dark"
-              >
-                שליחה
-              </Link>
-            )}
-            {currentUserRole === "admin" && (
-              <button
-                onClick={() => form.visibility === "shared" ? onUnshare(form.id) : onShare(form.id)}
-                disabled={isPending}
-                className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-500 transition hover:bg-slate-50 disabled:opacity-40"
-              >
-                {form.visibility === "shared" ? "הפוך לפרטי" : "שתף"}
-              </button>
-            )}
-            <span className="mr-auto">
+            <div className="w-20 shrink-0 truncate text-sm text-text-secondary">{form.creatorName ?? "—"}</div>
+            <div className="w-28 shrink-0">
+              {form.folder_id ? (
+                <span className="badge min-w-0 w-full justify-start gap-1 bg-slate-100 text-slate-600" title={folderMap.get(form.folder_id) ?? ""}>
+                  <FolderIcon className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{folderMap.get(form.folder_id) ?? "—"}</span>
+                </span>
+              ) : (
+                <span className="text-sm text-text-secondary">—</span>
+              )}
+            </div>
+            <div className="w-8 shrink-0">
               <FormMenu
                 form={form}
+                isAdmin={isAdmin}
                 isOpen={openMenuId === form.id}
                 isPending={isPending}
                 onToggle={() => onMenuToggle(form.id)}
                 onDuplicate={() => onDuplicate(form.id)}
                 onRename={() => onStartRename(form.id, form.name)}
                 onMove={() => onMoveOpen(form.id)}
+                onShare={() => onShare(form.id)}
+                onUnshare={() => onUnshare(form.id)}
                 onDelete={() => onDelete(form.id)}
               />
-            </span>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
 
-// ─── MemberFormsView (split: shared + mine) ───────────────────────────────────
+// ─── MemberFormsView (split: mine + shared) ───────────────────────────────────
 
 function MemberFormsView({
-  forms, folders, currentUserId, view,
+  forms, folders, currentUserId,
   renamingId, renamingValue, renameInputRef, openMenuId, isPending,
+  selectedFormId, onRowClick,
   onStartRename, onRenameChange, onRenameSubmit, onRenameCancel,
   onMenuToggle, onDuplicate, onDelete, onMoveOpen,
 }: {
   forms: FormRow[];
   folders: FolderRow[];
   currentUserId: string;
-  view: "list" | "grid";
   renamingId: string | null;
   renamingValue: string;
-  renameInputRef: RefObject<HTMLInputElement | null>;
+  renameInputRef: React.RefObject<HTMLInputElement | null>;
   openMenuId: string | null;
   isPending: boolean;
+  selectedFormId: string | null;
+  onRowClick: (id: string) => void;
   onStartRename: (id: string, name: string) => void;
   onRenameChange: (v: string) => void;
   onRenameSubmit: (id: string) => void;
@@ -784,29 +658,26 @@ function MemberFormsView({
 
   const noOp = () => {};
   const sharedProps = {
-    folders, currentUserRole: "member",
+    folders, isAdmin: false,
     renamingId, renamingValue, renameInputRef, openMenuId, isPending,
+    selectedFormId, onRowClick,
     onStartRename, onRenameChange, onRenameSubmit, onRenameCancel,
     onMenuToggle, onDuplicate, onDelete, onMoveOpen,
     onShare: noOp, onUnshare: noOp,
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {myForms.length > 0 && (
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-slate-600">הטפסים שלי</h2>
-          {view === "list"
-            ? <ListView forms={myForms} {...sharedProps} />
-            : <GridView forms={myForms} {...sharedProps} />}
+          <h2 className="mb-2 text-sm font-semibold text-slate-600">הטפסים שלי</h2>
+          <ListView forms={myForms} {...sharedProps} />
         </div>
       )}
       {sharedForms.length > 0 && (
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-slate-600">טפסים משותפים</h2>
-          {view === "list"
-            ? <ListView forms={sharedForms} {...sharedProps} />
-            : <GridView forms={sharedForms} {...sharedProps} />}
+          <h2 className="mb-2 text-sm font-semibold text-slate-600">טפסים משותפים</h2>
+          <ListView forms={sharedForms} {...sharedProps} />
         </div>
       )}
       {myForms.length === 0 && sharedForms.length === 0 && (
@@ -816,18 +687,256 @@ function MemberFormsView({
   );
 }
 
+// ─── FolderDropdown ─────────────────────────────────────────────────────────────
+
+function FolderDropdown({
+  folders, folderCounts, totalCount, selectedFolder, onSelectFolder, open, onToggle,
+  showNewFolderInput, setShowNewFolderInput, newFolderName, setNewFolderName, onCreateFolder,
+  renamingFolderId, renamingFolderValue, setRenamingFolderId, setRenamingFolderValue,
+  onFolderRenameSubmit, onDeleteFolder,
+}: {
+  folders: FolderRow[];
+  folderCounts: Map<string, number>;
+  totalCount: number;
+  selectedFolder: string | null;
+  onSelectFolder: (id: string | null) => void;
+  open: boolean;
+  onToggle: () => void;
+  showNewFolderInput: boolean;
+  setShowNewFolderInput: (v: boolean) => void;
+  newFolderName: string;
+  setNewFolderName: (v: string) => void;
+  onCreateFolder: (e: React.FormEvent) => void;
+  renamingFolderId: string | null;
+  renamingFolderValue: string;
+  setRenamingFolderId: (id: string | null) => void;
+  setRenamingFolderValue: (v: string) => void;
+  onFolderRenameSubmit: (id: string) => void;
+  onDeleteFolder: (id: string) => void;
+}) {
+  const currentName = selectedFolder
+    ? folders.find((f) => f.id === selectedFolder)?.name ?? "כל התיקיות"
+    : "כל התיקיות";
+
+  return (
+    <div className="relative shrink-0" data-folder-dropdown>
+      <button
+        onClick={onToggle}
+        className="flex h-11 w-44 items-center justify-between gap-2 rounded-[10px] border border-border bg-white px-3 text-sm text-navy transition hover:border-brand"
+      >
+        <span className="truncate">{currentName}</span>
+        <ChevronDownIcon className={`h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-[calc(100%+4px)] z-20 w-64 rounded-xl border border-paper-line bg-white p-2 shadow-xl">
+          <button
+            onClick={() => onSelectFolder(null)}
+            className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition ${selectedFolder === null ? "bg-brand/10 font-semibold text-brand" : "text-paper-text hover:bg-slate-50"}`}
+          >
+            <FolderIcon className="h-4 w-4 shrink-0 text-slate-400" />
+            <span className="flex-1 truncate text-right">כל התבניות</span>
+            <span className="text-xs text-slate-400">{totalCount}</span>
+          </button>
+
+          {folders.length > 0 && <div className="my-1.5 border-t border-paper-line" />}
+
+          {folders.map((folder) => (
+            <div key={folder.id} className="group relative">
+              {renamingFolderId === folder.id ? (
+                <input
+                  autoFocus
+                  value={renamingFolderValue}
+                  onChange={(e) => setRenamingFolderValue(e.target.value)}
+                  onBlur={() => onFolderRenameSubmit(folder.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") onFolderRenameSubmit(folder.id);
+                    if (e.key === "Escape") setRenamingFolderId(null);
+                  }}
+                  className="w-full rounded-lg border border-brand px-2 py-1.5 text-sm focus:outline-none"
+                />
+              ) : (
+                <button
+                  onClick={() => onSelectFolder(folder.id)}
+                  onDoubleClick={() => {
+                    setRenamingFolderId(folder.id);
+                    setRenamingFolderValue(folder.name);
+                  }}
+                  className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition ${selectedFolder === folder.id ? "bg-brand/10 font-semibold text-brand" : "text-paper-text hover:bg-slate-50"}`}
+                >
+                  <FolderIcon className="h-4 w-4 shrink-0 text-slate-400" />
+                  <span className="flex-1 truncate text-right">{folder.name}</span>
+                  <span className="text-xs text-slate-400">{folderCounts.get(folder.id) ?? 0}</span>
+                </button>
+              )}
+              <button
+                onClick={() => onDeleteFolder(folder.id)}
+                className="absolute left-0.5 top-1/2 hidden h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-slate-400 transition hover:text-red-500 group-hover:flex"
+                title="מחיקת תיקייה"
+              >
+                <XSmallIcon />
+              </button>
+            </div>
+          ))}
+
+          <div className="mt-1.5 border-t border-paper-line pt-1.5">
+            {showNewFolderInput ? (
+              <form onSubmit={onCreateFolder}>
+                <input
+                  autoFocus
+                  placeholder="שם תיקייה"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  onBlur={() => { if (!newFolderName.trim()) setShowNewFolderInput(false); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") { setShowNewFolderInput(false); setNewFolderName(""); }
+                  }}
+                  className="w-full rounded-lg border border-brand px-2 py-1.5 text-sm focus:outline-none"
+                />
+              </form>
+            ) : (
+              <button
+                onClick={() => setShowNewFolderInput(true)}
+                className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-brand"
+              >
+                <PlusSmallIcon />
+                תיקייה חדשה
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── FiltersPopover ─────────────────────────────────────────────────────────────
+
+function FiltersPopover({
+  filter, setFilter, sort, setSort, open, onToggle,
+}: {
+  filter: "all" | "reusable" | "single_use";
+  setFilter: (v: "all" | "reusable" | "single_use") => void;
+  sort: "newest" | "oldest" | "name_asc" | "name_desc";
+  setSort: (v: "newest" | "oldest" | "name_asc" | "name_desc") => void;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const isActive = filter !== "all" || sort !== "newest";
+
+  return (
+    <div className="relative shrink-0" data-filters-popover>
+      <button
+        onClick={onToggle}
+        className="btn-icon !h-11 !w-11 relative"
+        title="פילטרים"
+      >
+        <FilterIcon />
+        {isActive && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-brand" />}
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-[calc(100%+4px)] z-20 w-56 space-y-3 rounded-xl border border-paper-line bg-white p-3 shadow-xl">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-paper-muted">סוג</label>
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value as typeof filter)}
+              className="select-field !h-10 w-full !text-sm"
+            >
+              <option value="all">כל הסוגים</option>
+              <option value="reusable">שימוש חוזר</option>
+              <option value="single_use">חד-פעמי</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-paper-muted">מיון</label>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as typeof sort)}
+              className="select-field !h-10 w-full !text-sm"
+            >
+              <option value="newest">חדש לישן</option>
+              <option value="oldest">ישן לחדש</option>
+              <option value="name_asc">שם: א-ת</option>
+              <option value="name_desc">שם: ת-א</option>
+            </select>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Pagination ─────────────────────────────────────────────────────────────────
+
+function Pagination({
+  page, totalPages, pageSize, totalItems, onPageChange, onPageSizeChange,
+}: {
+  page: number;
+  totalPages: number;
+  pageSize: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+}) {
+  const start = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, totalItems);
+
+  return (
+    <div className="mt-3 flex shrink-0 items-center justify-between gap-2 text-sm text-paper-muted">
+      <div className="flex items-center gap-2">
+        <span className="whitespace-nowrap">שורות בעמוד:</span>
+        <select
+          value={pageSize}
+          onChange={(e) => onPageSizeChange(Number(e.target.value))}
+          className="select-field !h-9 w-20 !text-xs"
+        >
+          {PAGE_SIZE_OPTIONS.map((n) => (
+            <option key={n} value={n}>{n}</option>
+          ))}
+        </select>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="whitespace-nowrap">מציג {start}-{end} מתוך {totalItems}</span>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onPageChange(page - 1)}
+            disabled={page <= 1}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-text-secondary transition hover:border-brand disabled:opacity-30"
+            title="הקודם"
+          >
+            ‹
+          </button>
+          <button
+            onClick={() => onPageChange(page + 1)}
+            disabled={page >= totalPages}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-text-secondary transition hover:border-brand disabled:opacity-30"
+            title="הבא"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── FormMenu (⋮) ─────────────────────────────────────────────────────────────
 
 function FormMenu({
-  form, isOpen, isPending, onToggle, onDuplicate, onRename, onMove, onDelete,
+  form, isAdmin, isOpen, isPending, onToggle, onDuplicate, onRename, onMove, onShare, onUnshare, onDelete,
 }: {
   form: FormRow;
+  isAdmin: boolean;
   isOpen: boolean;
   isPending: boolean;
   onToggle: () => void;
   onDuplicate: () => void;
   onRename: () => void;
   onMove: () => void;
+  onShare: () => void;
+  onUnshare: () => void;
   onDelete: () => void;
 }) {
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -843,7 +952,7 @@ function FormMenu({
 
   const dropdown = isOpen && menuPos ? createPortal(
     <div
-      className="fixed z-[9999] w-44 overflow-hidden rounded-xl border border-paper-line bg-white py-1 shadow-xl"
+      className="fixed z-[9999] w-48 overflow-hidden rounded-xl border border-paper-line bg-white py-1 shadow-xl"
       style={{ top: menuPos.top, left: menuPos.left }}
       data-form-menu-portal
     >
@@ -861,6 +970,12 @@ function FormMenu({
           <SendArrowIcon /> שליחה ללקוח
         </Link>
       )}
+      <Link
+        href={`/forms/${form.id}/preview`}
+        className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
+      >
+        <EyeIcon /> תצוגה מקדימה
+      </Link>
       <div className="my-1 border-t border-paper-line" />
       <button
         onClick={onDuplicate}
@@ -880,6 +995,14 @@ function FormMenu({
       >
         <FolderIcon className="h-4 w-4" /> העברה לתיקייה
       </button>
+      {isAdmin && (
+        <button
+          onClick={form.visibility === "shared" ? onUnshare : onShare}
+          className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
+        >
+          <ShareIcon /> {form.visibility === "shared" ? "הפוך לפרטי" : "שתף"}
+        </button>
+      )}
       <div className="my-1 border-t border-paper-line" />
       <button
         onClick={onDelete}
@@ -942,6 +1065,29 @@ function MoveFolderModal({
   );
 }
 
+function DeleteFormModal({
+  formName,
+  onConfirm,
+  onClose,
+}: {
+  formName: string;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal title="מחיקת תבנית" onClose={onClose}>
+      <p className="text-sm text-paper-text">
+        למחוק את התבנית <span className="font-semibold">&quot;{formName}&quot;</span>?
+      </p>
+      <p className="mt-1 text-sm text-text-secondary">לא ניתן לשחזר פעולה זו.</p>
+      <div className="mt-5 flex justify-end gap-3">
+        <button onClick={onClose} className="btn-outline">ביטול</button>
+        <button onClick={onConfirm} className="btn-danger-outline">מחיקת תבנית</button>
+      </div>
+    </Modal>
+  );
+}
+
 // ─── EmptyState ───────────────────────────────────────────────────────────────
 
 function EmptyState({
@@ -980,14 +1126,6 @@ function EmptyState({
   );
 }
 
-// ─── TypeBadge ───────────────────────────────────────────────────────────────
-
-function TypeBadge({ form }: { form: FormRow }) {
-  if (form.archived_at) return <span className="badge bg-slate-100 text-slate-500">הושבתה</span>;
-  if (form.is_reusable) return <span className="badge bg-brand/10 text-brand">שימוש חוזר</span>;
-  return <span className="badge bg-amber-100 text-amber-700">חד-פעמי</span>;
-}
-
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
 function FormSmallIcon() {
@@ -995,6 +1133,23 @@ function FormSmallIcon() {
     <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
       <path d="M7 3.5h7l3 3V20a.5.5 0 0 1-.5.5h-9.5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
       <path d="M14 3.5V6a1 1 0 0 0 1 1h2.5M9 12h6M9 15h6M9 9h2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+      <path d="M2.5 12S5.5 5.5 12 5.5 21.5 12 21.5 12 18.5 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.6" />
     </svg>
   );
 }
@@ -1023,21 +1178,37 @@ function PlusSmallIcon() {
   );
 }
 
-function ListViewIcon() {
+function SearchIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
-      <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <svg className={className ?? "h-4 w-4"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
     </svg>
   );
 }
 
-function GridViewIcon() {
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className ?? "h-4 w-4"} aria-hidden>
+      <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function FilterIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
-      <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
-      <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
-      <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
-      <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+      <path d="M4 5h16M7 10h10M10 15h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+      <circle cx="18" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="6" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="18" cy="19" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8.2 10.7 15.8 6.3M8.2 13.3l7.6 4.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -1093,4 +1264,3 @@ function TrashIcon() {
     </svg>
   );
 }
-

@@ -4,7 +4,8 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { downloadFile } from "@/lib/storage";
+import { downloadFile, getSignedUrl } from "@/lib/storage";
+import type { FieldDraft } from "@/lib/fields";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -296,4 +297,48 @@ export async function unshareForm(formId: string): Promise<{ error?: string }> {
   if (error) return { error: "עדכון הטופס נכשל: " + error.message };
   revalidatePath("/templates");
   return {};
+}
+
+// ─── Preview ───────────────────────────────────────────────────────────────────
+
+export type FormPreviewData = {
+  pdfUrl: string;
+  fields: FieldDraft[];
+  pageCount: number;
+};
+
+export async function getFormPreview(
+  formId: string
+): Promise<FormPreviewData | { error: string }> {
+  assertUUID(formId, "טופס");
+  const { profile } = await requireProfile();
+  const admin = createAdminClient();
+
+  const { data: form } = await admin.from("forms")
+    .select("id, original_pdf_path, page_count")
+    .eq("id", formId)
+    .eq("org_id", profile.org_id)
+    .single();
+  if (!form) return { error: "טופס לא נמצא" };
+
+  const [{ data: fieldRows }, pdfUrl] = await Promise.all([
+    admin.from("form_fields").select("*").eq("form_id", formId).order("sort_order", { ascending: true }),
+    getSignedUrl("originals", form.original_pdf_path, 60 * 10),
+  ]);
+
+  const fields: FieldDraft[] = (fieldRows ?? []).map((f) => ({
+    id: f.id,
+    page: f.page,
+    x: f.x,
+    y: f.y,
+    width: f.width,
+    height: f.height,
+    type: f.type,
+    label: f.label,
+    required: f.required,
+    font_size: f.font_size,
+    copyFrom: f.copy_from_field_id,
+  }));
+
+  return { pdfUrl, fields, pageCount: form.page_count };
 }
