@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Heebo } from "next/font/google";
 import { ToastProvider } from "@/components/Toast";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const heebo = Heebo({
@@ -21,6 +22,7 @@ export default function RootLayout({
     <html lang="he" dir="rtl" className={heebo.variable}>
       <body className="font-sans antialiased">
         <ToastProvider>{children}</ToastProvider>
+        <Analytics />
       </body>
     </html>
   );
