@@ -314,6 +314,14 @@ header.admin-header {
 }
 .header-search input { padding-inline-end: 44px; }
 
+/* כפתורי הפעולה של עורך הטופס בתוך ה-header (מוזרקים מ-FieldEditor) */
+.header-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-self: center;
+}
+
 /* אזור משתמש/התראות */
 .header-user-area {
   display: flex;

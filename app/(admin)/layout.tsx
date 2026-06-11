@@ -4,6 +4,7 @@ import { requireProfile } from "@/lib/auth";
 import { Sidebar } from "@/components/Sidebar";
 import { AdminMain } from "@/components/AdminMain";
 import { BrandLogo } from "@/components/BrandLogo";
+import { HeaderActionSlot } from "@/components/HeaderActionSlot";
 import { signOut } from "./actions";
 
 export default async function AdminLayout({
@@ -22,11 +23,7 @@ export default async function AdminLayout({
           <BrandLogo size="sm" />
         </Link>
 
-        <div className="header-search">
-          <SearchIcon />
-          <input type="text" placeholder="חיפוש בטפסים, הגשות..." />
-          <kbd className="header-search-kbd">⌘K</kbd>
-        </div>
+        <HeaderActionSlot />
 
         <div className="header-user-area">
           <Link href="/submissions" className="header-icon-btn" aria-label="התראות על הגשות ממתינות">
@@ -63,15 +60,6 @@ async function AlertBadge() {
 
   if (!count) return null;
   return <span className="header-badge">{count > 9 ? "9+" : count}</span>;
-}
-
-function SearchIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M20 20l-3.2-3.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
 }
 
 function BellIcon() {

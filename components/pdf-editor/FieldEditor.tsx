@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Document, Page, pdfjs } from "react-pdf";
@@ -119,6 +120,12 @@ export default function FieldEditor({
   const [ghostPos, setGhostPos] = useState<GhostPos>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState>(null);
   const [clipboard, setClipboard] = useState<FieldDraft | null>(null);
+  // יעד ה-portal עבור כפתורי הפעולה ב-header (נפתר רק אחרי mount בצד הלקוח).
+  const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setHeaderSlot(document.getElementById("header-editor-actions"));
+  }, []);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<Record<number, HTMLDivElement | null>>({});
@@ -127,7 +134,7 @@ export default function FieldEditor({
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver(() => {
-      const w = Math.min(900, el.clientWidth - 2);
+      const w = Math.min(1200, el.clientWidth - 2);
       if (w > 0) setRenderWidth(w);
     });
     ro.observe(el);
@@ -268,21 +275,27 @@ export default function FieldEditor({
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-hidden">
-      {/* Action row */}
-      <div className="flex shrink-0 items-center justify-between gap-4">
+    <div className="flex h-full flex-col gap-3 overflow-hidden">
+      {/* כפתורי הפעולה מוזרקים ל-header העליון (במקום תיבת החיפוש) */}
+      {headerSlot &&
+        createPortal(
+          <>
+            <button onClick={handleSave} disabled={status === "saving"} className="btn-outline h-11">
+              {status === "saving" ? "שומר..." : "שמירה"}
+            </button>
+            <Link href={`/forms/${formId}/preview`} target="_blank" className="btn-secondary">
+              תצוגה מקדימה
+            </Link>
+            <button onClick={handleSaveAndSend} disabled={status === "saving"} className="btn-primary-lg">
+              שמירה ושליחה
+            </button>
+          </>,
+          headerSlot
+        )}
+
+      {/* כותרת הטופס */}
+      <div className="flex shrink-0 items-center gap-3">
         <h1 className="h1 truncate">{formName}</h1>
-        <div className="flex shrink-0 items-center gap-3">
-          <button onClick={handleSave} disabled={status === "saving"} className="btn-outline h-12">
-            {status === "saving" ? "שומר..." : "שמירה"}
-          </button>
-          <Link href={`/forms/${formId}/preview`} target="_blank" className="btn-secondary">
-            תצוגה מקדימה
-          </Link>
-          <button onClick={handleSaveAndSend} disabled={status === "saving"} className="btn-primary-lg">
-            שמירה ושליחה
-          </button>
-        </div>
       </div>
 
       {placing && (
@@ -294,7 +307,7 @@ export default function FieldEditor({
 
       <div
         className="grid min-h-0 flex-1 gap-6 overflow-hidden"
-        style={{ gridTemplateColumns: "minmax(240px,286px) minmax(400px,1fr) minmax(260px,292px)" }}
+        style={{ gridTemplateColumns: "minmax(260px,320px) minmax(480px,1fr) minmax(300px,340px)" }}
       >
         {/* Field palette (left) */}
         <aside className="card flex h-full w-full min-w-0 flex-col overflow-hidden p-[18px]">
