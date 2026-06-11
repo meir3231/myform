@@ -150,7 +150,7 @@ export function NewFormModal({
           </div>
           {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
           <div className="mt-4 flex justify-between">
-            <button onClick={handleClose} className="btn-secondary">ביטול</button>
+            <button onClick={handleClose} className="btn-outline">ביטול</button>
             <button
               onClick={() => {
                 if (selectedIds.size < 2) { setError("יש לבחור לפחות 2 טפסים"); return; }
@@ -214,7 +214,7 @@ export function NewFormModal({
           </div>
           {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
           <div className="mt-4 flex justify-between">
-            <button type="button" onClick={() => { setMergeStep(1); setError(""); }} className="btn-secondary">← חזרה</button>
+            <button type="button" onClick={() => { setMergeStep(1); setError(""); }} className="btn-outline">← חזרה</button>
             <button type="submit" disabled={merging} className="btn-primary disabled:opacity-50">
               {merging ? (
                 <span className="flex items-center gap-2">

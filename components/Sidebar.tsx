@@ -10,7 +10,7 @@ export function Sidebar({
   signOutAction: () => Promise<void>;
 }) {
   return (
-    <aside className="admin-shell-surface fixed inset-y-0 right-0 z-40 flex w-[220px] flex-col text-slate-700">
+    <aside className="admin-shell-surface fixed inset-y-0 right-0 z-40 flex w-[248px] flex-col text-slate-700">
       <SidebarNav role={role} />
 
       <div className="border-t border-slate-200 p-3">

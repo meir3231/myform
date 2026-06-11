@@ -182,8 +182,8 @@ function AddUserModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+    <div className="modal-overlay">
+      <div className="modal-panel max-w-md">
         <h2 className="mb-4 text-lg font-bold text-slate-800">הוספת משתמש חדש</h2>
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
           <div>
@@ -234,7 +234,7 @@ function AddUserModal({
             <button type="submit" disabled={pending} className="btn-primary flex-1">
               {pending ? "מוסיף..." : "הוסף משתמש"}
             </button>
-            <button type="button" onClick={onClose} className="btn-secondary flex-1">
+            <button type="button" onClick={onClose} className="btn-outline flex-1">
               ביטול
             </button>
           </div>

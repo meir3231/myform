@@ -70,7 +70,7 @@ export function SendForm({
                 navigator.clipboard.writeText(state.link!);
                 showToast("הלינק הועתק ללוח", "success");
               }}
-              className="btn-secondary shrink-0 !px-3 !py-2"
+              className="btn-outline shrink-0"
             >
               העתקה
             </button>
@@ -79,7 +79,7 @@ export function SendForm({
 
         <div className="flex gap-2">
           <Link href="/submissions" className="btn-primary">למעקב הגשות</Link>
-          <Link href="/templates" className="btn-secondary">חזרה לתבניות</Link>
+          <Link href="/templates" className="btn-outline">חזרה לתבניות</Link>
         </div>
       </div>
     );

@@ -11,17 +11,19 @@ export default {
         sans: ["var(--font-heebo)", "system-ui", "sans-serif"],
       },
       colors: {
-        // טורקיז — צבע המותג, לפי טבלה 3.1 במסמך העיצוב
+        // טורקיז — צבע המותג, לפי טבלה 3 במסמך העיצוב v2
         brand: {
           DEFAULT: "#14B8A6",
-          dark: "#0F9F98",
-          light: "#DCF4F3",
+          dark: "#0F9F91",
+          light: "#E6FFFB",
         },
-        // טקסט/רקעים/גבולות — לפי טבלה 3.1
-        navy: "#0F1F37",
-        "text-secondary": "#667085",
+        // טקסט/רקעים/גבולות — לפי טבלה 3 (v2)
+        navy: "#14213D",
+        "text-secondary": "#64748B",
+        "primary-dark": "#0B7F75",
         background: "#F6F8FB",
-        border: "#E4EAF2",
+        border: "#E2E8F0",
+        "soft-border": "#EEF2F7",
         success: "#22C55E",
         warning: "#F59E0B",
         error: "#EF4444",
@@ -29,9 +31,9 @@ export default {
         // ערכת-העבודה (עריכת טופס / שליחה / מילוי לקוח / כל מסכי הניהול)
         paper: {
           DEFAULT: "#F6F8FB",
-          line: "#E4EAF2",
-          text: "#0F1F37",
-          muted: "#667085",
+          line: "#E2E8F0",
+          text: "#14213D",
+          muted: "#64748B",
         },
       },
       keyframes: {

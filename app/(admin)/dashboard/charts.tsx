@@ -11,7 +11,7 @@ export function DonutChart({ data, total, size = 160 }: { data: DonutSlice[]; to
     <div className="flex min-h-0 flex-1 items-center gap-4">
       <div className="relative shrink-0" style={{ width: size, height: size }}>
         <svg viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E4EAF2" strokeWidth={strokeWidth} />
+          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E2E8F0" strokeWidth={strokeWidth} />
           {data.map((d, i) => {
             const fraction = d.value / total;
             const dash = fraction * circumference;

@@ -64,11 +64,10 @@ function FormPickerModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+      className="modal-overlay"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+      <div className="modal-panel max-w-md">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-paper-text">בחר טופס לשליחה</h2>
           <button

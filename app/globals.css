@@ -4,7 +4,7 @@
 
 :root {
   --background: #F6F8FB;
-  --foreground: #0F1F37;
+  --foreground: #14213D;
 }
 
 html, body {
@@ -26,46 +26,144 @@ body {
 }
 
 @layer components {
-  /* ---- כפתורים: עיצוב אחיד לכל המערכת ---- */
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5
-      text-sm font-medium text-white shadow-sm transition
-      hover:bg-brand-dark hover:shadow-md
+  /* ---- כפתורים: 6 סוגים מדויקים (סעיף 8) ----
+     רוחב/גובה כ-min-width/height כדי לאפשר טקסטים בעברית בכל אורך,
+     בלי לשנות גובה/רוחב ב-hover (רק שינוי רקע/border/טקסט). */
+
+  /* Primary Large 188x48 - שמירה ושליחה / יצירת טופס חדש / ייצוא לאקסל */
+  .btn-primary-lg {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand
+      text-sm font-semibold text-white transition
+      hover:bg-brand-dark
       focus:outline-none focus:ring-2 focus:ring-brand/30
       disabled:cursor-not-allowed disabled:opacity-50;
+    min-width: 188px;
+    height: 48px;
+    padding: 0 22px;
   }
+
+  /* Primary Medium 144x44 - המשך / בחירה / הוספה */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand
+      text-sm font-semibold text-white transition
+      hover:bg-brand-dark
+      focus:outline-none focus:ring-2 focus:ring-brand/30
+      disabled:cursor-not-allowed disabled:opacity-50;
+    min-width: 144px;
+    height: 44px;
+    padding: 0 18px;
+  }
+
+  /* Secondary Outline 188x48 - שליחת טופס ללקוח / תצוגה מקדימה */
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300
-      bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition
-      hover:border-brand hover:text-brand
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-brand
+      bg-white text-sm font-semibold text-primary-dark transition
+      hover:bg-brand-light
       focus:outline-none focus:ring-2 focus:ring-brand/20
       disabled:cursor-not-allowed disabled:opacity-50;
+    min-width: 188px;
+    height: 48px;
+    padding: 0 22px;
   }
+
+  /* Neutral Outline 128x44 - שמירה / ביטול / סינון */
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-border
+      bg-white text-sm font-semibold text-navy transition
+      hover:border-brand hover:text-primary-dark
+      focus:outline-none focus:ring-2 focus:ring-brand/20
+      disabled:cursor-not-allowed disabled:opacity-50;
+    min-width: 128px;
+    height: 44px;
+    padding: 0 16px;
+  }
+
+  /* Icon Button 40x40 - צפייה / הורדה / זום / שליחה חוזרת */
+  .btn-icon {
+    @apply inline-flex items-center justify-center rounded-xl border border-border
+      bg-white text-text-secondary transition
+      hover:border-brand hover:text-primary-dark
+      focus:outline-none focus:ring-2 focus:ring-brand/20
+      disabled:cursor-not-allowed disabled:opacity-50;
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Danger Outline 220x44 - מחיקת שדה / מחיקת תבנית (אישור בולט) */
+  .btn-danger-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-error
+      bg-white text-sm font-semibold text-error transition
+      hover:bg-red-50
+      focus:outline-none focus:ring-2 focus:ring-error/20
+      disabled:cursor-not-allowed disabled:opacity-50;
+    min-width: 220px;
+    height: 44px;
+    padding: 0 18px;
+  }
+
+  /* Danger ghost - מחיקות inline קטנות בתוך טבלאות/רשימות, ללא border/מידה קבועה */
   .btn-danger-ghost {
     @apply inline-flex items-center justify-center gap-1 rounded-xl px-3 py-1.5
-      text-sm text-slate-500 transition hover:bg-red-50 hover:text-red-600;
+      text-sm text-text-secondary transition hover:bg-red-50 hover:text-red-600;
   }
+
+  /* Ghost - קישורי פעולה קטנים בתוך שורות טבלה/כרטיסים, ללא border/מידה קבועה */
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-1.5
-      text-sm text-slate-600 transition hover:bg-slate-100 hover:text-brand;
+      text-sm text-text-secondary transition hover:bg-slate-100 hover:text-brand;
   }
 
   /* ---- כרטיסים ---- */
   .card {
-    @apply rounded-2xl border border-paper-line bg-white shadow-[0_8px_24px_rgba(15,31,55,0.06)];
+    @apply rounded-2xl border border-paper-line bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)];
   }
   .card-hover {
     @apply transition duration-200 ease-out hover:-translate-y-1
       hover:border-brand/40 hover:shadow-[0_12px_28px_-8px_rgba(155,109,255,0.25)];
   }
 
-  /* ---- badge סטטוס ---- */
+  /* ---- badge סטטוס: 72-96x28px, נקודת מצב 6px + טקסט 12px (סעיף 9) ---- */
   .badge {
-    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 text-xs font-medium;
+    min-width: 72px;
+    height: 28px;
   }
   .badge-dot::before {
     content: "";
     @apply inline-block h-1.5 w-1.5 rounded-full bg-current;
+  }
+
+  /* ---- Input / Select: height 44px, radius 10px, focus border + shadow (סעיף 9) ---- */
+  .input-field {
+    @apply w-full rounded-[10px] border border-border bg-white text-sm text-navy
+      transition placeholder:text-text-secondary
+      focus:outline-none focus:border-brand focus:ring-[3px] focus:ring-brand/15
+      disabled:cursor-not-allowed disabled:opacity-50;
+    height: 44px;
+    padding: 0 14px;
+  }
+  .select-field {
+    @apply w-full rounded-[10px] border border-border bg-white bg-no-repeat appearance-none
+      text-sm text-navy transition
+      focus:outline-none focus:border-brand focus:ring-[3px] focus:ring-brand/15
+      disabled:cursor-not-allowed disabled:opacity-50;
+    height: 44px;
+    padding: 0 14px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-position: left 12px center;
+    background-size: 16px 16px;
+    padding-left: 36px;
+  }
+
+  /* ---- Modal: רוחב 690-760px, radius 16px, padding 24px (סעיף 9) ---- */
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+    background-color: rgba(15, 23, 42, 0.42);
+  }
+  .modal-panel {
+    @apply relative w-full rounded-2xl bg-white p-6;
+    max-width: 720px;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
   }
 
   /* ---- skeleton טעינה ---- */
@@ -141,7 +239,7 @@ header.admin-header {
   gap: 24px;
   padding: 0 32px;
   background: #ffffff;
-  border-bottom: 1px solid #E4EAF2;
+  border-bottom: 1px solid #E2E8F0;
 }
 
 /* לוגו ב-header */
@@ -157,7 +255,7 @@ header.admin-header {
   position: relative;
   display: flex;
   align-items: center;
-  width: 420px;
+  width: 450px;
   max-width: 100%;
   justify-self: center;
 }
@@ -166,19 +264,19 @@ header.admin-header {
   inset-inline-start: 12px;
   width: 18px;
   height: 18px;
-  color: #667085;
+  color: #64748B;
   pointer-events: none;
 }
 .header-search input {
   width: 100%;
-  height: 40px;
+  height: 42px;
   border-radius: 10px;
-  border: 1px solid #E4EAF2;
+  border: 1px solid #E2E8F0;
   background: #F6F8FB;
   padding-inline-start: 40px;
   padding-inline-end: 14px;
   font-size: 14px;
-  color: #0F1F37;
+  color: #14213D;
   transition: border-color .15s, background-color .15s;
 }
 .header-search input::placeholder { color: #98A2B3; }
@@ -196,7 +294,7 @@ header.admin-header {
   height: 20px;
   padding: 0 6px;
   border-radius: 6px;
-  border: 1px solid #E4EAF2;
+  border: 1px solid #E2E8F0;
   background: #ffffff;
   font-size: 11px;
   font-weight: 600;
@@ -218,13 +316,13 @@ header.admin-header {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 10px;
-  color: #667085;
+  color: #64748B;
   transition: background-color .15s, color .15s;
 }
-.header-icon-btn:hover { background: #F6F8FB; color: #0F1F37; }
+.header-icon-btn:hover { background: #F6F8FB; color: #14213D; }
 .header-badge {
   position: absolute;
   top: 4px;
@@ -232,9 +330,9 @@ header.admin-header {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 3px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
   border-radius: 999px;
   background: #EF4444;
   color: #ffffff;
@@ -255,8 +353,8 @@ header.admin-header {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: #14B8A6;
   color: #ffffff;
@@ -273,7 +371,7 @@ header.admin-header {
 .header-user-name {
   font-size: 14px;
   font-weight: 500;
-  color: #0F1F37;
+  color: #14213D;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -288,39 +386,43 @@ header.admin-header {
   position: fixed !important;
   top: 76px !important;
   right: 0;
-  width: 220px;
+  width: 248px;
   z-index: 40;
   background: #ffffff !important;
   background-image: none !important;
-  border-left: 1px solid #E4EAF2 !important;
+  border-left: 1px solid #E2E8F0 !important;
   border-top: none;
-  box-shadow: -3px 0 12px rgba(15,31,55,0.04);
+  box-shadow: -3px 0 12px rgba(15,23,42,0.04);
 }
 
-.admin-shell-surface .border-t { border-color: #E4EAF2; }
+.admin-shell-surface .border-t { border-color: #E2E8F0; }
 .admin-shell-surface nav { padding-top: 8px; }
 
 /* ── כרטיסי סטטיסטיקה ── */
 .stat-card {
   background: #fff;
-  border: 1px solid #E4EAF2;
+  border: 1px solid #E2E8F0;
   border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(15,31,55,0.05);
+  box-shadow: 0 1px 3px rgba(15,23,42,0.05);
 }
 .stat-card:hover {
-  box-shadow: 0 4px 12px rgba(15,31,55,0.09);
+  box-shadow: 0 4px 12px rgba(15,23,42,0.09);
   transform: translateY(-1px);
 }
 
 /* ── טבלאות ── */
 thead th {
   background-color: #F6F8FB;
-  color: #667085;
+  color: #64748B;
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.06em;
 }
-tbody tr:hover { background-color: #DCF4F3; }
+tbody tr {
+  height: 58px;
+  border-bottom: 1px solid #EEF2F7;
+}
+tbody tr:hover { background-color: #F8FAFC; }
 
 /* ── תבנית רקע עדינה למצבי "ריק" ── */
 .empty-state-pattern {

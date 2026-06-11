@@ -718,7 +718,10 @@ function GridView({
               עריכת שדות
             </Link>
             {!form.archived_at && (
-              <Link href={`/forms/${form.id}/send`} className="btn-primary !py-1 !px-2.5 !text-xs">
+              <Link
+                href={`/forms/${form.id}/send`}
+                className="inline-flex items-center justify-center rounded-lg bg-brand px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-brand-dark"
+              >
                 שליחה
               </Link>
             )}
@@ -933,7 +936,7 @@ function MoveFolderModal({
         ))}
       </div>
       <div className="mt-4 flex justify-end">
-        <button onClick={onClose} className="btn-secondary">ביטול</button>
+        <button onClick={onClose} className="btn-outline">ביטול</button>
       </div>
     </Modal>
   );
@@ -956,7 +959,7 @@ function EmptyState({
     return (
       <div className="card border-dashed p-12 text-center">
         <p className="mb-4 text-paper-muted">לא נמצאו תבניות התואמות את החיפוש.</p>
-        <button onClick={onClearFilter} className="btn-secondary">נקה סינון</button>
+        <button onClick={onClearFilter} className="btn-outline">נקה סינון</button>
       </div>
     );
   }

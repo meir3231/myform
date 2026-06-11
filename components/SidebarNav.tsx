@@ -37,8 +37,8 @@ export function SidebarNav({ role }: { role: string }) {
             href={item.href}
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
               active
-                ? "bg-brand-light text-navy border-r-[3px] border-brand"
-                : "text-text-secondary hover:bg-brand-light/60 hover:text-brand-dark"
+                ? "bg-brand-light text-primary-dark border-r-4 border-brand"
+                : "text-text-secondary hover:bg-brand-light/60 hover:text-primary-dark"
             }`}
           >
             <Icon className="h-5 w-5 shrink-0" />

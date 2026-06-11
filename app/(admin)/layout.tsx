@@ -49,7 +49,7 @@ export default async function AdminLayout({
         </div>
       </header>
       <Sidebar userName={userName} role={profile.role} signOutAction={signOut} />
-      <div className="mr-[220px] h-screen overflow-hidden pt-[76px]">
+      <div className="mr-[248px] h-screen overflow-hidden pt-[76px]">
         <AdminMain>{children}</AdminMain>
       </div>
     </div>
