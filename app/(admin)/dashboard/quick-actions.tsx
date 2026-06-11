@@ -14,19 +14,13 @@ export function QuickActions({ forms, folders }: { forms: FormOption[]; folders:
 
   return (
     <>
-      <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
-        <button
-          onClick={() => setShowNewModal(true)}
-          className="flex items-center gap-2 rounded-xl border border-brand bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark hover:shadow-md"
-        >
+      <div className="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-center">
+        <button onClick={() => setShowNewModal(true)} className="btn-primary-lg w-[200px]">
           <PlusIcon />
           יצירת טופס חדש
         </button>
 
-        <button
-          onClick={() => setShowPicker(true)}
-          className="flex items-center gap-2 rounded-xl border border-brand px-4 py-2.5 text-sm font-semibold text-brand shadow-sm transition hover:bg-brand/10"
-        >
+        <button onClick={() => setShowPicker(true)} className="btn-secondary w-[200px]">
           <SendIcon />
           שליחת טופס ללקוח
         </button>

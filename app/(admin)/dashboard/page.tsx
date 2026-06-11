@@ -41,11 +41,11 @@ function within(at: string | null, startMs: number, endMs: number) {
 }
 
 // האירוע העדכני ביותר שאירע בהגשה — לשימוש בפיד הפעילות.
-function latestEvent(s: SubmissionRow): { at: string; text: string; type: ActivityType } {
-  if (s.completed_at) return { at: s.completed_at, text: `${s.recipient_name} השלים/ה ומילא/ה את הטופס`, type: "completed" };
-  if (s.opened_at) return { at: s.opened_at, text: `${s.recipient_name} פתח/ה את הטופס`, type: "opened" };
-  if (s.sent_at) return { at: s.sent_at, text: `נשלח טופס ל${s.recipient_name}`, type: "sent" };
-  return { at: s.created_at, text: `נוצרה הגשה עבור ${s.recipient_name}`, type: "created" };
+function latestEvent(s: SubmissionRow): { id: string; at: string; text: string; type: ActivityType } {
+  if (s.completed_at) return { id: s.id, at: s.completed_at, text: `${s.recipient_name} השלים/ה ומילא/ה את הטופס`, type: "completed" };
+  if (s.opened_at) return { id: s.id, at: s.opened_at, text: `${s.recipient_name} פתח/ה את הטופס`, type: "opened" };
+  if (s.sent_at) return { id: s.id, at: s.sent_at, text: `נשלח טופס ל${s.recipient_name}`, type: "sent" };
+  return { id: s.id, at: s.created_at, text: `נוצרה הגשה עבור ${s.recipient_name}`, type: "created" };
 }
 
 function formatActivityTime(at: string): string {
@@ -115,6 +115,7 @@ export default async function DashboardPage() {
       color: "#F59E0B",
       trend: pendingThisWeek - pendingPrevWeek,
       trendLabel: "מהשבוע שעבר",
+      href: "/submissions?status=pending",
     },
     {
       label: "הושלמו",
@@ -123,6 +124,7 @@ export default async function DashboardPage() {
       color: "#22C55E",
       trend: completedThisWeek - completedPrevWeek,
       trendLabel: "מהשבוע שעבר",
+      href: "/submissions?status=completed",
     },
     {
       label: "נשלחו השבוע",
@@ -131,6 +133,7 @@ export default async function DashboardPage() {
       color: "#3B82F6",
       trend: sentThisWeek - sentPrevWeek,
       trendLabel: "מהשבוע שעבר",
+      href: "/submissions",
     },
     {
       label: "טפסים פעילים",
@@ -139,6 +142,7 @@ export default async function DashboardPage() {
       color: "#14B8A6",
       trend: formsThisMonth - formsPrevMonth,
       trendLabel: "מהחודש שעבר",
+      href: "/templates",
     },
   ];
 
@@ -151,11 +155,11 @@ export default async function DashboardPage() {
     .slice(0, 6);
   const maxUsage = Math.max(1, ...usage.map((u) => u.count));
 
-  // פיד פעילות: 6 האירועים העדכניים ביותר
+  // פיד פעילות: 5 האירועים העדכניים ביותר
   const activity = subs
     .map(latestEvent)
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
-    .slice(0, 6);
+    .slice(0, 5);
 
   // סקירת שליחות: התפלגות ההגשות לפי סטטוס
   const statusCounts: Record<SubmissionStatus, number> = { pending: 0, opened: 0, completed: 0, expired: 0 };
@@ -182,26 +186,29 @@ export default async function DashboardPage() {
       count: subs.filter((s) => s.status === "opened").length,
       icon: <EyeIcon />,
       color: "#3B82F6",
+      href: "/submissions?status=opened",
     },
     {
       label: "ממתינים לחתימה מעל 3 ימים",
       count: subs.filter((s) => s.status === "pending" && s.sent_at && now - new Date(s.sent_at).getTime() > 3 * DAY_MS).length,
       icon: <PendingIcon />,
       color: "#F59E0B",
+      href: "/submissions?status=pending",
     },
     {
       label: "טפסים שפג תוקפם",
       count: subs.filter((s) => s.status === "expired").length,
       icon: <WarningIcon />,
       color: "#EF4444",
+      href: "/submissions?status=expired",
     },
   ];
 
   return (
-    <div className="flex h-full flex-col gap-3 overflow-hidden">
+    <div className="flex h-full flex-col gap-4 overflow-hidden">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-paper-text">לוח בקרה</h1>
+          <h1 className="h1">לוח בקרה</h1>
           <p className="mt-1 text-sm text-paper-muted">ברוך הבא, {userName}. הנה סקירה כללית של הפעילות שלך.</p>
         </div>
         <QuickActions
@@ -210,17 +217,17 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid shrink-0 grid-cols-2 gap-4 lg:grid-cols-4">
         {kpis.map((k) => (
           <KpiCard key={k.label} {...k} />
         ))}
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-2">
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-2">
         {/* שימוש לפי טופס */}
         <section className="card flex min-h-0 flex-col overflow-hidden p-4">
           <div className="mb-3 flex shrink-0 items-center justify-between">
-            <h2 className="font-semibold text-paper-text">שימוש לפי טופס</h2>
+            <h2 className="h2">שימוש לפי טופס</h2>
             <Link href="/templates" className="text-sm text-brand transition hover:underline">
               צפה בהכל
             </Link>
@@ -249,7 +256,7 @@ export default async function DashboardPage() {
         {/* פעילות אחרונה */}
         <section className="card flex min-h-0 flex-col overflow-hidden p-4">
           <div className="mb-3 flex shrink-0 items-center justify-between">
-            <h2 className="font-semibold text-paper-text">פעילות אחרונה</h2>
+            <h2 className="h2">פעילות אחרונה</h2>
             <Link href="/submissions" className="text-sm text-brand transition hover:underline">
               צפה בהכל
             </Link>
@@ -261,15 +268,17 @@ export default async function DashboardPage() {
           ) : (
             <ul className="min-h-0 flex-1 space-y-2.5 overflow-y-auto text-sm">
               {activity.map((a, i) => (
-                <li key={i} className="flex items-center gap-3 border-b border-paper-line pb-2.5 last:border-0 last:pb-0">
-                  <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-                    style={{ backgroundColor: `${ACTIVITY_COLORS[a.type]}1a`, color: ACTIVITY_COLORS[a.type] }}
-                  >
-                    <ActivityIcon type={a.type} />
-                  </span>
-                  <p className="min-w-0 flex-1 truncate text-paper-text">{a.text}</p>
-                  <span className="shrink-0 text-xs text-paper-muted">{formatActivityTime(a.at)}</span>
+                <li key={i} className="border-b border-paper-line pb-2.5 last:border-0 last:pb-0">
+                  <Link href={`/submissions/${a.id}`} className="flex items-center gap-3 rounded-lg transition hover:bg-background">
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                      style={{ backgroundColor: `${ACTIVITY_COLORS[a.type]}1a`, color: ACTIVITY_COLORS[a.type] }}
+                    >
+                      <ActivityIcon type={a.type} />
+                    </span>
+                    <p className="min-w-0 flex-1 truncate text-paper-text">{a.text}</p>
+                    <span className="shrink-0 text-xs text-paper-muted">{formatActivityTime(a.at)}</span>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -277,30 +286,35 @@ export default async function DashboardPage() {
         </section>
       </div>
 
-      <div className="grid h-48 shrink-0 gap-3 lg:grid-cols-3">
+      <div className="grid h-48 shrink-0 gap-4 lg:grid-cols-3">
         {/* משימות מהירות */}
         <section className="card flex h-full flex-col overflow-hidden p-4">
           <div className="mb-3 flex shrink-0 items-center justify-between">
-            <h2 className="font-semibold text-paper-text">משימות מהירות</h2>
+            <h2 className="h2">משימות מהירות</h2>
             <Link href="/submissions" className="text-sm text-brand transition hover:underline">
               לכל המשימות
             </Link>
           </div>
-          <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+          <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
             {quickTasks.map((t) => (
               <li key={t.label}>
                 <Link
-                  href="/submissions"
-                  className="flex items-center gap-2.5 rounded-xl border border-paper-line p-1.5 transition hover:bg-background"
+                  href={t.href}
+                  className="flex h-12 items-center gap-2.5 rounded-xl border border-paper-line px-2.5 transition hover:bg-background"
                 >
                   <span
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
                     style={{ backgroundColor: `${t.color}1a`, color: t.color }}
                   >
                     {t.icon}
                   </span>
                   <span className="flex-1 truncate text-sm text-paper-text">{t.label}</span>
-                  <span className="shrink-0 text-base font-bold text-paper-text">{t.count}</span>
+                  <span
+                    className="flex h-6 min-w-[28px] shrink-0 items-center justify-center rounded-full px-2 text-xs font-bold"
+                    style={{ backgroundColor: `${t.color}1a`, color: t.color }}
+                  >
+                    {t.count}
+                  </span>
                 </Link>
               </li>
             ))}
@@ -309,21 +323,31 @@ export default async function DashboardPage() {
 
         {/* סקירת שליחות */}
         <section className="card flex h-full flex-col overflow-hidden p-4">
-          <h2 className="mb-3 shrink-0 font-semibold text-paper-text">סקירת שליחות</h2>
+          <div className="mb-3 flex shrink-0 items-center justify-between">
+            <h2 className="h2">סקירת שליחות</h2>
+            <Link href="/submissions" className="text-sm text-brand transition hover:underline">
+              צפה בהכל
+            </Link>
+          </div>
           {subs.length === 0 ? (
             <div className="empty-state-pattern flex flex-1 items-center justify-center rounded-xl py-6">
               <p className="text-sm text-paper-muted">אין עדיין הגשות להצגה.</p>
             </div>
           ) : (
-            <DonutChart data={donutData} total={subs.length} size={92} />
+            <DonutChart data={donutData} total={subs.length} size={120} />
           )}
         </section>
 
         {/* מגמה שבועית */}
         <section className="card flex h-full flex-col overflow-hidden p-4">
           <div className="mb-3 flex shrink-0 items-center justify-between">
-            <h2 className="font-semibold text-paper-text">מגמה שבועית</h2>
-            <span className="text-xs text-paper-muted">7 הימים האחרונים</span>
+            <h2 className="h2">מגמה שבועית</h2>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-paper-muted">7 הימים האחרונים</span>
+              <Link href="/submissions" className="text-sm text-brand transition hover:underline">
+                צפה בהכל
+              </Link>
+            </div>
           </div>
           <WeeklyTrendChart data={weekTrend} />
         </section>
@@ -339,6 +363,7 @@ function KpiCard({
   color,
   trend,
   trendLabel,
+  href,
 }: {
   label: string;
   value: number;
@@ -346,27 +371,33 @@ function KpiCard({
   color: string;
   trend: number;
   trendLabel: string;
+  href: string;
 }) {
   const trendColor = trend > 0 ? "text-success" : trend < 0 ? "text-error" : "text-paper-muted";
   const trendText = trend === 0 ? `ללא שינוי ${trendLabel}` : `${Math.abs(trend)} ${trendLabel}`;
   return (
-    <div className="card flex items-center gap-3 p-3">
-      <span
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-        style={{ backgroundColor: `${color}1a`, color }}
-      >
-        {icon}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-xl font-bold leading-tight text-paper-text">{value}</p>
-        <p className="truncate text-xs text-paper-muted">{label}</p>
+    <Link
+      href={href}
+      className="card flex min-h-[136px] flex-col justify-between p-4 transition hover:shadow-[0_8px_24px_rgba(15,23,42,0.10)]"
+    >
+      <div className="flex items-start justify-between">
+        <span
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full"
+          style={{ backgroundColor: `${color}1a`, color }}
+        >
+          {icon}
+        </span>
+        <p className={`flex shrink-0 items-center gap-0.5 text-xs font-medium ${trendColor}`} title={trendText}>
+          {trend > 0 && <ArrowUpIcon />}
+          {trend < 0 && <ArrowDownIcon />}
+          {trend !== 0 && Math.abs(trend)}
+        </p>
       </div>
-      <p className={`flex shrink-0 items-center gap-0.5 text-xs font-medium ${trendColor}`} title={trendText}>
-        {trend > 0 && <ArrowUpIcon />}
-        {trend < 0 && <ArrowDownIcon />}
-        {trend !== 0 && Math.abs(trend)}
-      </p>
-    </div>
+      <div>
+        <p className="kpi-number">{value}</p>
+        <p className="mt-1 truncate text-sm text-paper-muted">{label}</p>
+      </div>
+    </Link>
   );
 }
 
@@ -438,7 +469,7 @@ function WarningIcon() {
 
 function FormIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
       <path
         d="M7 3.5h7l3 3V20a.5.5 0 0 1-.5.5h-9.5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z"
         stroke="currentColor"
@@ -452,7 +483,7 @@ function FormIcon() {
 
 function SentIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
       <path d="M4 12 20 4l-5 16-3-7-8-1Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
     </svg>
   );
@@ -460,7 +491,7 @@ function SentIcon() {
 
 function CheckIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
       <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.6" />
       <path d="M8.5 12.3 11 14.8l4.5-5.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
@@ -469,7 +500,7 @@ function CheckIcon() {
 
 function PendingIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
       <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.6" />
       <path d="M12 7.5V12l3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>

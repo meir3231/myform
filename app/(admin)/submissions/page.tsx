@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { requireProfile } from "@/lib/auth";
 import { SubmissionsClient } from "./submissions-client";
 
@@ -24,11 +25,13 @@ export default async function SubmissionsPage() {
   const formOptions = forms ?? [];
 
   return (
-    <SubmissionsClient
-      submissions={submissions ?? []}
-      formName={formName}
-      formOptions={formOptions}
-      currentUserRole={profile.role}
-    />
+    <Suspense fallback={null}>
+      <SubmissionsClient
+        submissions={submissions ?? []}
+        formName={formName}
+        formOptions={formOptions}
+        currentUserRole={profile.role}
+      />
+    </Suspense>
   );
 }

@@ -2,8 +2,11 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { STATUS_META } from "@/lib/status";
 import type { SubmissionStatus } from "@/lib/database.types";
+
+const VALID_STATUSES: SubmissionStatus[] = ["pending", "opened", "completed", "expired"];
 
 type SubmissionRow = {
   id: string;
@@ -27,8 +30,13 @@ export function SubmissionsClient({
   currentUserRole: string;
 }) {
   void currentUserRole; // reserved for future admin-only filters
+  const searchParams = useSearchParams();
+  const statusParam = searchParams.get("status");
+  const initialStatus: SubmissionStatus | "all" =
+    statusParam && (VALID_STATUSES as string[]).includes(statusParam) ? (statusParam as SubmissionStatus) : "all";
+
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<SubmissionStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<SubmissionStatus | "all">(initialStatus);
   const [formFilter, setFormFilter] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 

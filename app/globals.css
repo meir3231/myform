@@ -113,6 +113,17 @@ body {
       text-sm text-text-secondary transition hover:bg-slate-100 hover:text-brand;
   }
 
+  /* ---- טיפוגרפיה גלובלית (סעיף 4) ---- */
+  .h1 {
+    @apply text-[32px] font-bold leading-[40px] text-paper-text;
+  }
+  .h2 {
+    @apply text-[18px] font-bold leading-[26px] text-paper-text;
+  }
+  .kpi-number {
+    @apply text-[30px] font-bold leading-9 text-paper-text;
+  }
+
   /* ---- כרטיסים ---- */
   .card {
     @apply rounded-2xl border border-paper-line bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)];
