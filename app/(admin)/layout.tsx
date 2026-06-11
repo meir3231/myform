@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { Sidebar } from "@/components/Sidebar";
@@ -10,14 +11,9 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { supabase, profile } = await requireProfile();
+  const { profile } = await requireProfile();
   const userName = profile.full_name || "מנהל";
   const roleLabel = profile.role === "admin" ? "מנהל מערכת" : "חבר צוות";
-
-  const { count: alertCount } = await supabase
-    .from("submissions")
-    .select("*", { count: "exact", head: true })
-    .in("status", ["pending", "opened"]);
 
   return (
     <div className="h-screen overflow-hidden">
@@ -35,9 +31,9 @@ export default async function AdminLayout({
         <div className="header-user-area">
           <Link href="/submissions" className="header-icon-btn" aria-label="התראות על הגשות ממתינות">
             <BellIcon />
-            {!!alertCount && (
-              <span className="header-badge">{alertCount > 9 ? "9+" : alertCount}</span>
-            )}
+            <Suspense fallback={null}>
+              <AlertBadge />
+            </Suspense>
           </Link>
           <Link href="/settings" className="header-user">
             <span className="header-user-avatar">{userName[0]}</span>
@@ -54,6 +50,19 @@ export default async function AdminLayout({
       </div>
     </div>
   );
+}
+
+// סופרת הגשות ממתינות, מוצגת בנפרד עם Suspense כדי שלא תחסום
+// את רינדור שאר ה-shell (header/sidebar) בכל ניווט.
+async function AlertBadge() {
+  const { supabase } = await requireProfile();
+  const { count } = await supabase
+    .from("submissions")
+    .select("*", { count: "exact", head: true })
+    .in("status", ["pending", "opened"]);
+
+  if (!count) return null;
+  return <span className="header-badge">{count > 9 ? "9+" : count}</span>;
 }
 
 function SearchIcon() {
