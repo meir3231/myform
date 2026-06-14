@@ -60,6 +60,7 @@ export async function saveFormFields(formId: string, fields: FieldDraft[]) {
       font_size: Math.min(Math.max(6, f.font_size || 12), 72),
       sort_order: i,
       copyFrom,
+      auto_fill_today: !!f.autoFillToday,
     };
   });
 

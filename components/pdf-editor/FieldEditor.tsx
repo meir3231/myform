@@ -282,6 +282,11 @@ export default function FieldEditor({
     if (ok) router.push(`/forms/${formId}/send`);
   }
 
+  async function handleSaveAndExit() {
+    const ok = await handleSave();
+    if (ok) router.push("/templates");
+  }
+
   return (
     <div className="flex h-full flex-col gap-4 overflow-hidden">
       {headerTitleSlot &&
@@ -300,7 +305,7 @@ export default function FieldEditor({
       {headerSlot &&
         createPortal(
           <div className="flex shrink-0 items-center gap-3">
-            <button onClick={handleSave} disabled={status === "saving"} className="btn-outline h-12">
+            <button onClick={handleSaveAndExit} disabled={status === "saving"} className="btn-outline h-12">
               {status === "saving" ? "שומר..." : "שמירה"}
             </button>
             <Link href={`/forms/${formId}/preview`} target="_blank" className="btn-secondary">
@@ -554,6 +559,19 @@ export default function FieldEditor({
                     className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
                   />
                 </div>
+                {selected.type === "date" && (
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={!!selected.autoFillToday}
+                      onChange={(e) =>
+                        updateField({ ...selected, autoFillToday: e.target.checked })
+                      }
+                      className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand/30"
+                    />
+                    מילוי אוטומטי של תאריך היום
+                  </label>
+                )}
                 {selected.type !== "signature" && selected.type !== "initials" && (
                   <div>
                     <label className="mb-1 block text-xs font-medium text-slate-500">

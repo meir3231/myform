@@ -99,6 +99,12 @@ export default function FormFiller({
   // אם שדה-מקור מולא מראש, מפיצים את הערך גם לשדות המקושרים אליו.
   const [values, setValues] = useState<Record<string, string>>(() => {
     const seeded = { ...initialValues };
+    // מילוי אוטומטי של תאריך היום לשדות שהוגדרו לכך וטרם מולאו
+    for (const f of fields) {
+      if (f.type === "date" && f.autoFillToday && !f.copyFrom && !seeded[f.id]) {
+        seeded[f.id] = new Date().toISOString().slice(0, 10);
+      }
+    }
     for (const [sourceId, targets] of Object.entries(copyTargets)) {
       const v = seeded[sourceId];
       if (v) for (const t of targets) seeded[t] = v;

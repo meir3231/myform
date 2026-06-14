@@ -37,6 +37,7 @@ export default async function EditFormPage({
     required: f.required,
     font_size: f.font_size,
     copyFrom: f.copy_from_field_id,
+    autoFillToday: f.auto_fill_today,
   }));
 
   return (

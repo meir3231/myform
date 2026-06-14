@@ -117,12 +117,11 @@ export async function flattenPdf(
       const y = topPdfY - boxH + (boxH - h) / 2;
       page.drawImage(img, { x, y, width: w, height: h });
     } else if (field.type === "checkbox") {
-      // מסגרת קופסא + סימון ✓ אם מסומן
-      const bx = boxX;
-      const by = topPdfY - boxH;
-      page.drawRectangle({ x: bx, y: by, width: boxW, height: boxH, borderWidth: 1, borderColor: rgb(0.3, 0.3, 0.3), color: rgb(1, 1, 1) });
+      // לא מציירים מסגרת — אם הלקוח לא סימן, לא נראה שום שדה בטופס המוגמר.
       if (value === "true") {
         // ציור ✓ כקווים וקטוריים — לא תלוי בקיום הסימן בגופן (Heebo חסר את הגליף ✓)
+        const bx = boxX;
+        const by = topPdfY - boxH;
         const thickness = Math.max(1.2, boxH * 0.12);
         const color = rgb(0.06, 0.09, 0.16);
         page.drawLine({
