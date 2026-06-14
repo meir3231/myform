@@ -4,6 +4,7 @@ import { requireProfile } from "@/lib/auth";
 import { Sidebar } from "@/components/Sidebar";
 import { AdminMain } from "@/components/AdminMain";
 import { BrandLogo } from "@/components/BrandLogo";
+import { MobileNavBackdrop, MobileNavProvider, MobileNavToggle } from "@/components/MobileNav";
 import { signOut } from "@/app/(admin)/actions";
 import { roleLabel as getRoleLabel } from "@/lib/permissions";
 
@@ -22,11 +23,14 @@ export async function AdminShell({
   const roleLabel = getRoleLabel(profile.role);
 
   return (
-    <div className="h-screen overflow-hidden">
+    <MobileNavProvider className="h-screen overflow-hidden">
       <header className="admin-header">
-        <Link href="/dashboard" className="header-logo-link">
-          <BrandLogo size="sm" />
-        </Link>
+        <div className="header-start">
+          <MobileNavToggle />
+          <Link href="/dashboard" className="header-logo-link">
+            <BrandLogo size="sm" />
+          </Link>
+        </div>
 
         {headerCenter ?? (
           <div className="header-search">
@@ -53,10 +57,11 @@ export async function AdminShell({
         </div>
       </header>
       <Sidebar userName={userName} role={profile.role} signOutAction={signOut} />
-      <div className="mr-[248px] h-screen overflow-hidden pt-[76px]">
+      <MobileNavBackdrop />
+      <div className="admin-content-area">
         <AdminMain>{children}</AdminMain>
       </div>
-    </div>
+    </MobileNavProvider>
   );
 }
 

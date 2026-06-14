@@ -62,7 +62,7 @@ export function UsersClient({
         </button>
       </div>
 
-      <div className="card flex-1 min-h-0 overflow-y-auto">
+      <div className="card table-scroll flex-1 min-h-0 overflow-auto">
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10 border-b border-paper-line bg-slate-50 text-xs text-slate-500">
             <tr>

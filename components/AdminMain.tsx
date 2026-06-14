@@ -48,7 +48,7 @@ export function AdminMain({ children }: { children: React.ReactNode }) {
       style={{ viewTransitionName: "main-content" }}
     >
       <div
-        className={`mx-auto h-full px-8 lg:px-10 ${
+        className={`mx-auto h-full px-4 sm:px-8 lg:px-10 ${
           isFormEditor || isTemplatesPage ? "py-4" : "py-8"
         } ${isDashboard || isFormEditor ? "" : "max-w-6xl"}`}
       >

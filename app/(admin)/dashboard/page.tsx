@@ -206,7 +206,7 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div className="flex h-full flex-col gap-3 overflow-hidden">
+    <div className="flex flex-col gap-3 lg:h-full lg:overflow-hidden">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-paper-text">לוח בקרה</h1>
@@ -219,15 +219,15 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="kpi-grid grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
         {kpis.map((k) => (
           <KpiCard key={k.label} {...k} />
         ))}
       </div>
 
-      <div className="grid min-h-0 flex-[3] gap-3 lg:grid-cols-2">
+      <div className="grid gap-3 lg:min-h-0 lg:flex-[3] lg:grid-cols-2">
         {/* שימוש לפי טופס */}
-        <section className="card flex h-full min-h-0 flex-col overflow-hidden p-3">
+        <section className="card flex h-[320px] min-h-0 flex-col overflow-hidden p-3 lg:h-full">
           <div className="mb-2 flex shrink-0 items-center justify-between">
             <h2 className="h2">שימוש לפי טופס</h2>
             <Link href="/templates" className="text-sm text-brand transition hover:underline">
@@ -256,7 +256,7 @@ export default async function DashboardPage() {
         </section>
 
         {/* פעילות אחרונה */}
-        <section className="card flex h-full min-h-0 flex-col overflow-hidden p-3">
+        <section className="card flex h-[320px] min-h-0 flex-col overflow-hidden p-3 lg:h-full">
           <div className="mb-2 flex shrink-0 items-center justify-between">
             <h2 className="h2">פעילות אחרונה</h2>
             <Link href="/submissions" className="text-sm text-brand transition hover:underline">
@@ -288,9 +288,9 @@ export default async function DashboardPage() {
         </section>
       </div>
 
-      <div className="grid min-h-0 flex-[2] gap-3 lg:grid-cols-3">
+      <div className="grid gap-3 lg:min-h-0 lg:flex-[2] lg:grid-cols-3">
         {/* משימות מהירות */}
-        <section className="card flex h-full min-h-0 flex-col overflow-hidden p-3">
+        <section className="card flex h-[280px] min-h-0 flex-col overflow-hidden p-3 lg:h-full">
           <div className="mb-2 flex shrink-0 items-center justify-between">
             <h2 className="h2">משימות מהירות</h2>
             <Link href="/submissions" className="text-sm text-brand transition hover:underline">
@@ -324,7 +324,7 @@ export default async function DashboardPage() {
         </section>
 
         {/* סקירת שליחות */}
-        <section className="card flex h-full min-h-0 flex-col overflow-hidden p-3">
+        <section className="card flex h-[280px] min-h-0 flex-col overflow-hidden p-3 lg:h-full">
           <div className="mb-2 flex shrink-0 items-center justify-between">
             <h2 className="h2">סקירת שליחות</h2>
             <Link href="/submissions" className="text-sm text-brand transition hover:underline">
@@ -341,7 +341,7 @@ export default async function DashboardPage() {
         </section>
 
         {/* מגמה שבועית */}
-        <section className="card flex h-full min-h-0 flex-col overflow-hidden p-3">
+        <section className="card flex h-[280px] min-h-0 flex-col overflow-hidden p-3 lg:h-full">
           <div className="mb-2 flex shrink-0 items-center justify-between">
             <h2 className="h2">מגמה שבועית</h2>
             <div className="flex items-center gap-3">

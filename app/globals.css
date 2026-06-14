@@ -259,12 +259,21 @@ header.admin-header {
   border-bottom: 1px solid #E2E8F0;
 }
 
+/* קבוצת התחלה ב-header: כפתור המבורגר (מובייל) + לוגו */
+.header-start {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  justify-self: start;
+  min-width: 0;
+}
+
 /* לוגו ב-header */
 .header-logo-link {
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  justify-self: start;
 }
 
 /* חיפוש גלובלי */
@@ -466,6 +475,14 @@ header.admin-header:has(.header-editor-slot) {
 
 .admin-shell-surface .border-t { border-color: #E2E8F0; }
 .admin-shell-surface nav { padding-top: 8px; }
+
+/* ── אזור התוכן: מרווח מהסיידבר (248px), כל המסך מתחת ל-991px (Phase 11) ── */
+.admin-content-area {
+  margin-right: 248px;
+  height: 100vh;
+  overflow: hidden;
+  padding-top: 76px;
+}
 
 /* ── כרטיסי סטטיסטיקה ── */
 .stat-card {
@@ -765,3 +782,121 @@ tbody tr:hover { background-color: #F8FAFC; }
   from { transform: translateX(100%); }
   to   { transform: translateX(0); }
 }
+
+/* ================================================
+   PHASE 11 — מובייל ורספונסיביות (סעיף 18)
+   ================================================ */
+
+/* ── כפתור המבורגר ב-header: מוצג רק מתחת ל-991px ── */
+.mobile-nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  color: #14213D;
+  transition: background-color .15s;
+}
+.mobile-nav-toggle:hover { background: #F6F8FB; }
+
+/* ── כותרת/כפתור סגירה בראש הסיידבר: מוצגים רק כ-Drawer מתחת ל-991px ── */
+.mobile-sidebar-header {
+  display: none;
+}
+.mobile-sidebar-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  color: #64748B;
+  transition: background-color .15s, color .15s;
+}
+.mobile-sidebar-close:hover { background: #F6F8FB; color: #14213D; }
+
+/* ── Backdrop של הסיידבר במובייל ── */
+.mobile-nav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 230;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+@media (max-width: 991px) {
+  /* סיידבר → Drawer נגרר מימין, מוסתר כברירת מחדל */
+  .mobile-nav-toggle {
+    display: flex;
+  }
+  .admin-shell-surface {
+    top: 0 !important;
+    height: 100vh;
+    z-index: 240;
+    transform: translateX(100%);
+    transition: transform .25s ease-out;
+    box-shadow: -8px 0 28px rgba(15, 23, 42, 0.18);
+  }
+  .mobile-nav-open .admin-shell-surface {
+    transform: translateX(0);
+  }
+  .mobile-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    height: 76px;
+    padding: 0 16px;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  /* אזור התוכן תופס את כל הרוחב - אין סיידבר קבוע */
+  .admin-content-area {
+    margin-right: 0;
+  }
+}
+
+/* ── Header: התאמות לרוחבים קטנים (סעיף 18) ── */
+@media (max-width: 767px) {
+  header.admin-header {
+    grid-template-columns: auto 1fr auto;
+    padding: 0 16px;
+    gap: 8px;
+  }
+  .header-search {
+    display: none;
+  }
+  .header-user-text {
+    display: none;
+  }
+  .header-user {
+    padding: 6px;
+  }
+}
+
+/* ── כרטיסי KPI (דשבורד/הגשות): עמודה אחת מתחת ל-640px ── */
+@media (max-width: 639px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── טבלאות: גלילה אופקית מתחת ל-1200px כדי לשמר את כל העמודות ── */
+.table-scroll {
+  overflow-x: auto;
+}
+@media (max-width: 1199px) {
+  .table-scroll table {
+    min-width: 640px;
+  }
+}
+
+/* ── כרטיסי שורה (תחליף לטבלה) במובייל ── */
+.row-card {
+  display: block;
+  border-bottom: 1px solid #EEF2F7;
+  padding: 12px;
+  transition: background-color .15s;
+}
+.row-card:hover { background-color: #F8FAFC; }
+.row-card:last-child { border-bottom: none; }

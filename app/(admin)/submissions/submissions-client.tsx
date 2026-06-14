@@ -278,7 +278,7 @@ export function SubmissionsClient({
       </div>
 
       {/* KPI */}
-      <div className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="kpi-grid grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
         {kpis.map((k) => (
           <div key={k.label} className="card flex items-center gap-3 p-3">
             <span
@@ -407,7 +407,8 @@ export function SubmissionsClient({
             </div>
           ) : (
             <>
-              <div className="min-h-0 flex-1 overflow-auto">
+              {/* טבלה - דסקטופ/טאבלט */}
+              <div className="hidden min-h-0 flex-1 overflow-auto md:block">
                 <table className="w-full min-w-[1080px] text-right text-sm">
                   <thead className="sticky top-0 z-10 h-12 bg-white text-xs font-medium text-paper-muted">
                     <tr className="border-b border-soft-border">
@@ -439,6 +440,22 @@ export function SubmissionsClient({
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* כרטיסים - מובייל */}
+              <div className="min-h-0 flex-1 overflow-y-auto md:hidden">
+                {paged.map((s) => (
+                  <SubmissionCard
+                    key={s.id}
+                    s={s}
+                    formNameStr={formName.get(s.form_id) ?? "—"}
+                    categoryLabelStr={categoryLabel(s.form_id, formFolder, folderName)}
+                    handlerNameStr={handlerName(s.created_by, userName)}
+                    busy={busyId === s.id}
+                    canEdit={canEdit}
+                    onAction={(action) => handleRowAction(s.id, action)}
+                  />
+                ))}
               </div>
 
               <Pagination
@@ -567,6 +584,58 @@ function SubmissionTableRow({
         </div>
       </td>
     </tr>
+  );
+}
+
+// ─── כרטיס - מובייל ─────────────────────────────────────────────────────────────
+
+function SubmissionCard({
+  s,
+  formNameStr,
+  categoryLabelStr,
+  handlerNameStr,
+  busy,
+  canEdit,
+  onAction,
+}: {
+  s: SubmissionRow;
+  formNameStr: string;
+  categoryLabelStr: string;
+  handlerNameStr: string;
+  busy: boolean;
+  canEdit: boolean;
+  onAction: (action: RowAction) => void;
+}) {
+  const meta = STATUS_META[s.status];
+
+  return (
+    <Link href={`/submissions/${s.id}`} className="row-card">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-medium text-paper-text">{s.recipient_name}</div>
+          <div className="truncate text-xs text-paper-muted" dir="ltr">{s.recipient_email}</div>
+        </div>
+        <span className={`badge badge-dot shrink-0 ${meta.className}`}>{meta.label}</span>
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+        <span className="truncate text-paper-text">{formNameStr}</span>
+        <span className="shrink-0 text-text-secondary">{categoryLabelStr}</span>
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand">
+            {handlerNameStr.slice(0, 1)}
+          </span>
+          <span className="truncate text-xs text-text-secondary">{handlerNameStr}</span>
+        </div>
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+          <Link href={`/submissions/${s.id}`} className="btn-icon !h-9 !w-9" title="צפייה">
+            <EyeIcon />
+          </Link>
+          <RowMenu status={s.status} busy={busy} canEdit={canEdit} onAction={onAction} />
+        </div>
+      </div>
+    </Link>
   );
 }
 

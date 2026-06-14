@@ -1,4 +1,7 @@
+"use client";
+
 import { SidebarNav } from "./SidebarNav";
+import { useMobileNav } from "./MobileNav";
 
 export function Sidebar({
   userName,
@@ -9,8 +12,18 @@ export function Sidebar({
   role: string;
   signOutAction: () => Promise<void>;
 }) {
+  const { close } = useMobileNav();
+
   return (
     <aside className="admin-shell-surface fixed inset-y-0 right-0 z-40 flex w-[248px] flex-col text-slate-700">
+      <div className="mobile-sidebar-header">
+        <span className="text-sm font-semibold text-navy">ניווט</span>
+        <button onClick={close} className="mobile-sidebar-close" aria-label="סגירת ניווט">
+          <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
       <SidebarNav role={role} />
 
       <div className="border-t border-slate-200 p-3">
