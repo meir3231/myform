@@ -1,12 +1,20 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { STATUS_META } from "@/lib/status";
 import type { SubmissionStatus } from "@/lib/database.types";
+import {
+  resendSubmissionLink,
+  getSubmissionPreviewLink,
+  getCompletedPdfUrl,
+  expireSubmissionLink,
+} from "./actions";
 
 const VALID_STATUSES: SubmissionStatus[] = ["pending", "opened", "completed", "expired"];
+const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 type SubmissionRow = {
   id: string;
@@ -14,22 +22,36 @@ type SubmissionRow = {
   recipient_email: string;
   status: SubmissionStatus;
   sent_at: string | null;
+  opened_at: string | null;
   completed_at: string | null;
+  created_at: string;
+  expires_at: string;
   form_id: string;
+  created_by: string | null;
 };
+
+type Option = { id: string; name: string };
+type Toast = { type: "success" | "error"; text: string };
+type RowAction = "resend" | "preview" | "download" | "expire";
 
 export function SubmissionsClient({
   submissions,
   formName,
-  formOptions,
-  currentUserRole,
+  formFolder,
+  folderName,
+  userName,
+  folderOptions,
+  userOptions,
 }: {
   submissions: SubmissionRow[];
   formName: Map<string, string>;
-  formOptions: Array<{ id: string; name: string }>;
-  currentUserRole: string;
+  formFolder: Map<string, string | null>;
+  folderName: Map<string, string>;
+  userName: Map<string, string>;
+  folderOptions: Option[];
+  userOptions: Option[];
 }) {
-  void currentUserRole; // reserved for future admin-only filters
+  const router = useRouter();
   const searchParams = useSearchParams();
   const statusParam = searchParams.get("status");
   const initialStatus: SubmissionStatus | "all" =
@@ -37,34 +59,188 @@ export function SubmissionsClient({
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<SubmissionStatus | "all">(initialStatus);
-  const [formFilter, setFormFilter] = useState<string>("all");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [folderFilter, setFolderFilter] = useState<string>("all");
+  const [userFilter, setUserFilter] = useState<string>("all");
+
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [toast, setToast] = useState<Toast | null>(null);
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return submissions.filter((s) => {
       if (statusFilter !== "all" && s.status !== statusFilter) return false;
-      if (formFilter !== "all" && s.form_id !== formFilter) return false;
+      if (folderFilter !== "all") {
+        const fid = formFolder.get(s.form_id) ?? null;
+        if (folderFilter === "none" ? fid !== null : fid !== folderFilter) return false;
+      }
+      if (userFilter !== "all") {
+        if (userFilter === "none" ? s.created_by !== null : s.created_by !== userFilter) return false;
+      }
       if (q) {
         const name = s.recipient_name.toLowerCase();
         const email = s.recipient_email.toLowerCase();
-        if (!name.includes(q) && !email.includes(q)) return false;
+        const form = (formName.get(s.form_id) ?? "").toLowerCase();
+        if (!name.includes(q) && !email.includes(q) && !form.includes(q)) return false;
       }
       return true;
     });
-  }, [submissions, search, statusFilter, formFilter]);
+  }, [submissions, search, statusFilter, folderFilter, userFilter, formFolder, formName]);
 
-  const isFiltered = search !== "" || statusFilter !== "all" || formFilter !== "all";
+  const isFiltered = search !== "" || statusFilter !== "all" || folderFilter !== "all" || userFilter !== "all";
+
+  function clearFilters() {
+    setSearch("");
+    setStatusFilter("all");
+    setFolderFilter("all");
+    setUserFilter("all");
+  }
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, folderFilter, userFilter, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paged = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
+
+  // ─── KPIs ───────────────────────────────────────────────────────────────────
+  const kpis = useMemo(() => {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayStartMs = todayStart.getTime();
+
+    const submittedToday = submissions.filter(
+      (s) => s.completed_at && new Date(s.completed_at).getTime() >= todayStartMs
+    ).length;
+    const pendingReview = submissions.filter((s) => s.status === "opened").length;
+    const signed = submissions.filter((s) => s.status === "completed").length;
+    const needsCompletion = submissions.filter((s) => s.status === "pending" || s.status === "expired").length;
+
+    return [
+      { label: "הוגשו היום", value: submittedToday, color: "#22C55E", icon: <CheckIcon /> },
+      { label: "ממתינים לבדיקה", value: pendingReview, color: "#3B82F6", icon: <EyeIcon /> },
+      { label: "נחתמו", value: signed, color: "#14B8A6", icon: <SignatureIcon /> },
+      { label: "דורשים השלמה", value: needsCompletion, color: "#F59E0B", icon: <WarningIcon /> },
+    ];
+  }, [submissions]);
+
+  // ─── פעילות אחרונה ──────────────────────────────────────────────────────────
+  const activity = useMemo(() => {
+    return submissions
+      .map(latestEvent)
+      .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+      .slice(0, 12);
+  }, [submissions]);
+
+  // ─── בחירה מרובה ────────────────────────────────────────────────────────────
+  const remindableSelected = useMemo(
+    () =>
+      [...selected].filter((id) => {
+        const s = submissions.find((x) => x.id === id);
+        return s && s.status !== "completed";
+      }),
+    [selected, submissions]
+  );
+
+  const allPagedSelected = paged.length > 0 && paged.every((s) => selected.has(s.id));
+
+  function toggleSelectAllPaged() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allPagedSelected) paged.forEach((s) => next.delete(s.id));
+      else paged.forEach((s) => next.add(s.id));
+      return next;
+    });
+  }
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  // ─── פעולות שורה ────────────────────────────────────────────────────────────
+  async function handleRowAction(id: string, action: RowAction) {
+    if (action === "expire") {
+      if (!confirm("לבטל את הלינק להגשה זו? הלקוח לא יוכל להמשיך למלא את הטופס.")) return;
+    }
+    setBusyId(id);
+    try {
+      if (action === "resend") {
+        const res = await resendSubmissionLink(id);
+        if (res.error) setToast({ type: "error", text: res.error });
+        else setToast({ type: "success", text: res.emailSent ? "תזכורת נשלחה ללקוח בהצלחה" : "הקישור חודש, אך המייל לא נשלח (בדוק הגדרות שליחה)" });
+        router.refresh();
+      } else if (action === "preview") {
+        const res = await getSubmissionPreviewLink(id);
+        if (res.error) setToast({ type: "error", text: res.error });
+        else if (res.link) {
+          window.open(res.link, "_blank", "noopener,noreferrer");
+          router.refresh();
+        }
+      } else if (action === "download") {
+        const res = await getCompletedPdfUrl(id);
+        if (res.error) setToast({ type: "error", text: res.error });
+        else if (res.url) window.open(res.url, "_blank", "noopener,noreferrer");
+      } else if (action === "expire") {
+        const res = await expireSubmissionLink(id);
+        if (res.error) setToast({ type: "error", text: res.error });
+        else {
+          setToast({ type: "success", text: "הלינק להגשה זו בוטל" });
+          router.refresh();
+        }
+      }
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleBulkReminder() {
+    if (remindableSelected.length === 0 || bulkBusy) return;
+    setBulkBusy(true);
+    let sent = 0;
+    for (const id of remindableSelected) {
+      const res = await resendSubmissionLink(id);
+      if (!res.error) sent++;
+    }
+    setBulkBusy(false);
+    setSelected(new Set());
+    setToast(
+      sent === remindableSelected.length
+        ? { type: "success", text: `נשלחו ${sent} תזכורות בהצלחה` }
+        : { type: "error", text: `נשלחו ${sent} מתוך ${remindableSelected.length} תזכורות` }
+    );
+    router.refresh();
+  }
 
   function exportCsv() {
-    const headers = ["לקוח", "מייל", "טופס", "סטטוס", "נשלח", "הושלם"];
+    const headers = ["לקוח", "מייל", "טופס", "קטגוריה", "סטטוס", "נשלח", "הוגש", "מטפל"];
     const rows = filtered.map((s) => [
       s.recipient_name,
       s.recipient_email,
       formName.get(s.form_id) ?? "",
+      categoryLabel(s.form_id, formFolder, folderName),
       STATUS_META[s.status].label,
-      s.sent_at ? new Date(s.sent_at).toLocaleDateString("he-IL") : "",
-      s.completed_at ? new Date(s.completed_at).toLocaleDateString("he-IL") : "",
+      s.sent_at ? new Date(s.sent_at).toLocaleString("he-IL") : "",
+      s.completed_at ? new Date(s.completed_at).toLocaleString("he-IL") : "",
+      handlerName(s.created_by, userName),
     ]);
     const csv = [headers, ...rows]
       .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
@@ -78,34 +254,65 @@ export function SubmissionsClient({
     URL.revokeObjectURL(url);
   }
 
-  function toggleExpand(id: string) {
-    setExpandedId((prev) => (prev === id ? null : id));
-  }
-
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      {/* Header */}
-      <div className="mb-5 flex shrink-0 flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-bold text-paper-text ml-2">הגשות</h1>
+    <div className="flex h-full flex-col gap-3 overflow-hidden">
+      {/* כותרת ושורת פעולות */}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="h1">הגשות</h1>
+          <p className="mt-0.5 text-sm text-paper-muted">מעקב אחר הטפסים שנשלחו ללקוחות וסטטוס המילוי והחתימה שלהם.</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleBulkReminder}
+            disabled={remindableSelected.length === 0 || bulkBusy}
+            className="btn-secondary"
+          >
+            <SendIcon />
+            שליחת תזכורת{remindableSelected.length > 0 ? ` (${remindableSelected.length})` : ""}
+          </button>
+          <button onClick={exportCsv} disabled={filtered.length === 0} className="btn-primary-lg">
+            <ExportIcon />
+            ייצוא לאקסל
+          </button>
+        </div>
+      </div>
 
-        <div className="relative">
-          <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-          </svg>
+      {/* KPI */}
+      <div className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
+        {kpis.map((k) => (
+          <div key={k.label} className="card flex items-center gap-3 p-3">
+            <span
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+              style={{ backgroundColor: `${k.color}1a`, color: k.color }}
+            >
+              {k.icon}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="kpi-number leading-tight">{k.value}</p>
+              <p className="truncate text-xs text-paper-muted">{k.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* סרגל פילטרים */}
+      <div className="card flex shrink-0 flex-wrap items-center gap-3 p-4">
+        <div className="relative w-[330px] max-w-full">
+          <SearchIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="חיפוש לפי שם או מייל..."
+            placeholder="חיפוש לפי שם לקוח, מייל או טופס..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-9 rounded-lg border border-paper-line bg-white py-1.5 pr-9 pl-3 text-sm text-paper-text placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-            style={{ minWidth: 200 }}
+            className="input-field pr-10"
           />
         </div>
 
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as SubmissionStatus | "all")}
-          className="h-9 rounded-lg border border-paper-line bg-white px-3 text-sm text-paper-text focus:border-brand focus:outline-none"
+          className="select-field w-[190px] max-w-full"
         >
           <option value="all">כל הסטטוסים</option>
           <option value="pending">נשלח — ממתין</option>
@@ -114,15 +321,27 @@ export function SubmissionsClient({
           <option value="expired">פג תוקף</option>
         </select>
 
-        {formOptions.length > 1 && (
+        <select
+          value={folderFilter}
+          onChange={(e) => setFolderFilter(e.target.value)}
+          className="select-field w-[190px] max-w-full"
+        >
+          <option value="all">כל הקטגוריות</option>
+          <option value="none">כללי (ללא קטגוריה)</option>
+          {folderOptions.map((f) => (
+            <option key={f.id} value={f.id}>{f.name}</option>
+          ))}
+        </select>
+
+        {userOptions.length > 1 && (
           <select
-            value={formFilter}
-            onChange={(e) => setFormFilter(e.target.value)}
-            className="h-9 max-w-[200px] rounded-lg border border-paper-line bg-white px-3 text-sm text-paper-text focus:border-brand focus:outline-none"
+            value={userFilter}
+            onChange={(e) => setUserFilter(e.target.value)}
+            className="select-field w-[190px] max-w-full"
           >
-            <option value="all">כל הטפסים</option>
-            {formOptions.map((f) => (
-              <option key={f.id} value={f.id}>{f.name}</option>
+            <option value="all">כל המטפלים</option>
+            {userOptions.map((u) => (
+              <option key={u.id} value={u.id}>{u.name}</option>
             ))}
           </select>
         )}
@@ -134,148 +353,482 @@ export function SubmissionsClient({
             {filtered.length} מתוך {submissions.length}
           </span>
         )}
-
         {isFiltered && (
-          <button
-            onClick={() => { setSearch(""); setStatusFilter("all"); setFormFilter("all"); }}
-            className="btn-ghost !py-1.5 !px-3 !text-xs"
-          >
+          <button onClick={clearFilters} className="btn-outline !min-w-0 !h-9 !px-3 !text-xs">
             נקה סינון
-          </button>
-        )}
-
-        {filtered.length > 0 && (
-          <button
-            onClick={exportCsv}
-            className="btn-secondary !py-1.5 !px-3 !text-xs flex items-center gap-1.5"
-            title="ייצוא ל-CSV (נפתח ב-Excel)"
-          >
-            <CsvIcon /> ייצוא CSV
           </button>
         )}
       </div>
 
-      {submissions.length === 0 ? (
-        <div className="card empty-state-pattern border-dashed p-12 text-center text-paper-muted">
-          עדיין אין הגשות. שלח טופס ללקוח מתוך עמוד התבניות.
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="card border-dashed p-12 text-center">
-          <p className="mb-3 text-paper-muted">לא נמצאו הגשות התואמות את הסינון.</p>
-          <button
-            onClick={() => { setSearch(""); setStatusFilter("all"); setFormFilter("all"); }}
-            className="btn-secondary"
-          >
-            נקה סינון
-          </button>
-        </div>
-      ) : (
-        <div className="card flex-1 min-h-0 overflow-y-auto">
-          <table className="w-full text-right text-sm">
-            <thead className="sticky top-0 z-10 bg-white text-paper-muted">
-              <tr>
-                <th className="px-4 py-3 text-right font-medium">לקוח</th>
-                <th className="px-4 py-3 text-right font-medium">טופס</th>
-                <th className="px-4 py-3 text-right font-medium">סטטוס</th>
-                <th className="px-4 py-3 text-right font-medium">נשלח</th>
-                <th className="px-4 py-3 text-right font-medium">הושלם</th>
-                <th className="w-8 px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-paper-line">
-              {filtered.map((s, i) => {
-                const meta = STATUS_META[s.status];
-                const isExpanded = expandedId === s.id;
-                return (
-                  <>
-                    <tr
-                      key={s.id}
-                      onClick={() => toggleExpand(s.id)}
-                      className={`cursor-pointer transition hover:bg-brand/5 ${
-                        isExpanded ? "bg-brand/5" : i % 2 === 1 ? "bg-slate-50/60" : ""
-                      }`}
+      {/* תוכן ראשי: פעילות אחרונה + טבלת הגשות */}
+      <div className="flex min-h-0 flex-1 gap-3 overflow-hidden">
+        {/* פעילות אחרונה */}
+        <aside className="card hidden w-[300px] shrink-0 flex-col overflow-hidden p-3 xl:flex">
+          <h2 className="h2 mb-2 shrink-0">פעילות אחרונה</h2>
+          {activity.length === 0 ? (
+            <div className="empty-state-pattern flex flex-1 items-center justify-center rounded-xl">
+              <p className="text-sm text-paper-muted">אין עדיין פעילות להצגה.</p>
+            </div>
+          ) : (
+            <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto text-sm">
+              {activity.map((a, i) => (
+                <li key={`${a.id}-${i}`} className="border-b border-soft-border pb-1.5 last:border-0 last:pb-0">
+                  <Link href={`/submissions/${a.id}`} className="flex items-center gap-2.5 rounded-lg p-1 transition hover:bg-background">
+                    <span
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                      style={{ backgroundColor: `${ACTIVITY_COLORS[a.type]}1a`, color: ACTIVITY_COLORS[a.type] }}
                     >
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-paper-text">{s.recipient_name}</div>
-                        <div className="text-xs text-paper-muted" dir="ltr">{s.recipient_email}</div>
-                      </td>
-                      <td className="px-4 py-3 text-paper-muted">
-                        {formName.get(s.form_id) ?? "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`badge badge-dot ${meta.className}`}>{meta.label}</span>
-                      </td>
-                      <td className="px-4 py-3 text-paper-muted">
-                        {s.sent_at ? new Date(s.sent_at).toLocaleDateString("he-IL") : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-paper-muted">
-                        {s.completed_at ? new Date(s.completed_at).toLocaleDateString("he-IL") : "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <ChevronIcon expanded={isExpanded} />
-                      </td>
+                      <ActivityIcon type={a.type} />
+                    </span>
+                    <p className="min-w-0 flex-1 truncate text-xs text-paper-text">{a.text}</p>
+                    <span className="shrink-0 text-xs text-paper-muted">{formatActivityTime(a.at)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </aside>
+
+        {/* טבלת הגשות */}
+        <div className="card flex min-w-0 flex-1 flex-col overflow-hidden">
+          {submissions.length === 0 ? (
+            <div className="empty-state-pattern flex flex-1 items-center justify-center p-12 text-center text-paper-muted">
+              עדיין אין הגשות. שלח טופס ללקוח מתוך עמוד התבניות.
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-1 flex-col items-center justify-center p-12 text-center">
+              <p className="mb-3 text-paper-muted">לא נמצאו הגשות התואמות את הסינון.</p>
+              <button onClick={clearFilters} className="btn-outline">נקה סינון</button>
+            </div>
+          ) : (
+            <>
+              <div className="min-h-0 flex-1 overflow-auto">
+                <table className="w-full min-w-[1080px] text-right text-sm">
+                  <thead className="sticky top-0 z-10 h-12 bg-white text-xs font-medium text-paper-muted">
+                    <tr className="border-b border-soft-border">
+                      <th className="w-11 px-3"><input type="checkbox" checked={allPagedSelected} onChange={toggleSelectAllPaged} className="h-4 w-4 accent-brand" /></th>
+                      <th className="w-[150px] px-3 text-right">לקוח</th>
+                      <th className="w-[190px] px-3 text-right">טופס</th>
+                      <th className="w-[130px] px-3 text-right">קטגוריה</th>
+                      <th className="w-[120px] px-3 text-right">סטטוס</th>
+                      <th className="w-[110px] px-3 text-right">נשלח</th>
+                      <th className="w-[110px] px-3 text-right">הוגש</th>
+                      <th className="w-[130px] px-3 text-right">מטפל</th>
+                      <th className="w-[120px] px-3 text-right">פעולות</th>
                     </tr>
-                    {isExpanded && (
-                      <tr key={`${s.id}-expanded`} className="bg-brand/5">
-                        <td colSpan={6} className="px-6 pb-4 pt-2">
-                          <div className="flex flex-wrap items-center gap-5 text-sm">
-                            <div>
-                              <span className="text-paper-muted">מייל: </span>
-                              <a href={`mailto:${s.recipient_email}`} className="text-brand hover:underline" dir="ltr">
-                                {s.recipient_email}
-                              </a>
-                            </div>
-                            {s.sent_at && (
-                              <div>
-                                <span className="text-paper-muted">נשלח: </span>
-                                {new Date(s.sent_at).toLocaleString("he-IL")}
-                              </div>
-                            )}
-                            {s.completed_at && (
-                              <div>
-                                <span className="text-paper-muted">הושלם: </span>
-                                {new Date(s.completed_at).toLocaleString("he-IL")}
-                              </div>
-                            )}
-                            <Link
-                              href={`/submissions/${s.id}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="mr-auto flex items-center gap-1 rounded-lg border border-brand px-3 py-1 text-xs font-medium text-brand transition hover:bg-brand hover:text-white"
-                            >
-                              פרטים מלאים ←
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </>
-                );
-              })}
-            </tbody>
-          </table>
+                  </thead>
+                  <tbody>
+                    {paged.map((s) => (
+                      <SubmissionTableRow
+                        key={s.id}
+                        s={s}
+                        formNameStr={formName.get(s.form_id) ?? "—"}
+                        categoryLabelStr={categoryLabel(s.form_id, formFolder, folderName)}
+                        handlerNameStr={handlerName(s.created_by, userName)}
+                        selected={selected.has(s.id)}
+                        busy={busyId === s.id}
+                        onToggleSelect={() => toggleSelect(s.id)}
+                        onAction={(action) => handleRowAction(s.id, action)}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                totalItems={filtered.length}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Toast */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 left-6 z-50 rounded-xl px-4 py-3 text-sm font-medium shadow-[0_8px_24px_rgba(15,23,42,0.12)] ${
+            toast.type === "success" ? "bg-[#ECFDF5] text-[#166534]" : "bg-[#FEF2F2] text-error"
+          }`}
+        >
+          {toast.text}
         </div>
       )}
     </div>
   );
 }
 
-function ChevronIcon({ expanded }: { expanded: boolean }) {
+// ─── עזרי תצוגה ─────────────────────────────────────────────────────────────────
+
+function categoryLabel(formId: string, formFolder: Map<string, string | null>, folderName: Map<string, string>): string {
+  const folderId = formFolder.get(formId) ?? null;
+  if (!folderId) return "כללי";
+  return folderName.get(folderId) ?? "כללי";
+}
+
+function handlerName(createdBy: string | null, userName: Map<string, string>): string {
+  if (!createdBy) return "—";
+  return userName.get(createdBy) ?? "—";
+}
+
+type ActivityType = "completed" | "opened" | "sent";
+const ACTIVITY_COLORS: Record<ActivityType, string> = {
+  completed: "#22C55E",
+  opened: "#3B82F6",
+  sent: "#14B8A6",
+};
+
+function latestEvent(s: SubmissionRow): { id: string; at: string; text: string; type: ActivityType } {
+  if (s.completed_at) return { id: s.id, at: s.completed_at, text: `${s.recipient_name} השלים/ה ומילא/ה את הטופס`, type: "completed" };
+  if (s.opened_at) return { id: s.id, at: s.opened_at, text: `${s.recipient_name} פתח/ה את הטופס`, type: "opened" };
+  return { id: s.id, at: s.sent_at ?? s.created_at, text: `נשלח טופס ל${s.recipient_name}`, type: "sent" };
+}
+
+function formatActivityTime(at: string): string {
+  const d = new Date(at);
+  const now = new Date();
+  const time = d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === now.toDateString()) return `${time} · היום`;
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) return `${time} · אתמול`;
+  return d.toLocaleDateString("he-IL", { day: "2-digit", month: "2-digit" });
+}
+
+function DateCell({ value }: { value: string | null }) {
+  if (!value) return <span className="text-text-secondary">—</span>;
+  const d = new Date(value);
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
-      aria-hidden
+    <div className="leading-tight">
+      <div className="text-paper-text">{d.toLocaleDateString("he-IL")}</div>
+      <div className="text-xs text-text-secondary">{d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}</div>
+    </div>
+  );
+}
+
+// ─── שורת טבלה ──────────────────────────────────────────────────────────────────
+
+function SubmissionTableRow({
+  s,
+  formNameStr,
+  categoryLabelStr,
+  handlerNameStr,
+  selected,
+  busy,
+  onToggleSelect,
+  onAction,
+}: {
+  s: SubmissionRow;
+  formNameStr: string;
+  categoryLabelStr: string;
+  handlerNameStr: string;
+  selected: boolean;
+  busy: boolean;
+  onToggleSelect: () => void;
+  onAction: (action: RowAction) => void;
+}) {
+  const router = useRouter();
+  const meta = STATUS_META[s.status];
+
+  return (
+    <tr
+      onClick={() => router.push(`/submissions/${s.id}`)}
+      className={`cursor-pointer transition ${selected ? "bg-brand/5" : ""}`}
     >
-      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <td className="px-3" onClick={(e) => e.stopPropagation()}>
+        <input type="checkbox" checked={selected} onChange={onToggleSelect} className="h-4 w-4 accent-brand" />
+      </td>
+      <td className="px-3">
+        <div className="truncate font-medium text-paper-text">{s.recipient_name}</div>
+        <div className="truncate text-xs text-paper-muted" dir="ltr">{s.recipient_email}</div>
+      </td>
+      <td className="px-3 truncate text-paper-text">{formNameStr}</td>
+      <td className="px-3 truncate text-text-secondary">{categoryLabelStr}</td>
+      <td className="px-3">
+        <span className={`badge badge-dot ${meta.className}`}>{meta.label}</span>
+      </td>
+      <td className="px-3"><DateCell value={s.sent_at} /></td>
+      <td className="px-3"><DateCell value={s.completed_at} /></td>
+      <td className="px-3">
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand">
+            {handlerNameStr.slice(0, 1)}
+          </span>
+          <span className="truncate text-text-secondary">{handlerNameStr}</span>
+        </div>
+      </td>
+      <td className="px-3" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1.5">
+          <Link href={`/submissions/${s.id}`} className="btn-icon !h-9 !w-9" title="צפייה">
+            <EyeIcon />
+          </Link>
+          <RowMenu status={s.status} busy={busy} onAction={onAction} />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// ─── תפריט פעולות שורה (⋮) ──────────────────────────────────────────────────────
+
+function RowMenu({
+  status,
+  busy,
+  onAction,
+}: {
+  status: SubmissionStatus;
+  busy: boolean;
+  onAction: (action: RowAction) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleDocClick(e: MouseEvent) {
+      const t = e.target as Element;
+      if (!t.closest("[data-row-menu]") && !t.closest("[data-row-menu-portal]")) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleDocClick);
+    return () => document.removeEventListener("mousedown", handleDocClick);
+  }, [open]);
+
+  function handleToggle() {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setMenuPos({ top: r.bottom + 4, left: r.left - 160 });
+    }
+    setOpen((o) => !o);
+  }
+
+  function run(action: RowAction) {
+    setOpen(false);
+    onAction(action);
+  }
+
+  const dropdown = open && menuPos ? createPortal(
+    <div
+      className="fixed z-[9999] w-48 overflow-hidden rounded-xl border border-paper-line bg-white py-1 shadow-xl"
+      style={{ top: menuPos.top, left: Math.max(8, menuPos.left) }}
+      data-row-menu-portal
+    >
+      {status !== "completed" && (
+        <button onClick={() => run("preview")} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50">
+          <ExternalLinkIcon /> פתיחה כמו שהלקוח רואה
+        </button>
+      )}
+      {status !== "completed" && (
+        <button onClick={() => run("resend")} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50">
+          <SendIcon /> שליחת תזכורת
+        </button>
+      )}
+      {status === "completed" && (
+        <button onClick={() => run("download")} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50">
+          <DownloadIcon /> הורדת PDF חתום
+        </button>
+      )}
+      {(status === "pending" || status === "opened") && (
+        <>
+          <div className="my-1 border-t border-paper-line" />
+          <button onClick={() => run("expire")} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-red-600 transition hover:bg-red-50">
+            <LinkOffIcon /> ביטול קישור
+          </button>
+        </>
+      )}
+    </div>,
+    document.body
+  ) : null;
+
+  return (
+    <div data-row-menu>
+      <button
+        ref={btnRef}
+        onClick={handleToggle}
+        disabled={busy}
+        className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
+        title="פעולות נוספות"
+      >
+        <DotsVerticalIcon />
+      </button>
+      {dropdown}
+    </div>
+  );
+}
+
+// ─── Pagination ─────────────────────────────────────────────────────────────────
+
+function Pagination({
+  page, totalPages, pageSize, totalItems, onPageChange, onPageSizeChange,
+}: {
+  page: number;
+  totalPages: number;
+  pageSize: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+}) {
+  const start = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, totalItems);
+
+  return (
+    <div className="flex shrink-0 items-center justify-between gap-2 border-t border-soft-border px-4 py-2.5 text-sm text-paper-muted">
+      <div className="flex items-center gap-2">
+        <span className="whitespace-nowrap">שורות בעמוד:</span>
+        <select
+          value={pageSize}
+          onChange={(e) => onPageSizeChange(Number(e.target.value))}
+          className="select-field !h-9 w-20 !text-xs"
+        >
+          {PAGE_SIZE_OPTIONS.map((n) => (
+            <option key={n} value={n}>{n}</option>
+          ))}
+        </select>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="whitespace-nowrap">מציג {start}-{end} מתוך {totalItems}</span>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onPageChange(page - 1)}
+            disabled={page <= 1}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-text-secondary transition hover:border-brand disabled:opacity-30"
+            title="הקודם"
+          >
+            ‹
+          </button>
+          <button
+            onClick={() => onPageChange(page + 1)}
+            disabled={page >= totalPages}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-text-secondary transition hover:border-brand disabled:opacity-30"
+            title="הבא"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── אייקונים ───────────────────────────────────────────────────────────────────
+
+function ActivityIcon({ type }: { type: ActivityType }) {
+  switch (type) {
+    case "completed":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+          <path d="M5 12.5 10 17.5 19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "opened":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+          <path d="M2.5 12S5.5 5.5 12 5.5 21.5 12 21.5 12 18.5 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+          <circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+        </svg>
+      );
+    case "sent":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+          <path d="M4 12 20 4l-5 16-3-7-8-1Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        </svg>
+      );
+  }
+}
+
+function SearchIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className ?? "h-4 w-4"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
     </svg>
   );
 }
 
-function CsvIcon() {
+function SendIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" aria-hidden>
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+      <path d="M4 12 20 4l-5 16-3-7-8-1Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ExportIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+      <path d="M2.5 12S5.5 5.5 12 5.5 21.5 12 21.5 12 18.5 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+function DotsVerticalIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden>
+      <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+      <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+      <path d="M14 4h6v6M20 4 11 13M19 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LinkOffIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+      <path d="M9 12h6M10 7H7a4 4 0 1 0 0 8h1M14 7h2a4 4 0 1 1 0 8h-1M4 4l16 16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8.5 12.3 11 14.8l4.5-5.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function WarningIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <path d="M12 4 21.5 20h-19L12 4Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M12 10v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="12" cy="17" r="0.9" fill="currentColor" />
+    </svg>
+  );
+}
+
+function SignatureIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <path d="M3 17c2-3 3.5-5 5-5s1.5 3 3 3 2-5 4-5 2 4 3.5 4 1.5-1 2.5-1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4 20h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }

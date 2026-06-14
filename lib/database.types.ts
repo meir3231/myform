@@ -164,6 +164,9 @@ export interface Database {
         };
         Update: Partial<{
           status: SubmissionStatus;
+          token_hash: string;
+          expires_at: string;
+          sent_at: string | null;
           opened_at: string | null;
           completed_at: string | null;
           completed_pdf_path: string | null;
