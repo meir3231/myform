@@ -1,18 +1,17 @@
 // תפקידי משתמשים ב-MyForm (Phase 9 - הרשאות ותפקידים).
 //
 // admin: מנהל מערכת - היחיד שיכול לנהל משתמשים (להוסיף/להסיר/לשנות תפקיד).
-// lawyer / secretary: הרשאות מלאות לעבודה היומיומית (תבניות, שליחה, הגשות),
-// פרט לניהול משתמשים - מקבילים ל-"member" הישן.
-// viewer: צופה-בלבד - גישת קריאה בלבד, ללא יצירה/עריכה/שליחה/מחיקה.
-export type Role = "admin" | "lawyer" | "secretary" | "viewer";
+// editor: הרשאות מלאות לעבודה היומיומית (תבניות, שליחה, הגשות),
+// פרט לניהול משתמשים - מקביל ל-"member" הישן.
+// viewer: צופה - גישת קריאה בלבד, ללא יצירה/עריכה/שליחה/מחיקה.
+export type Role = "admin" | "editor" | "viewer";
 
-export const ROLES: Role[] = ["admin", "lawyer", "secretary", "viewer"];
+export const ROLES: Role[] = ["admin", "editor", "viewer"];
 
 export const ROLE_LABELS: Record<Role, string> = {
   admin: "מנהל",
-  lawyer: "עו\"ד-מקצועי",
-  secretary: "מזכירות-תפעול",
-  viewer: "צופה-בלבד",
+  editor: "עורך",
+  viewer: "צופה",
 };
 
 export function roleLabel(role: string): string {
