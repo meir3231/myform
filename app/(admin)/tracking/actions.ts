@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { generateToken, hashToken } from "@/lib/tokens";
 import { sendFormLinkEmail } from "@/lib/email";
 import { serverEnv } from "@/lib/env";
-import { getSignedUrl } from "@/lib/storage";
+import { getSignedUrl, removeFile } from "@/lib/storage";
 import { logSubmissionEvent } from "@/lib/audit";
 
 const EXPIRY_DAYS = 14;
@@ -17,7 +17,7 @@ async function assertSubmissionOwnership(submissionId: string) {
   const { profile, supabase } = await requireProfile();
   const { data: sub } = await supabase
     .from("submissions")
-    .select("id, org_id, form_id, status, recipient_name, recipient_email")
+    .select("id, org_id, form_id, status, recipient_name, recipient_email, completed_pdf_path")
     .eq("id", submissionId)
     .single();
   if (!sub || sub.org_id !== profile.org_id) throw new Error("הגשה לא נמצאה");
@@ -65,11 +65,11 @@ export async function resendSubmissionLink(submissionId: string): Promise<{ link
     actorId: profile.id,
   });
 
-  revalidatePath("/submissions");
+  revalidatePath("/tracking");
   return { link, emailSent: emailResult.sent, error: emailResult.sent ? undefined : emailResult.error };
 }
 
-// מחדש את הלינק (ללא שליחת מייל) - לצפייה כמו שהלקוח רואה.
+// מחדש את הלינק (ללא שליחת מייל) - לצפייה כמו שהלקוח רואה / להעתקת קישור.
 export async function getSubmissionPreviewLink(submissionId: string): Promise<{ link?: string; error?: string }> {
   const { sub } = await assertSubmissionOwnership(submissionId);
   if (sub.status === "completed") return { error: "ההגשה הושלמה - אין לינק פעיל לצפייה" };
@@ -89,7 +89,7 @@ export async function getSubmissionPreviewLink(submissionId: string): Promise<{ 
   if (updErr) return { error: "עדכון ההגשה נכשל: " + updErr.message };
 
   const { appUrl } = serverEnv();
-  revalidatePath("/submissions");
+  revalidatePath("/tracking");
   return { link: `${appUrl}/fill/${token}` };
 }
 
@@ -129,6 +129,56 @@ export async function expireSubmissionLink(submissionId: string): Promise<{ erro
     actorId: profile.id,
   });
 
-  revalidatePath("/submissions");
+  revalidatePath("/tracking");
+  return {};
+}
+
+// מסמן/מבטל סימון "טופל" עבור הגשה - לצורך מעקב יומיומי במסך מעקב שליחות.
+export async function toggleSubmissionHandled(submissionId: string, handled: boolean): Promise<{ error?: string }> {
+  const { profile } = await requireProfile();
+  assertCanEdit(profile.role);
+  await assertSubmissionOwnership(submissionId);
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("submissions").update({ handled }).eq("id", submissionId);
+  if (error) return { error: "עדכון נכשל: " + error.message };
+
+  revalidatePath("/tracking");
+  return {};
+}
+
+// מוחק הגשה לצמיתות, כולל ניקוי best-effort של קבצים מקושרים ב-Storage.
+export async function deleteSubmission(submissionId: string): Promise<{ error?: string }> {
+  const { profile, supabase } = await requireProfile();
+  assertCanEdit(profile.role);
+  const { sub } = await assertSubmissionOwnership(submissionId);
+
+  const admin = createAdminClient();
+
+  if (sub.completed_pdf_path) {
+    try {
+      await removeFile("completed", sub.completed_pdf_path);
+    } catch {
+      // לא קריטי - ממשיכים במחיקת הרשומה
+    }
+  }
+
+  const { data: signatures } = await supabase
+    .from("signature_audit")
+    .select("signature_image_path")
+    .eq("submission_id", submissionId);
+  for (const sig of signatures ?? []) {
+    if (!sig.signature_image_path) continue;
+    try {
+      await removeFile("signatures", sig.signature_image_path);
+    } catch {
+      // לא קריטי - ממשיכים במחיקת הרשומה
+    }
+  }
+
+  const { error } = await admin.from("submissions").delete().eq("id", submissionId);
+  if (error) return { error: "מחיקת ההגשה נכשלה: " + error.message };
+
+  revalidatePath("/tracking");
   return {};
 }

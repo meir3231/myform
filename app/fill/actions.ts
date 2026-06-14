@@ -192,7 +192,7 @@ export async function submitForm(
           to: adminEmail,
           formName: form.name,
           recipientName: sub.recipient_name,
-          reviewLink: `${appUrl}/submissions/${sub.id}`,
+          reviewLink: `${appUrl}/tracking/${sub.id}`,
         });
       }
     }
@@ -209,7 +209,7 @@ export async function submitForm(
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/submissions");
+  revalidatePath("/tracking");
   revalidatePath("/templates");
 
   return { ok: true, downloadUrl };

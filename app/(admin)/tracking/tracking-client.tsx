@@ -12,6 +12,8 @@ import {
   getSubmissionPreviewLink,
   getCompletedPdfUrl,
   expireSubmissionLink,
+  toggleSubmissionHandled,
+  deleteSubmission,
 } from "./actions";
 
 const VALID_STATUSES: SubmissionStatus[] = ["pending", "opened", "completed", "expired"];
@@ -29,12 +31,13 @@ type SubmissionRow = {
   expires_at: string;
   form_id: string;
   created_by: string | null;
+  handled: boolean;
 };
 
 type Option = { id: string; name: string };
-type RowAction = "resend" | "preview" | "download" | "expire";
+type RowAction = "resend" | "preview" | "download" | "expire" | "copyLink" | "toggleHandled" | "delete";
 
-export function SubmissionsClient({
+export function TrackingClient({
   submissions,
   formName,
   formFolder,
@@ -67,6 +70,7 @@ export function SubmissionsClient({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busyId, setBusyId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
   const { showToast } = useToast();
 
   const [page, setPage] = useState(1);
@@ -177,6 +181,9 @@ export function SubmissionsClient({
     if (action === "expire") {
       if (!confirm("לבטל את הלינק להגשה זו? הלקוח לא יוכל להמשיך למלא את הטופס.")) return;
     }
+    if (action === "delete") {
+      if (!confirm("למחוק את ההגשה לצמיתות? לא ניתן לשחזר פעולה זו.")) return;
+    }
     setBusyId(id);
     try {
       if (action === "resend") {
@@ -200,6 +207,26 @@ export function SubmissionsClient({
         if (res.error) showToast(res.error, "error");
         else {
           showToast("הלינק להגשה זו בוטל", "success");
+          router.refresh();
+        }
+      } else if (action === "copyLink") {
+        const res = await getSubmissionPreviewLink(id);
+        if (res.error) showToast(res.error, "error");
+        else if (res.link) {
+          await navigator.clipboard.writeText(res.link);
+          showToast("הקישור הועתק", "success");
+          router.refresh();
+        }
+      } else if (action === "toggleHandled") {
+        const current = submissions.find((x) => x.id === id);
+        const res = await toggleSubmissionHandled(id, !(current?.handled));
+        if (res.error) showToast(res.error, "error");
+        else router.refresh();
+      } else if (action === "delete") {
+        const res = await deleteSubmission(id);
+        if (res.error) showToast(res.error, "error");
+        else {
+          showToast("ההגשה נמחקה", "success");
           router.refresh();
         }
       }
@@ -246,41 +273,49 @@ export function SubmissionsClient({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `הגשות-${new Date().toLocaleDateString("he-IL")}.csv`;
+    a.download = `מעקב-שליחות-${new Date().toLocaleDateString("he-IL")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
 
   return (
-    <div className="flex h-full flex-col gap-3 overflow-hidden">
+    <div className="flex h-full flex-col gap-2 overflow-hidden">
       {/* כותרת ושורת פעולות */}
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="h1">הגשות</h1>
-          <p className="mt-0.5 text-sm text-paper-muted">מעקב אחר הטפסים שנשלחו ללקוחות וסטטוס המילוי והחתימה שלהם.</p>
+      <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-3">
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h1 className="h1 leading-none">מעקב שליחות</h1>
+          <p className="text-sm text-paper-muted">מעקב אחר הטפסים שנשלחו ללקוחות וסטטוס המילוי והחתימה שלהם.</p>
         </div>
         <div className="flex items-center gap-4">
           {canEdit && (
             <button
               onClick={handleBulkReminder}
               disabled={remindableSelected.length === 0 || bulkBusy}
-              className="btn-secondary"
+              className="btn-primary-lg"
             >
               <SendIcon />
               שליחת תזכורת{remindableSelected.length > 0 ? ` (${remindableSelected.length})` : ""}
             </button>
           )}
-          <button onClick={exportCsv} disabled={filtered.length === 0} className="btn-primary-lg">
+          <button onClick={exportCsv} disabled={filtered.length === 0} className="btn-secondary">
             <ExportIcon />
             ייצוא לאקסל
+          </button>
+          <button
+            onClick={() => setActivityOpen(true)}
+            className="btn-icon xl:hidden"
+            aria-label="פעילות אחרונה"
+            title="פעילות אחרונה"
+          >
+            <ActivityPanelIcon />
           </button>
         </div>
       </div>
 
       {/* KPI */}
-      <div className="kpi-grid grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="kpi-grid grid shrink-0 grid-cols-2 gap-2 lg:grid-cols-4">
         {kpis.map((k) => (
-          <div key={k.label} className="card flex items-center gap-3 p-3">
+          <div key={k.label} className="card flex items-center gap-3 p-2.5">
             <span
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
               style={{ backgroundColor: `${k.color}1a`, color: k.color }}
@@ -296,7 +331,7 @@ export function SubmissionsClient({
       </div>
 
       {/* סרגל פילטרים */}
-      <div className="card flex shrink-0 flex-wrap items-center gap-3 p-4">
+      <div className="card flex shrink-0 flex-wrap items-center gap-3 p-3">
         <div className="relative w-[330px] max-w-full">
           <SearchIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
@@ -314,10 +349,10 @@ export function SubmissionsClient({
           className="select-field w-[190px] max-w-full"
         >
           <option value="all">כל הסטטוסים</option>
-          <option value="pending">נשלח — ממתין</option>
-          <option value="opened">נפתח</option>
+          <option value="pending">נשלח</option>
+          <option value="opened">ממתין</option>
           <option value="completed">הושלם</option>
-          <option value="expired">פג תוקף</option>
+          <option value="expired">דורש תיקון</option>
         </select>
 
         <select
@@ -361,31 +396,10 @@ export function SubmissionsClient({
 
       {/* תוכן ראשי: פעילות אחרונה + טבלת הגשות */}
       <div className="flex min-h-0 flex-1 gap-3 overflow-hidden">
-        {/* פעילות אחרונה */}
+        {/* פעילות אחרונה - דסקטופ */}
         <aside className="card hidden w-[300px] shrink-0 flex-col overflow-hidden p-3 xl:flex">
           <h2 className="h2 mb-2 shrink-0">פעילות אחרונה</h2>
-          {activity.length === 0 ? (
-            <div className="empty-state-pattern flex flex-1 items-center justify-center rounded-xl">
-              <p className="text-sm text-paper-muted">אין עדיין פעילות להצגה.</p>
-            </div>
-          ) : (
-            <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto text-sm">
-              {activity.map((a, i) => (
-                <li key={`${a.id}-${i}`} className="border-b border-soft-border pb-1.5 last:border-0 last:pb-0">
-                  <Link href={`/submissions/${a.id}`} className="flex items-center gap-2.5 rounded-lg p-1 transition hover:bg-background">
-                    <span
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-                      style={{ backgroundColor: `${ACTIVITY_COLORS[a.type]}1a`, color: ACTIVITY_COLORS[a.type] }}
-                    >
-                      <ActivityIcon type={a.type} />
-                    </span>
-                    <p className="min-w-0 flex-1 truncate text-xs text-paper-text">{a.text}</p>
-                    <span className="shrink-0 text-xs text-paper-muted">{formatActivityTime(a.at)}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+          <RecentActivityList activity={activity} />
         </aside>
 
         {/* טבלת הגשות */}
@@ -395,9 +409,9 @@ export function SubmissionsClient({
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand/15 text-brand">
                 <SendIcon />
               </div>
-              <p className="mb-4 text-paper-muted">עדיין אין הגשות. שלח טופס ללקוח כדי להתחיל.</p>
+              <p className="mb-4 text-paper-muted">אין עדיין הגשות.</p>
               {canEdit && (
-                <Link href="/templates" className="btn-primary inline-flex">לתבניות</Link>
+                <Link href="/templates" className="btn-primary inline-flex">שליחת טופס ראשון</Link>
               )}
             </div>
           ) : filtered.length === 0 ? (
@@ -409,16 +423,15 @@ export function SubmissionsClient({
             <>
               {/* טבלה - דסקטופ/טאבלט */}
               <div className="hidden min-h-0 flex-1 overflow-auto md:block">
-                <table className="w-full min-w-[1080px] text-right text-sm">
+                <table className="w-full min-w-[960px] text-right text-sm">
                   <thead className="sticky top-0 z-10 h-12 bg-white text-xs font-medium text-paper-muted">
                     <tr className="border-b border-soft-border">
                       <th className="w-11 px-3"><input type="checkbox" checked={allPagedSelected} onChange={toggleSelectAllPaged} className="h-4 w-4 accent-brand" /></th>
-                      <th className="w-[150px] px-3 text-right">לקוח</th>
+                      <th className="w-[170px] px-3 text-right">לקוח</th>
                       <th className="w-[190px] px-3 text-right">טופס</th>
                       <th className="w-[130px] px-3 text-right">קטגוריה</th>
                       <th className="w-[120px] px-3 text-right">סטטוס</th>
-                      <th className="w-[110px] px-3 text-right">נשלח</th>
-                      <th className="w-[110px] px-3 text-right">הוגש</th>
+                      <th className="w-[110px] px-3 text-right">תאריך שליחה</th>
                       <th className="w-[130px] px-3 text-right">מטפל</th>
                       <th className="w-[120px] px-3 text-right">פעולות</th>
                     </tr>
@@ -470,6 +483,25 @@ export function SubmissionsClient({
           )}
         </div>
       </div>
+
+      {/* פעילות אחרונה - Drawer (מסכים צרים מ-xl) */}
+      {activityOpen && (
+        <>
+          <div className="mobile-nav-backdrop xl:hidden" onClick={() => setActivityOpen(false)} />
+          <aside
+            className="fixed inset-y-0 right-0 z-[9999] flex w-[300px] max-w-[85vw] flex-col overflow-hidden bg-white p-3 shadow-xl xl:hidden"
+            style={{ animation: "drawer-slide-in 0.22s ease-out" }}
+          >
+            <div className="mb-2 flex shrink-0 items-center justify-between">
+              <h2 className="h2">פעילות אחרונה</h2>
+              <button onClick={() => setActivityOpen(false)} className="btn-icon !h-9 !w-9" aria-label="סגירה">
+                <CloseIcon />
+              </button>
+            </div>
+            <RecentActivityList activity={activity} />
+          </aside>
+        </>
+      )}
     </div>
   );
 }
@@ -488,13 +520,15 @@ function handlerName(createdBy: string | null, userName: Map<string, string>): s
 }
 
 type ActivityType = "completed" | "opened" | "sent";
+type ActivityEvent = { id: string; at: string; text: string; type: ActivityType };
+
 const ACTIVITY_COLORS: Record<ActivityType, string> = {
   completed: "#22C55E",
   opened: "#3B82F6",
   sent: "#14B8A6",
 };
 
-function latestEvent(s: SubmissionRow): { id: string; at: string; text: string; type: ActivityType } {
+function latestEvent(s: SubmissionRow): ActivityEvent {
   if (s.completed_at) return { id: s.id, at: s.completed_at, text: `${s.recipient_name} השלים/ה ומילא/ה את הטופס`, type: "completed" };
   if (s.opened_at) return { id: s.id, at: s.opened_at, text: `${s.recipient_name} פתח/ה את הטופס`, type: "opened" };
   return { id: s.id, at: s.sent_at ?? s.created_at, text: `נשלח טופס ל${s.recipient_name}`, type: "sent" };
@@ -519,6 +553,51 @@ function DateCell({ value }: { value: string | null }) {
       <div className="text-paper-text">{d.toLocaleDateString("he-IL")}</div>
       <div className="text-xs text-text-secondary">{d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}</div>
     </div>
+  );
+}
+
+// ─── פאנל פעילות אחרונה (משותף לדסקטופ ול-Drawer) ────────────────────────────────
+
+function RecentActivityList({ activity }: { activity: ActivityEvent[] }) {
+  if (activity.length === 0) {
+    return (
+      <div className="empty-state-pattern flex flex-1 items-center justify-center rounded-xl">
+        <p className="text-sm text-paper-muted">אין עדיין פעילות להצגה.</p>
+      </div>
+    );
+  }
+  return (
+    <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto text-sm">
+      {activity.map((a, i) => (
+        <li key={`${a.id}-${i}`} className="border-b border-soft-border pb-1.5 last:border-0 last:pb-0">
+          <Link href={`/tracking/${a.id}`} className="flex items-center gap-2.5 rounded-lg p-1 transition hover:bg-background">
+            <span
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+              style={{ backgroundColor: `${ACTIVITY_COLORS[a.type]}1a`, color: ACTIVITY_COLORS[a.type] }}
+            >
+              <ActivityIcon type={a.type} />
+            </span>
+            <p className="min-w-0 flex-1 truncate text-xs text-paper-text">{a.text}</p>
+            <span className="shrink-0 text-xs text-paper-muted">{formatActivityTime(a.at)}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ─── תג "טופל" ──────────────────────────────────────────────────────────────────
+
+function HandledBadge() {
+  return (
+    <span
+      title="טופל"
+      className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-success/15 text-success"
+    >
+      <svg viewBox="0 0 24 24" fill="none" className="h-2.5 w-2.5" aria-hidden="true">
+        <path d="M5 12.5 10 17.5 19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
   );
 }
 
@@ -550,15 +629,20 @@ function SubmissionTableRow({
 
   return (
     <tr
-      onClick={() => router.push(`/submissions/${s.id}`)}
+      onClick={() => router.push(`/tracking/${s.id}`)}
       className={`cursor-pointer transition ${selected ? "bg-brand/5" : ""}`}
     >
       <td className="px-3" onClick={(e) => e.stopPropagation()}>
         <input type="checkbox" checked={selected} onChange={onToggleSelect} className="h-4 w-4 accent-brand" />
       </td>
       <td className="px-3">
-        <div className="truncate font-medium text-paper-text">{s.recipient_name}</div>
-        <div className="truncate text-xs text-paper-muted" dir="ltr">{s.recipient_email}</div>
+        <div className="flex items-center gap-1.5">
+          <div className="min-w-0">
+            <div className="truncate font-medium text-paper-text">{s.recipient_name}</div>
+            <div className="truncate text-xs text-paper-muted" dir="ltr">{s.recipient_email}</div>
+          </div>
+          {s.handled && <HandledBadge />}
+        </div>
       </td>
       <td className="px-3 truncate text-paper-text">{formNameStr}</td>
       <td className="px-3 truncate text-text-secondary">{categoryLabelStr}</td>
@@ -566,7 +650,6 @@ function SubmissionTableRow({
         <span className={`badge badge-dot ${meta.className}`}>{meta.label}</span>
       </td>
       <td className="px-3"><DateCell value={s.sent_at} /></td>
-      <td className="px-3"><DateCell value={s.completed_at} /></td>
       <td className="px-3">
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand">
@@ -577,10 +660,10 @@ function SubmissionTableRow({
       </td>
       <td className="px-3" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-1.5">
-          <Link href={`/submissions/${s.id}`} className="btn-icon !h-9 !w-9" title="צפייה">
+          <Link href={`/tracking/${s.id}`} className="btn-icon !h-9 !w-9" title="צפייה">
             <EyeIcon />
           </Link>
-          <RowMenu status={s.status} busy={busy} canEdit={canEdit} onAction={onAction} />
+          <RowMenu id={s.id} status={s.status} handled={s.handled} busy={busy} canEdit={canEdit} onAction={onAction} />
         </div>
       </td>
     </tr>
@@ -609,11 +692,14 @@ function SubmissionCard({
   const meta = STATUS_META[s.status];
 
   return (
-    <Link href={`/submissions/${s.id}`} className="row-card">
+    <Link href={`/tracking/${s.id}`} className="row-card">
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="truncate font-medium text-paper-text">{s.recipient_name}</div>
-          <div className="truncate text-xs text-paper-muted" dir="ltr">{s.recipient_email}</div>
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          <div className="min-w-0">
+            <div className="truncate font-medium text-paper-text">{s.recipient_name}</div>
+            <div className="truncate text-xs text-paper-muted" dir="ltr">{s.recipient_email}</div>
+          </div>
+          {s.handled && <HandledBadge />}
         </div>
         <span className={`badge badge-dot shrink-0 ${meta.className}`}>{meta.label}</span>
       </div>
@@ -629,10 +715,10 @@ function SubmissionCard({
           <span className="truncate text-xs text-text-secondary">{handlerNameStr}</span>
         </div>
         <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-          <Link href={`/submissions/${s.id}`} className="btn-icon !h-9 !w-9" title="צפייה">
+          <Link href={`/tracking/${s.id}`} className="btn-icon !h-9 !w-9" title="צפייה">
             <EyeIcon />
           </Link>
-          <RowMenu status={s.status} busy={busy} canEdit={canEdit} onAction={onAction} />
+          <RowMenu id={s.id} status={s.status} handled={s.handled} busy={busy} canEdit={canEdit} onAction={onAction} />
         </div>
       </div>
     </Link>
@@ -642,12 +728,16 @@ function SubmissionCard({
 // ─── תפריט פעולות שורה (⋮) ──────────────────────────────────────────────────────
 
 function RowMenu({
+  id,
   status,
+  handled,
   busy,
   canEdit,
   onAction,
 }: {
+  id: string;
   status: SubmissionStatus;
+  handled: boolean;
   busy: boolean;
   canEdit: boolean;
   onAction: (action: RowAction) => void;
@@ -669,7 +759,7 @@ function RowMenu({
   function handleToggle() {
     if (!open && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
-      setMenuPos({ top: r.bottom + 4, left: r.left - 160 });
+      setMenuPos({ top: r.bottom + 4, left: r.left - 170 });
     }
     setOpen((o) => !o);
   }
@@ -679,32 +769,52 @@ function RowMenu({
     onAction(action);
   }
 
+  const itemClass = "flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50";
+  const dangerClass = "flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-red-600 transition hover:bg-red-50";
+
   const dropdown = open && menuPos ? createPortal(
     <div
-      className="fixed z-[9999] w-48 overflow-hidden rounded-xl border border-paper-line bg-white py-1 shadow-xl"
+      className="fixed z-[9999] w-52 overflow-hidden rounded-xl border border-paper-line bg-white py-1 shadow-xl"
       style={{ top: menuPos.top, left: Math.max(8, menuPos.left) }}
       data-row-menu-portal
     >
+      <Link href={`/tracking/${id}`} onClick={() => setOpen(false)} className={itemClass}>
+        <EyeIcon /> פתיחה
+      </Link>
       {status !== "completed" && (
-        <button onClick={() => run("preview")} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50">
-          <ExternalLinkIcon /> פתיחה כמו שהלקוח רואה
-        </button>
-      )}
-      {canEdit && status !== "completed" && (
-        <button onClick={() => run("resend")} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50">
-          <SendIcon /> שליחת תזכורת
+        <button onClick={() => run("preview")} className={itemClass}>
+          <ExternalLinkIcon /> צפייה כמו שהלקוח רואה
         </button>
       )}
       {status === "completed" && (
-        <button onClick={() => run("download")} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50">
+        <button onClick={() => run("download")} className={itemClass}>
           <DownloadIcon /> הורדת PDF חתום
         </button>
       )}
-      {canEdit && (status === "pending" || status === "opened") && (
+      {canEdit && status !== "completed" && (
+        <button onClick={() => run("resend")} className={itemClass}>
+          <SendIcon /> {status === "expired" ? "שליחה מחדש" : "שליחת תזכורת"}
+        </button>
+      )}
+      {status !== "completed" && (
+        <button onClick={() => run("copyLink")} className={itemClass}>
+          <LinkIcon /> העתקת קישור
+        </button>
+      )}
+      <div className="my-1 border-t border-paper-line" />
+      <button onClick={() => run("toggleHandled")} className={itemClass}>
+        <CheckSquareIcon /> {handled ? "סימון כלא טופל" : "סימון כטופל"}
+      </button>
+      {canEdit && (
         <>
           <div className="my-1 border-t border-paper-line" />
-          <button onClick={() => run("expire")} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-red-600 transition hover:bg-red-50">
-            <LinkOffIcon /> ביטול קישור
+          {(status === "pending" || status === "opened") && (
+            <button onClick={() => run("expire")} className={dangerClass}>
+              <LinkOffIcon /> ביטול קישור
+            </button>
+          )}
+          <button onClick={() => run("delete")} className={dangerClass}>
+            <TrashIcon /> מחיקה
           </button>
         </>
       )}
@@ -869,6 +979,48 @@ function LinkOffIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
       <path d="M9 12h6M10 7H7a4 4 0 1 0 0 8h1M14 7h2a4 4 0 1 1 0 8h-1M4 4l16 16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LinkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+      <path d="M10 14a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1 1M14 10a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1-1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CheckSquareIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="3" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M7.5 12.5 11 16l5.5-6.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+      <path d="M4 7h16M9 7V4.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1V7M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ActivityPanelIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+      <path d="M5 5l14 14M19 5 5 19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }

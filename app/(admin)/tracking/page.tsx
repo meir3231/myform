@@ -1,14 +1,14 @@
 import { Suspense } from "react";
 import { requireProfile } from "@/lib/auth";
 import { canEdit } from "@/lib/permissions";
-import { SubmissionsClient } from "./submissions-client";
+import { TrackingClient } from "./tracking-client";
 
-export default async function SubmissionsPage() {
+export default async function TrackingPage() {
   const { profile, supabase } = await requireProfile();
 
   const submissionsQuery = supabase
     .from("submissions")
-    .select("id, recipient_name, recipient_email, status, sent_at, opened_at, completed_at, created_at, expires_at, form_id, created_by")
+    .select("id, recipient_name, recipient_email, status, sent_at, opened_at, completed_at, created_at, expires_at, form_id, created_by, handled")
     .order("created_at", { ascending: false });
 
   const formsQuery = supabase
@@ -42,7 +42,7 @@ export default async function SubmissionsPage() {
 
   return (
     <Suspense fallback={null}>
-      <SubmissionsClient
+      <TrackingClient
         submissions={submissions ?? []}
         formName={formName}
         formFolder={formFolder}

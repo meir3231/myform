@@ -41,7 +41,7 @@ export async function AdminShell({
         )}
 
         <div className="header-user-area">
-          <Link href="/submissions" className="header-icon-btn" aria-label="התראות על הגשות ממתינות">
+          <Link href="/tracking" className="header-icon-btn" aria-label="התראות על שליחות ממתינות">
             <BellIcon />
             <Suspense fallback={null}>
               <AlertBadge />

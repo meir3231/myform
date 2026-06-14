@@ -29,7 +29,7 @@ export function SignatureModal({
     ctx?.scale(ratio, ratio);
 
     padRef.current = new SignaturePad(canvas, {
-      penColor: "#1d4ed8",
+      penColor: "#14213D",
       backgroundColor: "rgba(255,255,255,0)",
     });
 

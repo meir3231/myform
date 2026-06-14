@@ -39,7 +39,7 @@ export default async function SubmissionDetailPage({
     <div className="page-fade-in mx-auto max-w-4xl">
       <Breadcrumbs
         items={[
-          { label: "הגשות", href: "/submissions" },
+          { label: "מעקב שליחות", href: "/tracking" },
           { label: sub.recipient_name },
         ]}
       />

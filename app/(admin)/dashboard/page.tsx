@@ -24,7 +24,7 @@ const STATUS_COLORS: Record<SubmissionStatus, string> = {
   completed: "#22C55E",
   pending: "#F59E0B",
   opened: "#3B82F6",
-  expired: "#94A3B8",
+  expired: "#64748B",
 };
 
 type ActivityType = "completed" | "opened" | "sent" | "created";
@@ -32,7 +32,7 @@ const ACTIVITY_COLORS: Record<ActivityType, string> = {
   completed: "#22C55E",
   opened: "#3B82F6",
   sent: "#14B8A6",
-  created: "#94A3B8",
+  created: "#64748B",
 };
 
 function within(at: string | null, startMs: number, endMs: number) {
@@ -116,7 +116,7 @@ export default async function DashboardPage() {
       color: "#F59E0B",
       trend: pendingThisWeek - pendingPrevWeek,
       trendLabel: "מהשבוע שעבר",
-      href: "/submissions?status=pending",
+      href: "/tracking?status=pending",
     },
     {
       label: "הושלמו",
@@ -125,7 +125,7 @@ export default async function DashboardPage() {
       color: "#22C55E",
       trend: completedThisWeek - completedPrevWeek,
       trendLabel: "מהשבוע שעבר",
-      href: "/submissions?status=completed",
+      href: "/tracking?status=completed",
     },
     {
       label: "נשלחו השבוע",
@@ -134,7 +134,7 @@ export default async function DashboardPage() {
       color: "#3B82F6",
       trend: sentThisWeek - sentPrevWeek,
       trendLabel: "מהשבוע שעבר",
-      href: "/submissions",
+      href: "/tracking",
     },
     {
       label: "טפסים פעילים",
@@ -187,21 +187,21 @@ export default async function DashboardPage() {
       count: subs.filter((s) => s.status === "opened").length,
       icon: <EyeIcon />,
       color: "#3B82F6",
-      href: "/submissions?status=opened",
+      href: "/tracking?status=opened",
     },
     {
       label: "ממתינים לחתימה מעל 3 ימים",
       count: subs.filter((s) => s.status === "pending" && s.sent_at && now - new Date(s.sent_at).getTime() > 3 * DAY_MS).length,
       icon: <PendingIcon />,
       color: "#F59E0B",
-      href: "/submissions?status=pending",
+      href: "/tracking?status=pending",
     },
     {
       label: "טפסים שפג תוקפם",
       count: subs.filter((s) => s.status === "expired").length,
       icon: <WarningIcon />,
       color: "#EF4444",
-      href: "/submissions?status=expired",
+      href: "/tracking?status=expired",
     },
   ];
 
@@ -259,7 +259,7 @@ export default async function DashboardPage() {
         <section className="card flex h-[320px] min-h-0 flex-col overflow-hidden p-3 lg:h-full">
           <div className="mb-2 flex shrink-0 items-center justify-between">
             <h2 className="h2">פעילות אחרונה</h2>
-            <Link href="/submissions" className="text-sm text-brand transition hover:underline">
+            <Link href="/tracking" className="text-sm text-brand transition hover:underline">
               צפה בהכל
             </Link>
           </div>
@@ -271,7 +271,7 @@ export default async function DashboardPage() {
             <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto text-sm">
               {activity.map((a, i) => (
                 <li key={i} className="border-b border-paper-line pb-1.5 last:border-0 last:pb-0">
-                  <Link href={`/submissions/${a.id}`} className="flex items-center gap-2.5 rounded-lg transition hover:bg-background">
+                  <Link href={`/tracking/${a.id}`} className="flex items-center gap-2.5 rounded-lg transition hover:bg-background">
                     <span
                       className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                       style={{ backgroundColor: `${ACTIVITY_COLORS[a.type]}1a`, color: ACTIVITY_COLORS[a.type] }}
@@ -293,7 +293,7 @@ export default async function DashboardPage() {
         <section className="card flex h-[280px] min-h-0 flex-col overflow-hidden p-3 lg:h-full">
           <div className="mb-2 flex shrink-0 items-center justify-between">
             <h2 className="h2">משימות מהירות</h2>
-            <Link href="/submissions" className="text-sm text-brand transition hover:underline">
+            <Link href="/tracking" className="text-sm text-brand transition hover:underline">
               לכל המשימות
             </Link>
           </div>
@@ -327,7 +327,7 @@ export default async function DashboardPage() {
         <section className="card flex h-[280px] min-h-0 flex-col overflow-hidden p-3 lg:h-full">
           <div className="mb-2 flex shrink-0 items-center justify-between">
             <h2 className="h2">סקירת שליחות</h2>
-            <Link href="/submissions" className="text-sm text-brand transition hover:underline">
+            <Link href="/tracking" className="text-sm text-brand transition hover:underline">
               צפה בהכל
             </Link>
           </div>
@@ -346,7 +346,7 @@ export default async function DashboardPage() {
             <h2 className="h2">מגמה שבועית</h2>
             <div className="flex items-center gap-3">
               <span className="text-xs text-paper-muted">7 הימים האחרונים</span>
-              <Link href="/submissions" className="text-sm text-brand transition hover:underline">
+              <Link href="/tracking" className="text-sm text-brand transition hover:underline">
                 צפה בהכל
               </Link>
             </div>

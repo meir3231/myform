@@ -10,6 +10,7 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/dashboard") ||
     path.startsWith("/forms") ||
     path.startsWith("/submissions") ||
+    path.startsWith("/tracking") ||
     path.startsWith("/settings") ||
     path.startsWith("/templates");
 

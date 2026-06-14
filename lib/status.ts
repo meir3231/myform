@@ -5,10 +5,10 @@ export const STATUS_META: Record<
   SubmissionStatus,
   { label: string; className: string }
 > = {
-  pending: { label: "נשלח — ממתין", className: "bg-amber-200 text-amber-900" },
-  opened: { label: "נפתח", className: "bg-orange-100 text-orange-700" },
-  completed: { label: "הושלם", className: "bg-green-100 text-green-700" },
-  expired: { label: "פג תוקף", className: "bg-slate-200 text-slate-600" },
+  pending: { label: "נשלח", className: "bg-soft-border text-text-secondary" },
+  opened: { label: "ממתין", className: "bg-info/10 text-info" },
+  completed: { label: "הושלם", className: "bg-success/10 text-success" },
+  expired: { label: "דורש תיקון", className: "bg-warning/10 text-warning" },
 };
 
 // תוויות וצבעים ליומן הביקורת של הגשה (סעיף 12 ב-v2 / Phase 12).

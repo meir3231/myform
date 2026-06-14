@@ -57,7 +57,7 @@ export function FillFieldBox({
   // הדגשת שדות למילוי: רקע תכלת עדין + מסגרת זהובה, כדי שיהיה קל לזהות
   // אילו שדות צריך למלא. שדות נעולים (readOnly, מועתקים אוטומטית) נשארים
   // בעיצוב הניטרלי הקיים — הם לא דורשים פעולה מהלקוח.
-  const highlightRing = "0 0 0 1.5px #f5c542";
+  const highlightRing = "0 0 0 1.5px #F59E0B";
   const highlightBg = "rgba(45, 212, 207, 0.18)";
   const ring = invalid ? "0 0 0 2px #ef4444" : highlightRing;
   const fontSize = Math.max(9, field.height * pageH * 0.5);

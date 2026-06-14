@@ -25,3 +25,12 @@ export async function downloadFile(
   if (error || !data) throw new Error("הורדת הקובץ נכשלה: " + error?.message);
   return new Uint8Array(await data.arrayBuffer());
 }
+
+// מוחק קובץ מ-bucket פרטי. שרת בלבד.
+export async function removeFile(
+  bucket: "originals" | "completed" | "signatures",
+  path: string
+): Promise<void> {
+  const admin = createAdminClient();
+  await admin.storage.from(bucket).remove([path]);
+}

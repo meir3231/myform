@@ -7,7 +7,7 @@ export default function DashboardLoading() {
       </div>
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-xl border border-paper-line bg-white p-4" style={{ borderTop: "3px solid #e5e7eb" }}>
+          <div key={i} className="rounded-xl border border-paper-line bg-white p-4" style={{ borderTop: "3px solid #EEF2F7" }}>
             <div className="flex items-center gap-3">
               <div className="skeleton h-10 w-10 rounded-xl" />
               <div className="space-y-2">

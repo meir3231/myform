@@ -14,6 +14,12 @@ const nextConfig = {
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
+  async redirects() {
+    return [
+      { source: "/submissions", destination: "/tracking", permanent: true },
+      { source: "/submissions/:id", destination: "/tracking/:id", permanent: true },
+    ];
+  },
   // ודא שפונט העברית להשטחת ה-PDF נכלל ב-bundle של ה-serverless functions.
   outputFileTracingIncludes: {
     "/**": ["./public/fonts/Heebo.ttf"],

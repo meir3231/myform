@@ -13,10 +13,10 @@ function getBreadcrumb(pathname: string): Crumb[] | null {
   switch (segments[0]) {
     case "templates":
       return [{ label: "תבניות" }];
-    case "submissions":
+    case "tracking":
       return segments.length > 1
-        ? [{ label: "הגשות", href: "/submissions" }, { label: "פרטי הגשה" }]
-        : [{ label: "הגשות" }];
+        ? [{ label: "מעקב שליחות", href: "/tracking" }, { label: "פרטי הגשה" }]
+        : [{ label: "מעקב שליחות" }];
     case "settings":
       return segments[1] === "users"
         ? [{ label: "הגדרות", href: "/settings" }, { label: "ניהול משתמשים" }]
@@ -41,6 +41,8 @@ export function AdminMain({ children }: { children: React.ReactNode }) {
   const isFormEditor = /^\/forms\/[^/]+\/edit/.test(pathname);
   // מסך התבניות זקוק לגובה מקסימלי לרשימה/תצוגה המקדימה, עם פחות "אוויר" בראש העמוד.
   const isTemplatesPage = pathname === "/templates";
+  // מסך מעקב שליחות זקוק לגובה מקסימלי לטבלה, באותו אופן כמו מסך התבניות.
+  const isTrackingPage = pathname === "/tracking";
 
   return (
     <main
@@ -49,11 +51,11 @@ export function AdminMain({ children }: { children: React.ReactNode }) {
     >
       <div
         className={`mx-auto h-full px-4 sm:px-8 lg:px-10 ${
-          isFormEditor || isTemplatesPage ? "py-4" : "py-8"
-        } ${isDashboard || isFormEditor ? "" : "max-w-6xl"}`}
+          isTrackingPage ? "py-3" : isFormEditor || isTemplatesPage ? "py-4" : "py-8"
+        } ${isDashboard || isFormEditor || isTrackingPage ? "" : "max-w-6xl"}`}
       >
         {breadcrumb && !isFormEditor && (
-          <nav className={`flex items-center gap-1.5 text-sm text-text-secondary ${isTemplatesPage ? "mb-2" : "mb-3"}`}>
+          <nav className={`flex items-center gap-1.5 text-sm text-text-secondary ${isTemplatesPage || isTrackingPage ? "mb-1.5" : "mb-3"}`}>
             <Link href="/dashboard" className="transition hover:text-brand">
               לוח בקרה
             </Link>

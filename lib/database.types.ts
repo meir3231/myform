@@ -149,6 +149,7 @@ export interface Database {
           completed_pdf_path: string | null;
           created_by: string | null;
           created_at: string;
+          handled: boolean;
         };
         Insert: {
           id?: string;
@@ -165,6 +166,7 @@ export interface Database {
           completed_pdf_path?: string | null;
           created_by?: string | null;
           created_at?: string;
+          handled?: boolean;
         };
         Update: Partial<{
           status: SubmissionStatus;
@@ -174,6 +176,7 @@ export interface Database {
           opened_at: string | null;
           completed_at: string | null;
           completed_pdf_path: string | null;
+          handled: boolean;
         }>;
         Relationships: [];
       };

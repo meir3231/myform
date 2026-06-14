@@ -200,7 +200,7 @@ export async function createSubmission(
     actorId: profile.id,
   });
 
-  revalidatePath("/submissions");
+  revalidatePath("/tracking");
   revalidatePath("/dashboard");
   return { link, emailSent: emailResult.sent, emailError: emailResult.error, submissionId: submission.id };
 }

@@ -112,7 +112,7 @@ export function SendForm({
 
         <div className="flex flex-wrap gap-2">
           {state.submissionId && (
-            <Link href={`/submissions/${state.submissionId}`} className="btn-primary">
+            <Link href={`/tracking/${state.submissionId}`} className="btn-primary">
               פתח הגשה
             </Link>
           )}

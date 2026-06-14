@@ -1,14 +1,14 @@
-export default function SubmissionsLoading() {
+export default function TrackingLoading() {
   return (
     <div className="flex h-full flex-col gap-3 overflow-hidden">
       {/* כותרת ושורת פעולות */}
       <div className="flex shrink-0 items-center justify-between gap-3">
         <div className="space-y-2">
-          <div className="skeleton h-8 w-24 rounded-lg" />
+          <div className="skeleton h-8 w-32 rounded-lg" />
           <div className="skeleton h-4 w-64 rounded" />
         </div>
         <div className="flex items-center gap-4">
-          <div className="skeleton h-11 w-44 rounded-xl" />
+          <div className="skeleton h-12 w-44 rounded-xl" />
           <div className="skeleton h-12 w-44 rounded-xl" />
         </div>
       </div>
@@ -50,7 +50,7 @@ export default function SubmissionsLoading() {
           <table className="w-full text-right text-sm">
             <thead>
               <tr className="border-b border-soft-border">
-                {[...Array(9)].map((_, i) => (
+                {[...Array(8)].map((_, i) => (
                   <th key={i} className="px-3 py-3">
                     <div className="skeleton h-4 w-16 rounded" />
                   </th>
@@ -60,7 +60,7 @@ export default function SubmissionsLoading() {
             <tbody>
               {[...Array(8)].map((_, i) => (
                 <tr key={i} className="border-b border-soft-border">
-                  {[...Array(9)].map((_, j) => (
+                  {[...Array(8)].map((_, j) => (
                     <td key={j} className="px-3 py-3">
                       <div className="skeleton h-4 w-full rounded" />
                     </td>

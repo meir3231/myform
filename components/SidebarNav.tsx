@@ -12,7 +12,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "דשבורד", icon: DashboardIcon },
   { href: "/templates", label: "תבניות", icon: TemplatesIcon },
-  { href: "/submissions", label: "הגשות", icon: SubmissionsIcon },
+  { href: "/tracking", label: "מעקב שליחות", icon: SubmissionsIcon },
   { href: "/settings", label: "הגדרות", icon: SettingsIcon },
 ];
 
