@@ -6,11 +6,17 @@ import { SiteFooter } from "@/components/SiteFooter";
 // דף ציבורי — ללא אימות מנהל. הגישה דרך הטוקן בלבד.
 export const dynamic = "force-dynamic";
 
-// פס מיתוג מינימלי — מופיע גם בדפי הודעה וגם בדף המילוי, ללא ניווט (דף ציבורי).
-function BrandBar() {
+// כותרת לקוח — h=64px (מובייל) / 72px (דסקטופ), לוגו קטן + שם הטופס.
+// מופיעה גם בדפי הודעה וגם בדף המילוי, ללא ניווט (דף ציבורי).
+function BrandBar({ formName }: { formName?: string }) {
   return (
-    <header className="border-b border-paper-line bg-white/70 px-4 py-3 backdrop-blur-sm">
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-paper-line bg-white/80 px-4 backdrop-blur-sm sm:h-[72px] sm:px-6">
       <BrandLogo size="sm" />
+      {formName && (
+        <span className="truncate text-sm font-semibold text-paper-text sm:text-base">
+          {formName}
+        </span>
+      )}
     </header>
   );
 }
@@ -57,8 +63,8 @@ export default async function FillPage({
 
   return (
     <div className="flex min-h-screen flex-col bg-paper">
-      <BrandBar />
-      <main className="flex-1 px-4 py-6">
+      <BrandBar formName={result.formName} />
+      <main className="flex-1 px-4 py-6 sm:px-6">
         <FillerLoader
           token={token}
           pdfUrl={result.pdfUrl}
@@ -67,6 +73,7 @@ export default async function FillPage({
           initialValues={result.initialValues}
           recipientName={result.recipientName}
           formName={result.formName}
+          orgName={result.orgName}
         />
       </main>
       <SiteFooter />

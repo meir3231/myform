@@ -9,6 +9,7 @@ type LoadResult =
       status: "ok";
       submissionId: string;
       formName: string;
+      orgName: string;
       recipientName: string;
       pageCount: number;
       pdfUrl: string;
@@ -42,10 +43,16 @@ export async function loadSubmissionForFill(token: string): Promise<LoadResult> 
 
   const { data: form } = await admin
     .from("forms")
-    .select("id, name, original_pdf_path, page_count")
+    .select("id, name, org_id, original_pdf_path, page_count")
     .eq("id", sub.form_id)
     .single();
   if (!form) return { status: "notfound" };
+
+  const { data: org } = await admin
+    .from("organizations")
+    .select("name")
+    .eq("id", form.org_id)
+    .single();
 
   const { data: fields } = await admin
     .from("form_fields")
@@ -78,6 +85,7 @@ export async function loadSubmissionForFill(token: string): Promise<LoadResult> 
     status: "ok",
     submissionId: sub.id,
     formName: form.name,
+    orgName: org?.name ?? "",
     recipientName: sub.recipient_name ?? "",
     pageCount: form.page_count,
     pdfUrl,

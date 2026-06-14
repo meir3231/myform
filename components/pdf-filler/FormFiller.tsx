@@ -5,9 +5,14 @@ import { Document, pdfjs } from "react-pdf";
 import type { FieldDraft } from "@/lib/fields";
 import { submitForm, type SubmitState } from "@/app/fill/actions";
 import { useToast } from "@/components/Toast";
+import { BrandLogo } from "@/components/BrandLogo";
 import { FillFieldBox } from "./FillFieldBox";
 import { PdfPageCanvas } from "./PdfPageCanvas";
 import { SignatureModal } from "./SignatureModal";
+
+// כפתור פעולה ראשי במסך הלקוח: רוחב מלא, h=50px (מובייל) / 48px (דסקטופ).
+const PRIMARY_FULL =
+  "flex h-[50px] w-full items-center justify-center rounded-xl bg-brand text-base font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50 sm:h-12 sm:text-sm";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -72,6 +77,7 @@ export default function FormFiller({
   initialValues,
   recipientName,
   formName,
+  orgName,
 }: {
   token: string;
   pdfUrl: string;
@@ -80,6 +86,7 @@ export default function FormFiller({
   initialValues: Record<string, string>;
   recipientName: string;
   formName: string;
+  orgName: string;
 }) {
   // מיפוי שדה-מקור ← רשימת שדות-יעד שמועתקים ממנו אוטומטית בזמן המילוי
   // (לדוגמה: "שם" שחוזר על עצמו בכמה עמודים — הלקוח ממלא רק את שדה המקור).
@@ -108,7 +115,18 @@ export default function FormFiller({
   const [invalidIds, setInvalidIds] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [started, setStarted] = useState(false);
   const { showToast } = useToast();
+
+  // התקדמות: שדות חובה (לא כולל שדות "יעד" שמוזנים אוטומטית מהעתקה)
+  const requiredFields = fields.filter((f) => f.required && !linkedFieldIds.has(f.id));
+  const completedCount = requiredFields.filter((f) => {
+    if (f.type === "signature" || f.type === "initials") return !!signatures[f.id];
+    if (f.type === "checkbox") return values[f.id] === "true";
+    return !!values[f.id]?.trim();
+  }).length;
+  const totalRequired = requiredFields.length;
+  const progressPercent = totalRequired > 0 ? Math.round((completedCount / totalRequired) * 100) : 100;
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -167,28 +185,63 @@ export default function FormFiller({
 
   if (done) {
     return (
-      <div className="mx-auto max-w-md rounded-2xl bg-white p-8 text-center shadow-sm">
-        <div className="mb-3 text-5xl">✓</div>
-        <h2 className="mb-2 text-xl font-bold text-slate-800">הטופס נשלח בהצלחה</h2>
-        <p className="mb-5 text-slate-500">תודה {recipientName}. הטופס נשמר ונחתם.</p>
-        <a
-          href={`/api/download-completed?token=${encodeURIComponent(token)}`}
-          className="inline-block w-full rounded-lg bg-brand py-2.5 font-medium text-white hover:bg-brand-dark"
-        >
-          הורדת עותק חתום (PDF)
-        </a>
+      <div className="mx-auto flex min-h-[calc(100vh-12rem)] max-w-md flex-col items-center justify-center text-center">
+        <div className="page-fade-in card w-full p-8">
+          <div className="mb-3 text-5xl">✓</div>
+          <h2 className="mb-2 text-xl font-bold text-paper-text">הטופס נשלח בהצלחה</h2>
+          <p className="mb-6 text-sm text-text-secondary">
+            תודה{recipientName ? ` ${recipientName}` : ""}. הטופס נשמר ונחתם.
+          </p>
+          <a
+            href={`/api/download-completed?token=${encodeURIComponent(token)}`}
+            className={PRIMARY_FULL}
+          >
+            הורדת עותק חתום (PDF)
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (!started) {
+    return (
+      <div className="mx-auto flex min-h-[calc(100vh-12rem)] max-w-md flex-col items-center justify-center text-center">
+        <div className="page-fade-in card w-full p-8">
+          <BrandLogo size="lg" className="mx-auto mb-6 justify-center" />
+          {orgName && (
+            <p className="mb-1 text-sm text-text-secondary">טופס מאת {orgName}</p>
+          )}
+          <h1 className="mb-3 text-xl font-bold text-paper-text">{formName}</h1>
+          <p className="mb-6 text-sm leading-relaxed text-text-secondary">
+            {recipientName ? `שלום ${recipientName}, ` : ""}
+            אנא מלא/י את השדות המסומנים וחתום/חתמי במקומות הנדרשים. התהליך נמשך מספר
+            דקות בלבד ואינו דורש הרשמה.
+          </p>
+          <button onClick={() => setStarted(true)} className={PRIMARY_FULL}>
+            התחל מילוי
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl pb-28">
-      <div className="mb-4 rounded-2xl bg-white p-5 shadow-sm">
-        <h1 className="text-xl font-bold text-slate-800">{formName}</h1>
-        <p className="text-sm text-slate-500">
-          שלום {recipientName}, אנא מלא/י את השדות וחתום/חתמי במקומות המסומנים.
-        </p>
-      </div>
+    <div className="mx-auto max-w-[760px] pb-28">
+      {totalRequired > 0 && (
+        <div className="sticky top-16 z-10 -mx-4 mb-4 border-b border-paper-line bg-white/90 px-4 py-2 backdrop-blur-sm sm:top-[72px] sm:-mx-6 sm:px-6">
+          <div className="mx-auto flex max-w-[760px] items-center gap-3">
+            <span className="shrink-0 text-xs font-medium text-text-secondary">
+              {completedCount} מתוך {totalRequired} שדות חובה הושלמו
+            </span>
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-soft-border">
+              <div
+                className="h-full rounded-full bg-brand transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div ref={containerRef} className="flex flex-col items-center gap-6">
         <Document
@@ -230,15 +283,10 @@ export default function FormFiller({
         </Document>
       </div>
 
-      {/* סרגל שליחה קבוע בתחתית */}
-      <div className="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/95 p-4 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-          <p className="text-sm text-slate-400">סך הכל {fields.length} שדות</p>
-          <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="rounded-lg bg-brand px-6 py-2.5 font-medium text-white hover:bg-brand-dark disabled:opacity-50"
-          >
+      {/* סרגל שליחה קבוע בתחתית — כפתור ברוחב מלא, h=50px (מובייל) / 48px (דסקטופ) */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-paper-line bg-white/95 p-4 backdrop-blur sm:px-6">
+        <div className="mx-auto max-w-[760px]">
+          <button onClick={handleSubmit} disabled={submitting} className={PRIMARY_FULL}>
             {submitting ? "שולח..." : "סיום ושליחה"}
           </button>
         </div>

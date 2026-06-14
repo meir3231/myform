@@ -6,12 +6,10 @@ import type { FieldDraft } from "@/lib/fields";
 const FormFiller = dynamic(() => import("./FormFiller"), {
   ssr: false,
   loading: () => (
-    <div className="mx-auto w-full max-w-3xl space-y-4">
+    <div className="mx-auto w-full max-w-[760px] space-y-4">
       <div className="skeleton h-8 w-1/3" />
       <div className="skeleton h-[28rem] w-full" />
-      <div className="flex justify-end gap-2">
-        <div className="skeleton h-10 w-28" />
-      </div>
+      <div className="skeleton h-[50px] w-full sm:h-12" />
     </div>
   ),
 });
@@ -24,6 +22,7 @@ export function FillerLoader(props: {
   initialValues: Record<string, string>;
   recipientName: string;
   formName: string;
+  orgName: string;
 }) {
   return <FormFiller {...props} />;
 }

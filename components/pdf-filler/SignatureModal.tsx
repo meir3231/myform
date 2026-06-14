@@ -51,7 +51,7 @@ export function SignatureModal({
         <h3 className="mb-3 text-lg font-semibold text-slate-800">{title}</h3>
         <canvas
           ref={canvasRef}
-          className="h-48 w-full touch-none rounded-lg border-2 border-dashed border-slate-300 bg-slate-50"
+          className="h-[180px] w-full touch-none rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 sm:h-[160px]"
         />
         <div className="mt-4 flex justify-between gap-2">
           <button
