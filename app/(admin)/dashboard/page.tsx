@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
+import { canEdit } from "@/lib/permissions";
 import { QuickActions } from "./quick-actions";
 import { DonutChart, WeeklyTrendChart } from "./charts";
 import { STATUS_META } from "@/lib/status";
@@ -214,6 +215,7 @@ export default async function DashboardPage() {
         <QuickActions
           forms={(forms ?? []).filter((f) => !f.archived_at).map((f) => ({ id: f.id, name: f.name, page_count: f.page_count, folder_id: f.folder_id }))}
           folders={folders ?? []}
+          canEdit={canEdit(profile.role)}
         />
       </div>
 

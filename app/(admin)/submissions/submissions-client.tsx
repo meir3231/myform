@@ -42,6 +42,7 @@ export function SubmissionsClient({
   userName,
   folderOptions,
   userOptions,
+  canEdit,
 }: {
   submissions: SubmissionRow[];
   formName: Map<string, string>;
@@ -50,6 +51,7 @@ export function SubmissionsClient({
   userName: Map<string, string>;
   folderOptions: Option[];
   userOptions: Option[];
+  canEdit: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -263,14 +265,16 @@ export function SubmissionsClient({
           <p className="mt-0.5 text-sm text-paper-muted">מעקב אחר הטפסים שנשלחו ללקוחות וסטטוס המילוי והחתימה שלהם.</p>
         </div>
         <div className="flex items-center gap-4">
-          <button
-            onClick={handleBulkReminder}
-            disabled={remindableSelected.length === 0 || bulkBusy}
-            className="btn-secondary"
-          >
-            <SendIcon />
-            שליחת תזכורת{remindableSelected.length > 0 ? ` (${remindableSelected.length})` : ""}
-          </button>
+          {canEdit && (
+            <button
+              onClick={handleBulkReminder}
+              disabled={remindableSelected.length === 0 || bulkBusy}
+              className="btn-secondary"
+            >
+              <SendIcon />
+              שליחת תזכורת{remindableSelected.length > 0 ? ` (${remindableSelected.length})` : ""}
+            </button>
+          )}
           <button onClick={exportCsv} disabled={filtered.length === 0} className="btn-primary-lg">
             <ExportIcon />
             ייצוא לאקסל
@@ -427,6 +431,7 @@ export function SubmissionsClient({
                         handlerNameStr={handlerName(s.created_by, userName)}
                         selected={selected.has(s.id)}
                         busy={busyId === s.id}
+                        canEdit={canEdit}
                         onToggleSelect={() => toggleSelect(s.id)}
                         onAction={(action) => handleRowAction(s.id, action)}
                       />
@@ -519,6 +524,7 @@ function SubmissionTableRow({
   handlerNameStr,
   selected,
   busy,
+  canEdit,
   onToggleSelect,
   onAction,
 }: {
@@ -528,6 +534,7 @@ function SubmissionTableRow({
   handlerNameStr: string;
   selected: boolean;
   busy: boolean;
+  canEdit: boolean;
   onToggleSelect: () => void;
   onAction: (action: RowAction) => void;
 }) {
@@ -566,7 +573,7 @@ function SubmissionTableRow({
           <Link href={`/submissions/${s.id}`} className="btn-icon !h-9 !w-9" title="צפייה">
             <EyeIcon />
           </Link>
-          <RowMenu status={s.status} busy={busy} onAction={onAction} />
+          <RowMenu status={s.status} busy={busy} canEdit={canEdit} onAction={onAction} />
         </div>
       </td>
     </tr>
@@ -578,10 +585,12 @@ function SubmissionTableRow({
 function RowMenu({
   status,
   busy,
+  canEdit,
   onAction,
 }: {
   status: SubmissionStatus;
   busy: boolean;
+  canEdit: boolean;
   onAction: (action: RowAction) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -622,7 +631,7 @@ function RowMenu({
           <ExternalLinkIcon /> פתיחה כמו שהלקוח רואה
         </button>
       )}
-      {status !== "completed" && (
+      {canEdit && status !== "completed" && (
         <button onClick={() => run("resend")} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50">
           <SendIcon /> שליחת תזכורת
         </button>
@@ -632,7 +641,7 @@ function RowMenu({
           <DownloadIcon /> הורדת PDF חתום
         </button>
       )}
-      {(status === "pending" || status === "opened") && (
+      {canEdit && (status === "pending" || status === "opened") && (
         <>
           <div className="my-1 border-t border-paper-line" />
           <button onClick={() => run("expire")} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-red-600 transition hover:bg-red-50">

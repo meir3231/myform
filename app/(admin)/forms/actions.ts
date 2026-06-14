@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
+import { assertCanEdit } from "@/lib/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { readPdfMeta } from "@/lib/pdf/server";
 import { FIELD_TYPES, type FieldDraft } from "@/lib/fields";
@@ -18,6 +19,7 @@ const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20 MB
 async function assertFormOwnership(formId: string) {
   if (!UUID_RE.test(formId)) throw new Error("מזהה טופס לא תקין");
   const { profile, supabase } = await requireProfile();
+  assertCanEdit(profile.role);
   const { data: form } = await supabase
     .from("forms")
     .select("id, org_id, name, page_count, archived_at")
@@ -203,6 +205,7 @@ export async function createForm(
   formData: FormData
 ): Promise<FormActionState> {
   const { profile } = await requireProfile();
+  assertCanEdit(profile.role);
 
   const name = (formData.get("name") as string)?.trim();
   const file = formData.get("file") as File | null;
@@ -259,6 +262,7 @@ export async function createForm(
 
 export async function deleteForm(formId: string) {
   const { profile, supabase } = await requireProfile();
+  assertCanEdit(profile.role);
 
   // RLS מוודא שהטופס שייך לארגון; קוראים קודם את הנתיב לניקוי האחסון.
   const { data: form } = await supabase

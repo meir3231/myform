@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isRole, type Role } from "@/lib/permissions";
 
 async function assertAdmin() {
   const { profile } = await requireProfile();
@@ -17,7 +18,8 @@ export async function createUser(formData: FormData): Promise<{ error?: string }
   const fullName = (formData.get("full_name") as string)?.trim();
   const email = (formData.get("email") as string)?.trim().toLowerCase();
   const password = (formData.get("password") as string);
-  const role = (formData.get("role") as string) === "admin" ? "admin" : "member";
+  const roleInput = formData.get("role") as string;
+  const role: Role = isRole(roleInput) ? roleInput : "viewer";
 
   if (!fullName) return { error: "יש להזין שם מלא" };
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "כתובת אימייל לא תקינה" };
@@ -54,10 +56,11 @@ export async function createUser(formData: FormData): Promise<{ error?: string }
 
 export async function changeRole(
   userId: string,
-  newRole: "admin" | "member"
+  newRole: Role
 ): Promise<{ error?: string }> {
   const callerProfile = await assertAdmin();
   if (callerProfile.id === userId) return { error: "לא ניתן לשנות את התפקיד של עצמך" };
+  if (!isRole(newRole)) return { error: "תפקיד לא תקין" };
 
   const admin = createAdminClient();
   const { error } = await admin

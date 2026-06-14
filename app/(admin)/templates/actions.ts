@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
+import { assertCanEdit } from "@/lib/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { downloadFile, getSignedUrl } from "@/lib/storage";
 import type { FieldDraft } from "@/lib/fields";
@@ -20,6 +21,7 @@ function assertUUID(id: string, label = "מזהה") {
 
 export async function createFolder(name: string): Promise<{ error?: string }> {
   const { profile } = await requireProfile();
+  assertCanEdit(profile.role);
   const admin = createAdminClient();
   const { error } = await admin.from("folders").insert({
     org_id: profile.org_id,
@@ -34,6 +36,7 @@ export async function createFolder(name: string): Promise<{ error?: string }> {
 export async function renameFolder(id: string, name: string): Promise<void> {
   assertUUID(id, "תיקייה");
   const { profile } = await requireProfile();
+  assertCanEdit(profile.role);
   const admin = createAdminClient();
   await admin.from("folders")
     .update({ name: name.slice(0, 100).trim() })
@@ -45,6 +48,7 @@ export async function renameFolder(id: string, name: string): Promise<void> {
 export async function deleteFolder(id: string): Promise<void> {
   assertUUID(id, "תיקייה");
   const { profile } = await requireProfile();
+  assertCanEdit(profile.role);
   const admin = createAdminClient();
   // Move all forms in this folder to the root (no folder)
   await admin.from("forms")
@@ -67,6 +71,7 @@ export async function moveFormToFolder(
   assertUUID(formId, "טופס");
   if (folderId !== null) assertUUID(folderId, "תיקייה");
   const { profile } = await requireProfile();
+  assertCanEdit(profile.role);
   const admin = createAdminClient();
   await admin.from("forms")
     .update({ folder_id: folderId })
@@ -78,6 +83,7 @@ export async function moveFormToFolder(
 export async function duplicateForm(formId: string): Promise<void> {
   assertUUID(formId, "טופס");
   const { profile } = await requireProfile();
+  assertCanEdit(profile.role);
   const admin = createAdminClient();
 
   const { data: form } = await admin.from("forms")
@@ -141,6 +147,7 @@ export async function renameForm(formId: string, name: string): Promise<void> {
   assertUUID(formId, "טופס");
   if (!name.trim()) return;
   const { profile } = await requireProfile();
+  assertCanEdit(profile.role);
   const admin = createAdminClient();
   await admin.from("forms")
     .update({ name: name.slice(0, 200).trim() })
@@ -170,6 +177,7 @@ export async function mergeForms(
   if (!name.trim()) return { ok: false, error: "נא להזין שם לטופס הממוזג" };
 
   const { profile } = await requireProfile();
+  assertCanEdit(profile.role);
   const admin = createAdminClient();
 
   type SourceEntry = {

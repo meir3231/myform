@@ -18,6 +18,7 @@ import {
   getFormPreview,
 } from "./actions";
 import { deleteForm as svDeleteForm } from "@/app/(admin)/forms/actions";
+import { canEdit as canEditRole } from "@/lib/permissions";
 import { Modal } from "@/components/Modal";
 import { NewFormModal } from "@/components/NewFormModal";
 import { TemplatePreviewPane, type TemplatePreviewData } from "@/components/pdf-filler/TemplatePreviewPane";
@@ -62,6 +63,7 @@ export function TemplatesClient({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const isAdmin = currentUserRole === "admin";
+  const canEdit = canEditRole(currentUserRole);
 
   // Search / filter / sort
   const [search, setSearch] = useState("");
@@ -152,7 +154,7 @@ export function TemplatesClient({
         return;
       }
       if (isInput) return;
-      if ((e.key === "n" || e.key === "N") && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if (canEdit && (e.key === "n" || e.key === "N") && !e.metaKey && !e.ctrlKey && !e.altKey) {
         setShowNewModal(true);
       }
       if ((e.key === "f" || e.key === "F") && (e.metaKey || e.ctrlKey)) {
@@ -162,7 +164,7 @@ export function TemplatesClient({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [showNewModal, openMenuId, showFolderDropdown, showFilters, movingFormId, deletingFormId, renamingId]);
+  }, [showNewModal, openMenuId, showFolderDropdown, showFilters, movingFormId, deletingFormId, renamingId, canEdit]);
 
   // Filtered + sorted forms
   const filteredForms = useMemo(() => {
@@ -334,14 +336,16 @@ export function TemplatesClient({
           <h1 className="h1">תבניות</h1>
           <p className="text-sm text-paper-muted">ניהול תבניות הטפסים של המשרד - יצירה, עריכה ושליחה ללקוחות.</p>
         </div>
-        <button
-          onClick={() => setShowNewModal(true)}
-          className="btn-primary-lg w-[200px]"
-          title="טופס חדש (N)"
-        >
-          <PlusIcon />
-          טופס חדש
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => setShowNewModal(true)}
+            className="btn-primary-lg w-[200px]"
+            title="טופס חדש (N)"
+          >
+            <PlusIcon />
+            טופס חדש
+          </button>
+        )}
       </div>
 
       {/* Layout: list panel (right) + preview pane (left) */}
@@ -358,6 +362,7 @@ export function TemplatesClient({
               onSelectFolder={(id) => { setSelectedFolder(id); setShowFolderDropdown(false); }}
               open={showFolderDropdown}
               onToggle={() => setShowFolderDropdown((o) => !o)}
+              canEdit={canEdit}
               showNewFolderInput={showNewFolderInput}
               setShowNewFolderInput={setShowNewFolderInput}
               newFolderName={newFolderName}
@@ -400,6 +405,7 @@ export function TemplatesClient({
               <EmptyState
                 hasAnyForms={forms.length > 0}
                 isFiltered={isFiltered}
+                canEdit={canEdit}
                 onClearFilter={() => { setSearch(""); setFilter("all"); setSelectedFolder(null); }}
                 onNewForm={() => setShowNewModal(true)}
               />
@@ -408,6 +414,7 @@ export function TemplatesClient({
                 forms={filteredForms}
                 folders={folders}
                 currentUserId={currentUserId}
+                canEdit={canEdit}
                 renamingId={renamingId}
                 renamingValue={renamingValue}
                 renameInputRef={renameInputRef}
@@ -429,6 +436,7 @@ export function TemplatesClient({
                 forms={pagedForms}
                 folders={folders}
                 isAdmin={isAdmin}
+                canEdit={canEdit}
                 renamingId={renamingId}
                 renamingValue={renamingValue}
                 renameInputRef={renameInputRef}
@@ -505,7 +513,7 @@ export function TemplatesClient({
 // ─── ListView ─────────────────────────────────────────────────────────────────
 
 function ListView({
-  forms, folders, isAdmin, renamingId, renamingValue, renameInputRef,
+  forms, folders, isAdmin, canEdit, renamingId, renamingValue, renameInputRef,
   openMenuId, isPending, selectedFormId, onRowClick, onStartRename,
   onRenameChange, onRenameSubmit, onRenameCancel, onMenuToggle,
   onDuplicate, onDelete, onMoveOpen, onShare, onUnshare,
@@ -513,6 +521,7 @@ function ListView({
   forms: FormRow[];
   folders: FolderRow[];
   isAdmin: boolean;
+  canEdit: boolean;
   renamingId: string | null;
   renamingValue: string;
   renameInputRef: React.RefObject<HTMLInputElement | null>;
@@ -574,7 +583,7 @@ function ListView({
                   <div className="flex items-center gap-1.5">
                     <span
                       className="truncate font-semibold text-paper-text cursor-default select-none"
-                      onDoubleClick={() => onStartRename(form.id, form.name)}
+                      onDoubleClick={canEdit ? () => onStartRename(form.id, form.name) : undefined}
                       title={form.name}
                     >
                       {form.name}
@@ -607,6 +616,7 @@ function ListView({
               <FormMenu
                 form={form}
                 isAdmin={isAdmin}
+                canEdit={canEdit}
                 isOpen={openMenuId === form.id}
                 isPending={isPending}
                 onToggle={() => onMenuToggle(form.id)}
@@ -628,7 +638,7 @@ function ListView({
 // ─── MemberFormsView (split: mine + shared) ───────────────────────────────────
 
 function MemberFormsView({
-  forms, folders, currentUserId,
+  forms, folders, currentUserId, canEdit,
   renamingId, renamingValue, renameInputRef, openMenuId, isPending,
   selectedFormId, onRowClick,
   onStartRename, onRenameChange, onRenameSubmit, onRenameCancel,
@@ -637,6 +647,7 @@ function MemberFormsView({
   forms: FormRow[];
   folders: FolderRow[];
   currentUserId: string;
+  canEdit: boolean;
   renamingId: string | null;
   renamingValue: string;
   renameInputRef: React.RefObject<HTMLInputElement | null>;
@@ -658,7 +669,7 @@ function MemberFormsView({
 
   const noOp = () => {};
   const sharedProps = {
-    folders, isAdmin: false,
+    folders, isAdmin: false, canEdit,
     renamingId, renamingValue, renameInputRef, openMenuId, isPending,
     selectedFormId, onRowClick,
     onStartRename, onRenameChange, onRenameSubmit, onRenameCancel,
@@ -693,7 +704,7 @@ function FolderDropdown({
   folders, folderCounts, totalCount, selectedFolder, onSelectFolder, open, onToggle,
   showNewFolderInput, setShowNewFolderInput, newFolderName, setNewFolderName, onCreateFolder,
   renamingFolderId, renamingFolderValue, setRenamingFolderId, setRenamingFolderValue,
-  onFolderRenameSubmit, onDeleteFolder,
+  onFolderRenameSubmit, onDeleteFolder, canEdit,
 }: {
   folders: FolderRow[];
   folderCounts: Map<string, number>;
@@ -713,6 +724,7 @@ function FolderDropdown({
   setRenamingFolderValue: (v: string) => void;
   onFolderRenameSubmit: (id: string) => void;
   onDeleteFolder: (id: string) => void;
+  canEdit: boolean;
 }) {
   const currentName = selectedFolder
     ? folders.find((f) => f.id === selectedFolder)?.name ?? "כל התיקיות"
@@ -758,10 +770,10 @@ function FolderDropdown({
               ) : (
                 <button
                   onClick={() => onSelectFolder(folder.id)}
-                  onDoubleClick={() => {
+                  onDoubleClick={canEdit ? () => {
                     setRenamingFolderId(folder.id);
                     setRenamingFolderValue(folder.name);
-                  }}
+                  } : undefined}
                   className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition ${selectedFolder === folder.id ? "bg-brand/10 font-semibold text-brand" : "text-paper-text hover:bg-slate-50"}`}
                 >
                   <FolderIcon className="h-4 w-4 shrink-0 text-slate-400" />
@@ -769,41 +781,45 @@ function FolderDropdown({
                   <span className="text-xs text-slate-400">{folderCounts.get(folder.id) ?? 0}</span>
                 </button>
               )}
-              <button
-                onClick={() => onDeleteFolder(folder.id)}
-                className="absolute left-0.5 top-1/2 hidden h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-slate-400 transition hover:text-red-500 group-hover:flex"
-                title="מחיקת תיקייה"
-              >
-                <XSmallIcon />
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => onDeleteFolder(folder.id)}
+                  className="absolute left-0.5 top-1/2 hidden h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-slate-400 transition hover:text-red-500 group-hover:flex"
+                  title="מחיקת תיקייה"
+                >
+                  <XSmallIcon />
+                </button>
+              )}
             </div>
           ))}
 
-          <div className="mt-1.5 border-t border-paper-line pt-1.5">
-            {showNewFolderInput ? (
-              <form onSubmit={onCreateFolder}>
-                <input
-                  autoFocus
-                  placeholder="שם תיקייה"
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  onBlur={() => { if (!newFolderName.trim()) setShowNewFolderInput(false); }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") { setShowNewFolderInput(false); setNewFolderName(""); }
-                  }}
-                  className="w-full rounded-lg border border-brand px-2 py-1.5 text-sm focus:outline-none"
-                />
-              </form>
-            ) : (
-              <button
-                onClick={() => setShowNewFolderInput(true)}
-                className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-brand"
-              >
-                <PlusSmallIcon />
-                תיקייה חדשה
-              </button>
-            )}
-          </div>
+          {canEdit && (
+            <div className="mt-1.5 border-t border-paper-line pt-1.5">
+              {showNewFolderInput ? (
+                <form onSubmit={onCreateFolder}>
+                  <input
+                    autoFocus
+                    placeholder="שם תיקייה"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    onBlur={() => { if (!newFolderName.trim()) setShowNewFolderInput(false); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") { setShowNewFolderInput(false); setNewFolderName(""); }
+                    }}
+                    className="w-full rounded-lg border border-brand px-2 py-1.5 text-sm focus:outline-none"
+                  />
+                </form>
+              ) : (
+                <button
+                  onClick={() => setShowNewFolderInput(true)}
+                  className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-brand"
+                >
+                  <PlusSmallIcon />
+                  תיקייה חדשה
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -925,10 +941,11 @@ function Pagination({
 // ─── FormMenu (⋮) ─────────────────────────────────────────────────────────────
 
 function FormMenu({
-  form, isAdmin, isOpen, isPending, onToggle, onDuplicate, onRename, onMove, onShare, onUnshare, onDelete,
+  form, isAdmin, canEdit, isOpen, isPending, onToggle, onDuplicate, onRename, onMove, onShare, onUnshare, onDelete,
 }: {
   form: FormRow;
   isAdmin: boolean;
+  canEdit: boolean;
   isOpen: boolean;
   isPending: boolean;
   onToggle: () => void;
@@ -956,13 +973,15 @@ function FormMenu({
       style={{ top: menuPos.top, left: menuPos.left }}
       data-form-menu-portal
     >
-      <Link
-        href={`/forms/${form.id}/edit`}
-        className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
-      >
-        <EditPenIcon /> עריכת שדות
-      </Link>
-      {!form.archived_at && (
+      {canEdit && (
+        <Link
+          href={`/forms/${form.id}/edit`}
+          className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
+        >
+          <EditPenIcon /> עריכת שדות
+        </Link>
+      )}
+      {canEdit && !form.archived_at && (
         <Link
           href={`/forms/${form.id}/send`}
           className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
@@ -976,40 +995,44 @@ function FormMenu({
       >
         <EyeIcon /> תצוגה מקדימה
       </Link>
-      <div className="my-1 border-t border-paper-line" />
-      <button
-        onClick={onDuplicate}
-        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
-      >
-        <CopyIcon /> שכפול
-      </button>
-      <button
-        onClick={onRename}
-        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
-      >
-        <PenIcon /> שינוי שם
-      </button>
-      <button
-        onClick={onMove}
-        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
-      >
-        <FolderIcon className="h-4 w-4" /> העברה לתיקייה
-      </button>
-      {isAdmin && (
-        <button
-          onClick={form.visibility === "shared" ? onUnshare : onShare}
-          className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
-        >
-          <ShareIcon /> {form.visibility === "shared" ? "הפוך לפרטי" : "שתף"}
-        </button>
+      {canEdit && (
+        <>
+          <div className="my-1 border-t border-paper-line" />
+          <button
+            onClick={onDuplicate}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
+          >
+            <CopyIcon /> שכפול
+          </button>
+          <button
+            onClick={onRename}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
+          >
+            <PenIcon /> שינוי שם
+          </button>
+          <button
+            onClick={onMove}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
+          >
+            <FolderIcon className="h-4 w-4" /> העברה לתיקייה
+          </button>
+          {isAdmin && (
+            <button
+              onClick={form.visibility === "shared" ? onUnshare : onShare}
+              className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-paper-text transition hover:bg-slate-50"
+            >
+              <ShareIcon /> {form.visibility === "shared" ? "הפוך לפרטי" : "שתף"}
+            </button>
+          )}
+          <div className="my-1 border-t border-paper-line" />
+          <button
+            onClick={onDelete}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-red-600 transition hover:bg-red-50"
+          >
+            <TrashIcon /> מחיקה
+          </button>
+        </>
       )}
-      <div className="my-1 border-t border-paper-line" />
-      <button
-        onClick={onDelete}
-        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-red-600 transition hover:bg-red-50"
-      >
-        <TrashIcon /> מחיקה
-      </button>
     </div>,
     document.body
   ) : null;
@@ -1093,11 +1116,13 @@ function DeleteFormModal({
 function EmptyState({
   hasAnyForms,
   isFiltered,
+  canEdit,
   onClearFilter,
   onNewForm,
 }: {
   hasAnyForms: boolean;
   isFiltered: boolean;
+  canEdit: boolean;
   onClearFilter: () => void;
   onNewForm: () => void;
 }) {
@@ -1117,7 +1142,7 @@ function EmptyState({
       <p className="mb-4 text-paper-muted">
         {hasAnyForms ? "אין תבניות בתיקייה זו." : "עדיין אין תבניות. העלה PDF כדי להתחיל."}
       </p>
-      {!hasAnyForms && (
+      {!hasAnyForms && canEdit && (
         <button onClick={onNewForm} className="btn-primary inline-flex">
           העלאת טופס ראשון
         </button>

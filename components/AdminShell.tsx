@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { AdminMain } from "@/components/AdminMain";
 import { BrandLogo } from "@/components/BrandLogo";
 import { signOut } from "@/app/(admin)/actions";
+import { roleLabel as getRoleLabel } from "@/lib/permissions";
 
 // מעטפת אזור הניהול: header קבוע + sidebar + אזור תוכן.
 // headerCenter מאפשר לדפים ספציפיים (כמו עורך השדות) להציג באמצע ה-header
@@ -18,7 +19,7 @@ export async function AdminShell({
 }) {
   const { profile } = await requireProfile();
   const userName = profile.full_name || "מנהל";
-  const roleLabel = profile.role === "admin" ? "מנהל מערכת" : "חבר צוות";
+  const roleLabel = getRoleLabel(profile.role);
 
   return (
     <div className="h-screen overflow-hidden">

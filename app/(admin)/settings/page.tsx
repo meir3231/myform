@@ -1,4 +1,5 @@
 import { requireProfile } from "@/lib/auth";
+import { roleLabel } from "@/lib/permissions";
 
 export default async function SettingsPage() {
   const { user, profile, supabase } = await requireProfile();
@@ -19,7 +20,7 @@ export default async function SettingsPage() {
           <dl className="space-y-3 text-sm">
             <Row label="שם מלא" value={profile.full_name || "—"} />
             <Row label="אימייל" value={user.email ?? "—"} ltr />
-            <Row label="תפקיד" value={profile.role} />
+            <Row label="תפקיד" value={roleLabel(profile.role)} />
           </dl>
         </section>
 

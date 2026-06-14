@@ -8,10 +8,12 @@ import { Stepper } from "@/components/Stepper";
 type FormOption = { id: string; name: string; page_count: number; folder_id: string | null };
 type FolderOption = { id: string; name: string };
 
-export function QuickActions({ forms, folders }: { forms: FormOption[]; folders: FolderOption[] }) {
+export function QuickActions({ forms, folders, canEdit }: { forms: FormOption[]; folders: FolderOption[]; canEdit: boolean }) {
   const router = useRouter();
   const [showPicker, setShowPicker] = useState(false);
   const [showNewModal, setShowNewModal] = useState(false);
+
+  if (!canEdit) return null;
 
   return (
     <>

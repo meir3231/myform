@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { createUser, changeRole, removeUser } from "./actions";
 import { useToast } from "@/components/Toast";
+import { ROLES, ROLE_LABELS, isRole, type Role } from "@/lib/permissions";
 
 interface UserRow {
   id: string;
@@ -25,10 +26,9 @@ export function UsersClient({
   const [pending, startTransition] = useTransition();
   const { showToast } = useToast();
 
-  function handleRoleToggle(userId: string, currentRole: string) {
-    const newRole = currentRole === "admin" ? "member" : "admin";
+  function handleRoleChange(userId: string, newRole: Role) {
     startTransition(async () => {
-      const res = await changeRole(userId, newRole as "admin" | "member");
+      const res = await changeRole(userId, newRole);
       if (res.error) {
         showToast(res.error, "error");
       } else {
@@ -95,10 +95,12 @@ export function UsersClient({
                       className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                         u.role === "admin"
                           ? "bg-brand/10 text-brand"
+                          : u.role === "viewer"
+                          ? "bg-slate-100 text-slate-500"
                           : "bg-slate-100 text-slate-600"
                       }`}
                     >
-                      {u.role === "admin" ? "מנהל" : "חבר"}
+                      {ROLE_LABELS[u.role as Role] ?? u.role}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-500">
@@ -108,13 +110,16 @@ export function UsersClient({
                   <td className="px-4 py-3">
                     {!isSelf && (
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleRoleToggle(u.id, u.role)}
+                        <select
+                          value={u.role}
+                          onChange={(e) => handleRoleChange(u.id, e.target.value as Role)}
                           disabled={pending}
-                          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
                         >
-                          {u.role === "admin" ? "הפוך לחבר" : "הפוך למנהל"}
-                        </button>
+                          {ROLES.map((r) => (
+                            <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                          ))}
+                        </select>
                         <button
                           onClick={() => handleRemove(u.id, u.fullName)}
                           disabled={pending}
@@ -170,11 +175,12 @@ function AddUserModal({
       }
       // server revalidates path — close and parent will refetch on next navigation
       // For optimistic update we build a partial object
+      const roleValue = fd.get("role") as string;
       onAdded({
         id: crypto.randomUUID(),
         fullName: (fd.get("full_name") as string) ?? "",
         email: (fd.get("email") as string) ?? "",
-        role: (fd.get("role") as string) ?? "member",
+        role: isRole(roleValue) ? roleValue : "viewer",
         createdAt: new Date().toISOString(),
         formCount: 0,
       });
@@ -220,11 +226,12 @@ function AddUserModal({
             <label className="mb-1 block text-xs font-medium text-slate-600">תפקיד</label>
             <select
               name="role"
-              defaultValue="member"
+              defaultValue="viewer"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
             >
-              <option value="member">חבר</option>
-              <option value="admin">מנהל</option>
+              {ROLES.map((r) => (
+                <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+              ))}
             </select>
           </div>
 

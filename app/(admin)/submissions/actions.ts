@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
+import { assertCanEdit } from "@/lib/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateToken, hashToken } from "@/lib/tokens";
 import { sendFormLinkEmail } from "@/lib/email";
@@ -25,6 +26,8 @@ async function assertSubmissionOwnership(submissionId: string) {
 
 // מחדש את הלינק (טוקן חדש + הארכת תוקף) ושולח מייל תזכורת ללקוח.
 export async function resendSubmissionLink(submissionId: string): Promise<{ link?: string; emailSent?: boolean; error?: string }> {
+  const { profile } = await requireProfile();
+  assertCanEdit(profile.role);
   const { sub, formName } = await assertSubmissionOwnership(submissionId);
   if (sub.status === "completed") return { error: "ההגשה הושלמה - לא ניתן לשלוח תזכורת" };
 
@@ -98,6 +101,8 @@ export async function getCompletedPdfUrl(submissionId: string): Promise<{ url?: 
 
 // מבטל את הלינק הקיים (פג תוקף מיידי).
 export async function expireSubmissionLink(submissionId: string): Promise<{ error?: string }> {
+  const { profile } = await requireProfile();
+  assertCanEdit(profile.role);
   const { sub } = await assertSubmissionOwnership(submissionId);
   if (sub.status === "completed") return { error: "ההגשה הושלמה - לא ניתן לבטל לינק" };
 

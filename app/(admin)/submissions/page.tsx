@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { requireProfile } from "@/lib/auth";
+import { canEdit } from "@/lib/permissions";
 import { SubmissionsClient } from "./submissions-client";
 
 export default async function SubmissionsPage() {
@@ -49,6 +50,7 @@ export default async function SubmissionsPage() {
         userName={userName}
         folderOptions={folderOptions}
         userOptions={userOptions}
+        canEdit={canEdit(profile.role)}
       />
     </Suspense>
   );

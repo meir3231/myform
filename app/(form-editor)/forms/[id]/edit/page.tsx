@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { getSignedUrl } from "@/lib/storage";
+import { canEdit } from "@/lib/permissions";
 import type { FieldDraft } from "@/lib/fields";
 import { FieldEditorLoader } from "@/components/pdf-editor/FieldEditorLoader";
 
@@ -11,6 +12,8 @@ export default async function EditFormPage({
 }) {
   const { id } = await params;
   const { profile, supabase } = await requireProfile();
+
+  if (!canEdit(profile.role)) redirect(`/forms/${id}/preview`);
 
   const { data: form } = await supabase
     .from("forms")
