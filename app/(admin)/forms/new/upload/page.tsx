@@ -70,7 +70,7 @@ export default function NewFormUploadPage() {
           </div>
         </fieldset>
 
-        {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+        {state.error && <p className="alert-error">{state.error}</p>}
 
         <SubmitButton />
       </form>

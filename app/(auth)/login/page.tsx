@@ -78,7 +78,7 @@ function LoginForm() {
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="alert-error">{error}</p>}
 
           <button type="submit" disabled={loading} className="btn-primary w-full">
             {loading ? "מתחבר..." : "התחברות"}

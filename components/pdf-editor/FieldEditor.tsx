@@ -41,6 +41,17 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url
 ).toString();
 
+// תווית "נשמר לפני X" ליד כפתורי השמירה (סעיף 17)
+function formatRelativeSave(savedAt: Date, now: number): string {
+  const diffSec = Math.max(0, Math.round((now - savedAt.getTime()) / 1000));
+  if (diffSec < 10) return "נשמר לפני רגע";
+  if (diffSec < 60) return `נשמר לפני ${diffSec} שניות`;
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `נשמר לפני ${diffMin} דקות`;
+  const diffHour = Math.round(diffMin / 60);
+  return `נשמר לפני ${diffHour} שעות`;
+}
+
 type PageSizes = Record<number, { w: number; h: number }>;
 type GhostPos = { x: number; y: number; page: number } | null;
 type ContextMenuState =
@@ -76,6 +87,22 @@ export default function FieldEditor({
   const [currentPage, setCurrentPage] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // ─── מצב שמירה: "יש שינויים שלא נשמרו" / "נשמר לפני X" (סעיף 17) ───
+  const [dirty, setDirty] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const lastSavedFieldsRef = useRef(JSON.stringify(initialFields));
+
+  useEffect(() => {
+    setDirty(JSON.stringify(fields) !== lastSavedFieldsRef.current);
+  }, [fields]);
+
+  useEffect(() => {
+    if (!lastSavedAt) return;
+    const interval = setInterval(() => setNow(Date.now()), 15000);
+    return () => clearInterval(interval);
+  }, [lastSavedAt]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -285,6 +312,10 @@ export default function FieldEditor({
     try {
       await saveFormFields(formId, fields);
       showToast("השדות נשמרו בהצלחה", "success");
+      lastSavedFieldsRef.current = JSON.stringify(fields);
+      setDirty(false);
+      setLastSavedAt(new Date());
+      setNow(Date.now());
       return true;
     } catch (e) {
       showToast(e instanceof Error ? e.message : "השמירה נכשלה", "error");
@@ -337,6 +368,11 @@ export default function FieldEditor({
       {headerSlot &&
         createPortal(
           <div className="flex shrink-0 items-center gap-3">
+            {dirty ? (
+              <span className="badge badge-dot bg-warning/10 text-warning">יש שינויים שלא נשמרו</span>
+            ) : lastSavedAt ? (
+              <span className="badge badge-dot bg-soft-border text-text-secondary">{formatRelativeSave(lastSavedAt, now)}</span>
+            ) : null}
             <button onClick={handleSaveAndExit} disabled={status === "saving"} className="btn-outline h-12">
               {status === "saving" ? "שומר..." : "שמירה"}
             </button>

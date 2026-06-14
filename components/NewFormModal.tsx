@@ -148,7 +148,7 @@ export function NewFormModal({
               </label>
             ))}
           </div>
-          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+          {error && <p className="alert-error mt-2">{error}</p>}
           <div className="mt-4 flex justify-between">
             <button onClick={handleClose} className="btn-outline">ביטול</button>
             <button
@@ -212,7 +212,7 @@ export function NewFormModal({
           <div className="mt-3 rounded-lg bg-blue-50 px-3 py-2.5 text-xs text-blue-700">
             {selectedIds.size} טפסים · סה"כ {totalPages} עמ׳ · שדות הטפסים יועתקו עם התאמת מספרי עמוד.
           </div>
-          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+          {error && <p className="alert-error mt-2">{error}</p>}
           <div className="mt-4 flex justify-between">
             <button type="button" onClick={() => { setMergeStep(1); setError(""); }} className="btn-outline">← חזרה</button>
             <button type="submit" disabled={merging} className="btn-primary disabled:opacity-50">

@@ -20,10 +20,16 @@ export function useToast() {
   return ctx;
 }
 
+// צבעי Toast לפי סעיף 17: הצלחה רקע #ECFDF5/טקסט #166534, שגיאה רקע #FEF2F2/טקסט #EF4444
 const KIND_STYLES: Record<ToastKind, string> = {
-  success: "border-green-200 bg-green-50 text-green-800",
-  error: "border-red-200 bg-red-50 text-red-700",
-  info: "border-slate-200 bg-white text-slate-700",
+  success: "text-[#166534]",
+  error: "text-error",
+  info: "text-navy",
+};
+const KIND_BG: Record<ToastKind, string> = {
+  success: "#ECFDF5",
+  error: "#FEF2F2",
+  info: "#ffffff",
 };
 
 let nextToastId = 1;
@@ -36,17 +42,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => [...prev, { id, kind, message }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3000);
+    }, 4000);
   }, []);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4">
+      <div className="pointer-events-none fixed bottom-6 left-6 z-50 flex flex-col gap-2">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`page-fade-in pointer-events-auto rounded-lg border px-4 py-2.5 text-sm shadow-md ${KIND_STYLES[t.kind]}`}
+            className={`page-fade-in pointer-events-auto rounded-xl px-4 py-3 text-sm font-medium shadow-[0_8px_24px_rgba(15,23,42,0.12)] ${KIND_STYLES[t.kind]}`}
+            style={{ backgroundColor: KIND_BG[t.kind] }}
           >
             {t.message}
           </div>

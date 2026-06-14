@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { STATUS_META } from "@/lib/status";
 import type { SubmissionStatus } from "@/lib/database.types";
+import { useToast } from "@/components/Toast";
 import {
   resendSubmissionLink,
   getSubmissionPreviewLink,
@@ -31,7 +32,6 @@ type SubmissionRow = {
 };
 
 type Option = { id: string; name: string };
-type Toast = { type: "success" | "error"; text: string };
 type RowAction = "resend" | "preview" | "download" | "expire";
 
 export function SubmissionsClient({
@@ -67,16 +67,10 @@ export function SubmissionsClient({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busyId, setBusyId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [toast, setToast] = useState<Toast | null>(null);
+  const { showToast } = useToast();
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -187,25 +181,25 @@ export function SubmissionsClient({
     try {
       if (action === "resend") {
         const res = await resendSubmissionLink(id);
-        if (res.error) setToast({ type: "error", text: res.error });
-        else setToast({ type: "success", text: res.emailSent ? "תזכורת נשלחה ללקוח בהצלחה" : "הקישור חודש, אך המייל לא נשלח (בדוק הגדרות שליחה)" });
+        if (res.error) showToast(res.error, "error");
+        else showToast(res.emailSent ? "תזכורת נשלחה ללקוח בהצלחה" : "הקישור חודש, אך המייל לא נשלח (בדוק הגדרות שליחה)", "success");
         router.refresh();
       } else if (action === "preview") {
         const res = await getSubmissionPreviewLink(id);
-        if (res.error) setToast({ type: "error", text: res.error });
+        if (res.error) showToast(res.error, "error");
         else if (res.link) {
           window.open(res.link, "_blank", "noopener,noreferrer");
           router.refresh();
         }
       } else if (action === "download") {
         const res = await getCompletedPdfUrl(id);
-        if (res.error) setToast({ type: "error", text: res.error });
+        if (res.error) showToast(res.error, "error");
         else if (res.url) window.open(res.url, "_blank", "noopener,noreferrer");
       } else if (action === "expire") {
         const res = await expireSubmissionLink(id);
-        if (res.error) setToast({ type: "error", text: res.error });
+        if (res.error) showToast(res.error, "error");
         else {
-          setToast({ type: "success", text: "הלינק להגשה זו בוטל" });
+          showToast("הלינק להגשה זו בוטל", "success");
           router.refresh();
         }
       }
@@ -224,10 +218,11 @@ export function SubmissionsClient({
     }
     setBulkBusy(false);
     setSelected(new Set());
-    setToast(
+    showToast(
       sent === remindableSelected.length
-        ? { type: "success", text: `נשלחו ${sent} תזכורות בהצלחה` }
-        : { type: "error", text: `נשלחו ${sent} מתוך ${remindableSelected.length} תזכורות` }
+        ? `נשלחו ${sent} תזכורות בהצלחה`
+        : `נשלחו ${sent} מתוך ${remindableSelected.length} תזכורות`,
+      sent === remindableSelected.length ? "success" : "error"
     );
     router.refresh();
   }
@@ -396,8 +391,14 @@ export function SubmissionsClient({
         {/* טבלת הגשות */}
         <div className="card flex min-w-0 flex-1 flex-col overflow-hidden">
           {submissions.length === 0 ? (
-            <div className="empty-state-pattern flex flex-1 items-center justify-center p-12 text-center text-paper-muted">
-              עדיין אין הגשות. שלח טופס ללקוח מתוך עמוד התבניות.
+            <div className="empty-state-pattern flex flex-1 flex-col items-center justify-center p-12 text-center">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand/15 text-brand">
+                <SendIcon />
+              </div>
+              <p className="mb-4 text-paper-muted">עדיין אין הגשות. שלח טופס ללקוח כדי להתחיל.</p>
+              {canEdit && (
+                <Link href="/templates" className="btn-primary inline-flex">לתבניות</Link>
+              )}
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center p-12 text-center">
@@ -452,17 +453,6 @@ export function SubmissionsClient({
           )}
         </div>
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <div
-          className={`fixed bottom-6 left-6 z-50 rounded-xl px-4 py-3 text-sm font-medium shadow-[0_8px_24px_rgba(15,23,42,0.12)] ${
-            toast.type === "success" ? "bg-[#ECFDF5] text-[#166534]" : "bg-[#FEF2F2] text-error"
-          }`}
-        >
-          {toast.text}
-        </div>
-      )}
     </div>
   );
 }

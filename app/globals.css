@@ -177,9 +177,15 @@ body {
     box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
   }
 
-  /* ---- skeleton טעינה ---- */
+  /* ---- הודעת שגיאה: טקסט #EF4444 על רקע #FEF2F2 (סעיף 17) ---- */
+  .alert-error {
+    @apply rounded-xl border border-error/15 px-4 py-2.5 text-sm text-error;
+    background-color: #FEF2F2;
+  }
+
+  /* ---- skeleton טעינה: גוון Soft Border #EEF2F7 (סעיף 17) ---- */
   .skeleton {
-    @apply animate-shimmer rounded-lg bg-gradient-to-l from-slate-200 via-slate-100 to-slate-200
+    @apply animate-shimmer rounded-lg bg-gradient-to-l from-soft-border via-white to-soft-border
       bg-[length:200%_100%];
   }
 

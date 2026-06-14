@@ -300,7 +300,7 @@ export function SendForm({
                 </div>
               </div>
 
-              {state.error && <p className="mt-3 text-sm text-red-600">{state.error}</p>}
+              {state.error && <p className="alert-error mt-3">{state.error}</p>}
             </div>
 
             {/* Footer — h=64 */}

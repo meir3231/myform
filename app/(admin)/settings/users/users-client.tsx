@@ -235,7 +235,7 @@ function AddUserModal({
             </select>
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="alert-error">{error}</p>}
 
           <div className="flex gap-2 pt-2">
             <button type="submit" disabled={pending} className="btn-primary flex-1">
