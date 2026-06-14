@@ -1,5 +1,6 @@
 import { loadSubmissionForFill } from "@/lib/submission-access";
 import { FillerLoader } from "@/components/pdf-filler/FillerLoader";
+import { PRIMARY_FULL } from "@/components/pdf-filler/styles";
 import { BrandLogo } from "@/components/BrandLogo";
 import { SiteFooter } from "@/components/SiteFooter";
 
@@ -36,6 +37,44 @@ function Notice({ title, body }: { title: string; body: string }) {
   );
 }
 
+// מסך תודה לטופס שכבר הוגש — מוצג גם מיד אחרי שליחה (לאחר רענון ה-RSC)
+// וגם בכניסה חזרה לקישור שכבר מולא, עם אפשרות הורדת העותק החתום.
+function CompletedScreen({
+  token,
+  formName,
+  recipientName,
+  hasDownload,
+}: {
+  token: string;
+  formName: string;
+  recipientName: string;
+  hasDownload: boolean;
+}) {
+  return (
+    <div className="flex min-h-screen flex-col bg-paper">
+      <BrandBar formName={formName} />
+      <main className="flex flex-1 items-center justify-center p-4">
+        <div className="page-fade-in card w-full max-w-md p-8 text-center">
+          <div className="mb-3 text-5xl">✓</div>
+          <h1 className="mb-2 text-xl font-bold text-paper-text">הטופס נשלח בהצלחה</h1>
+          <p className="mb-6 text-sm text-text-secondary">
+            תודה{recipientName ? ` ${recipientName}` : ""}. הטופס נשמר ונחתם.
+          </p>
+          {hasDownload && (
+            <a
+              href={`/api/download-completed?token=${encodeURIComponent(token)}`}
+              className={PRIMARY_FULL}
+            >
+              הורדת עותק חתום (PDF)
+            </a>
+          )}
+        </div>
+      </main>
+      <SiteFooter />
+    </div>
+  );
+}
+
 export default async function FillPage({
   params,
 }: {
@@ -57,7 +96,12 @@ export default async function FillPage({
   }
   if (result.status === "completed") {
     return (
-      <Notice title="הטופס כבר מולא" body="הטופס הזה כבר נחתם והוגש. תודה." />
+      <CompletedScreen
+        token={token}
+        formName={result.formName}
+        recipientName={result.recipientName}
+        hasDownload={result.hasDownload}
+      />
     );
   }
 

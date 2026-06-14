@@ -16,7 +16,13 @@ type LoadResult =
       fields: FieldDraft[];
       initialValues: Record<string, string>;
     }
-  | { status: "completed" }
+  | {
+      status: "completed";
+      formName: string;
+      orgName: string;
+      recipientName: string;
+      hasDownload: boolean;
+    }
   | { status: "expired" }
   | { status: "notfound" };
 
@@ -27,12 +33,28 @@ export async function loadSubmissionForFill(token: string): Promise<LoadResult> 
 
   const { data: sub } = await admin
     .from("submissions")
-    .select("id, form_id, status, expires_at, recipient_name")
+    .select("id, form_id, status, expires_at, recipient_name, completed_pdf_path")
     .eq("token_hash", tokenHash)
     .single();
 
   if (!sub) return { status: "notfound" };
-  if (sub.status === "completed") return { status: "completed" };
+  if (sub.status === "completed") {
+    const { data: form } = await admin
+      .from("forms")
+      .select("name, org_id")
+      .eq("id", sub.form_id)
+      .single();
+    const { data: org } = form
+      ? await admin.from("organizations").select("name").eq("id", form.org_id).single()
+      : { data: null };
+    return {
+      status: "completed",
+      formName: form?.name ?? "",
+      orgName: org?.name ?? "",
+      recipientName: sub.recipient_name ?? "",
+      hasDownload: !!sub.completed_pdf_path,
+    };
+  }
 
   if (new Date(sub.expires_at).getTime() < Date.now()) {
     if (sub.status !== "expired") {

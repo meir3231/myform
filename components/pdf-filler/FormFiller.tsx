@@ -9,10 +9,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { FillFieldBox } from "./FillFieldBox";
 import { PdfPageCanvas } from "./PdfPageCanvas";
 import { SignatureModal } from "./SignatureModal";
-
-// כפתור פעולה ראשי במסך הלקוח: רוחב מלא, h=50px (מובייל) / 48px (דסקטופ).
-const PRIMARY_FULL =
-  "flex h-[50px] w-full items-center justify-center rounded-xl bg-brand text-base font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50 sm:h-12 sm:text-sm";
+import { PRIMARY_FULL } from "./styles";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
