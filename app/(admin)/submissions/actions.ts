@@ -8,6 +8,7 @@ import { generateToken, hashToken } from "@/lib/tokens";
 import { sendFormLinkEmail } from "@/lib/email";
 import { serverEnv } from "@/lib/env";
 import { getSignedUrl } from "@/lib/storage";
+import { logSubmissionEvent } from "@/lib/audit";
 
 const EXPIRY_DAYS = 14;
 
@@ -54,6 +55,14 @@ export async function resendSubmissionLink(submissionId: string): Promise<{ link
     recipientName: sub.recipient_name,
     formName,
     link,
+  });
+
+  await logSubmissionEvent(admin, {
+    submissionId: submissionId,
+    orgId: sub.org_id,
+    eventType: "resent",
+    channel: "email",
+    actorId: profile.id,
   });
 
   revalidatePath("/submissions");
@@ -112,6 +121,13 @@ export async function expireSubmissionLink(submissionId: string): Promise<{ erro
     .update({ status: "expired", expires_at: new Date().toISOString() })
     .eq("id", submissionId);
   if (error) return { error: "ביטול הלינק נכשל: " + error.message };
+
+  await logSubmissionEvent(admin, {
+    submissionId: submissionId,
+    orgId: sub.org_id,
+    eventType: "link_cancelled",
+    actorId: profile.id,
+  });
 
   revalidatePath("/submissions");
   return {};

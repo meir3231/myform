@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { getSignedUrl } from "@/lib/storage";
-import { STATUS_META } from "@/lib/status";
+import { AUDIT_EVENT_META, STATUS_META, channelLabel } from "@/lib/status";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 export default async function SubmissionDetailPage({
@@ -20,16 +20,19 @@ export default async function SubmissionDetailPage({
 
   if (!sub || sub.org_id !== profile.org_id) notFound();
 
-  const [{ data: form }, { data: fields }, { data: values }, { data: audit }, downloadUrl] =
+  const [{ data: form }, { data: fields }, { data: values }, { data: audit }, { data: auditLog }, { data: profiles }, downloadUrl] =
     await Promise.all([
       supabase.from("forms").select("name").eq("id", sub.form_id).single(),
       supabase.from("form_fields").select("id, label, type, sort_order").eq("form_id", sub.form_id).order("sort_order", { ascending: true }),
       supabase.from("submission_values").select("field_id, value").eq("submission_id", id),
       supabase.from("signature_audit").select("*").eq("submission_id", id).order("signed_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("submission_audit_log").select("*").eq("submission_id", id).order("created_at", { ascending: false }),
+      supabase.from("profiles").select("id, full_name").eq("org_id", profile.org_id),
       sub.completed_pdf_path ? getSignedUrl("completed", sub.completed_pdf_path, 60 * 10) : Promise.resolve(null),
     ]);
 
   const valueMap = new Map((values ?? []).map((v) => [v.field_id, v.value]));
+  const actorName = new Map((profiles ?? []).map((p) => [p.id, p.full_name ?? "—"]));
   const meta = STATUS_META[sub.status];
 
   return (
@@ -111,6 +114,42 @@ export default async function SubmissionDetailPage({
           )}
         </section>
       </div>
+
+      {/* יומן ביקורת */}
+      <section className="card mt-6 p-5">
+        <h2 className="mb-3 font-semibold text-paper-text">יומן ביקורת</h2>
+        {!auditLog || auditLog.length === 0 ? (
+          <p className="text-sm text-paper-muted">אין עדיין רשומות ביומן הביקורת.</p>
+        ) : (
+          <ul className="space-y-3 text-sm">
+            {auditLog.map((entry) => {
+              const evMeta = AUDIT_EVENT_META[entry.event_type];
+              const channel = channelLabel(entry.channel);
+              const actor = entry.actor_id ? actorName.get(entry.actor_id) : null;
+              return (
+                <li key={entry.id} className="flex items-start gap-3 border-b border-soft-border pb-3 last:border-0 last:pb-0">
+                  <span
+                    className="mt-0.5 flex h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: evMeta.color }}
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-paper-text">
+                      {evMeta.label}
+                      {channel ? ` · ${channel}` : ""}
+                      {actor ? ` · ע״י ${actor}` : ""}
+                    </p>
+                    <p className="mt-0.5 text-xs text-paper-muted">
+                      {new Date(entry.created_at).toLocaleString("he-IL")}
+                      {entry.ip_address ? ` · ${entry.ip_address}` : ""}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       {/* תצוגה מקדימה */}
       {downloadUrl && (

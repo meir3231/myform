@@ -3,6 +3,7 @@
 
 export type FieldType = "text" | "number" | "date" | "signature" | "initials" | "checkbox";
 export type SubmissionStatus = "pending" | "opened" | "completed" | "expired";
+export type AuditEventType = "sent" | "resent" | "opened" | "completed" | "link_cancelled" | "expired";
 
 export interface Database {
   public: {
@@ -216,12 +217,39 @@ export interface Database {
         Update: Partial<Record<string, never>>;
         Relationships: [];
       };
+      submission_audit_log: {
+        Row: {
+          id: string;
+          submission_id: string;
+          org_id: string;
+          event_type: AuditEventType;
+          channel: string | null;
+          actor_id: string | null;
+          ip_address: string | null;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          submission_id: string;
+          org_id: string;
+          event_type: AuditEventType;
+          channel?: string | null;
+          actor_id?: string | null;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Record<string, never>>;
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: { [_ in never]: never };
     Enums: {
       field_type: FieldType;
       submission_status: SubmissionStatus;
+      audit_event_type: AuditEventType;
     };
     CompositeTypes: { [_ in never]: never };
   };

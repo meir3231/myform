@@ -11,6 +11,7 @@ import { FIELD_TYPES, type FieldDraft } from "@/lib/fields";
 import { generateToken, hashToken } from "@/lib/tokens";
 import { sendFormLinkEmail } from "@/lib/email";
 import { serverEnv } from "@/lib/env";
+import { logSubmissionEvent } from "@/lib/audit";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20 MB
@@ -189,6 +190,14 @@ export async function createSubmission(
     recipientName,
     formName: form.name,
     link,
+  });
+
+  await logSubmissionEvent(admin, {
+    submissionId: submission.id,
+    orgId: profile.org_id,
+    eventType: "sent",
+    channel: "email",
+    actorId: profile.id,
   });
 
   revalidatePath("/submissions");

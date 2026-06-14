@@ -1,7 +1,9 @@
 import "server-only";
+import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSignedUrl } from "@/lib/storage";
 import { hashToken } from "@/lib/tokens";
+import { logSubmissionEvent } from "@/lib/audit";
 import type { FieldDraft } from "@/lib/fields";
 
 type LoadResult =
@@ -33,7 +35,7 @@ export async function loadSubmissionForFill(token: string): Promise<LoadResult> 
 
   const { data: sub } = await admin
     .from("submissions")
-    .select("id, form_id, status, expires_at, recipient_name, completed_pdf_path")
+    .select("id, org_id, form_id, status, expires_at, recipient_name, completed_pdf_path")
     .eq("token_hash", tokenHash)
     .single();
 
@@ -59,6 +61,11 @@ export async function loadSubmissionForFill(token: string): Promise<LoadResult> 
   if (new Date(sub.expires_at).getTime() < Date.now()) {
     if (sub.status !== "expired") {
       await admin.from("submissions").update({ status: "expired" }).eq("id", sub.id);
+      await logSubmissionEvent(admin, {
+        submissionId: sub.id,
+        orgId: sub.org_id,
+        eventType: "expired",
+      });
     }
     return { status: "expired" };
   }
@@ -88,6 +95,15 @@ export async function loadSubmissionForFill(token: string): Promise<LoadResult> 
       .from("submissions")
       .update({ status: "opened", opened_at: new Date().toISOString() })
       .eq("id", sub.id);
+
+    const hdrs = await headers();
+    await logSubmissionEvent(admin, {
+      submissionId: sub.id,
+      orgId: sub.org_id,
+      eventType: "opened",
+      ipAddress: hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() || null,
+      userAgent: hdrs.get("user-agent") || null,
+    });
   }
 
   const pdfUrl = await getSignedUrl("originals", form.original_pdf_path, 60 * 30);

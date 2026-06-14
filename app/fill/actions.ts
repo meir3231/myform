@@ -9,6 +9,7 @@ import { downloadFile, getSignedUrl } from "@/lib/storage";
 import { flattenPdf, type FlattenInput } from "@/lib/pdf/flatten";
 import { sendCompletionNotice } from "@/lib/email";
 import { serverEnv } from "@/lib/env";
+import { logSubmissionEvent } from "@/lib/audit";
 import type { FieldDraft } from "@/lib/fields";
 
 export type SubmitState = { ok: boolean; error?: string; downloadUrl?: string };
@@ -161,6 +162,13 @@ export async function submitForm(
       completed_at: new Date().toISOString(),
       completed_pdf_path: completedPath,
     }).eq("id", sub.id),
+    logSubmissionEvent(admin, {
+      submissionId: sub.id,
+      orgId: sub.org_id,
+      eventType: "completed",
+      ipAddress: ip,
+      userAgent: ua,
+    }),
   ]);
 
   // תבנית לשימוש חד-פעמי: מושבתת אוטומטית אחרי הגשה ראשונה (לא נמחקת —
