@@ -7,9 +7,8 @@ import type { FieldDraft } from "@/lib/fields";
 const FieldEditor = dynamic(() => import("./FieldEditor"), {
   ssr: false,
   loading: () => (
-    <div className="grid h-full gap-6" style={{ gridTemplateColumns: "170px minmax(400px,1fr) minmax(260px,292px)" }}>
-      <div className="skeleton h-full w-full" />
-      <div className="skeleton h-full w-full" />
+    <div className="editor-grid h-full">
+      <div className="skeleton hidden h-full w-full min-[1200px]:block" />
       <div className="skeleton h-full w-full" />
     </div>
   ),
