@@ -329,7 +329,7 @@ export function TemplatesClient({
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Page header */}
-      <div className="mb-3 flex shrink-0 flex-wrap items-baseline justify-between gap-3">
+      <div className="mb-2 flex shrink-0 flex-wrap items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-3">
           <h1 className="h1">תבניות</h1>
           <p className="text-sm text-paper-muted">ניהול תבניות הטפסים של המשרד - יצירה, עריכה ושליחה ללקוחות.</p>
@@ -345,11 +345,11 @@ export function TemplatesClient({
       </div>
 
       {/* Layout: list panel (right) + preview pane (left) */}
-      <div className="flex flex-1 min-h-0 gap-4 overflow-hidden">
+      <div className="flex flex-1 min-h-0 gap-6 overflow-hidden">
         {/* List panel */}
-        <aside className="flex w-[520px] shrink-0 flex-col overflow-hidden">
+        <aside className="flex w-[500px] shrink-0 flex-col overflow-hidden">
           {/* Toolbar */}
-          <div className="mb-3 flex h-11 shrink-0 items-center gap-2">
+          <div className="mb-2 flex h-11 shrink-0 items-center gap-2">
             <FolderDropdown
               folders={folders}
               folderCounts={folderCounts}
@@ -548,8 +548,8 @@ function ListView({
           <div
             key={form.id}
             onClick={() => onRowClick(form.id)}
-            className={`stagger-item flex h-16 cursor-pointer items-center gap-3 px-3 transition ${
-              selectedFormId === form.id ? "bg-brand/5" : "hover:bg-slate-50"
+            className={`stagger-item flex h-16 cursor-pointer items-center gap-3 border-r-[3px] px-3 transition ${
+              selectedFormId === form.id ? "border-r-brand bg-brand/5" : "border-r-transparent hover:bg-slate-50"
             }`}
           >
             <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -573,7 +573,7 @@ function ListView({
                 ) : (
                   <div className="flex items-center gap-1.5">
                     <span
-                      className="truncate font-medium text-paper-text cursor-default select-none"
+                      className="truncate font-semibold text-paper-text cursor-default select-none"
                       onDoubleClick={() => onStartRename(form.id, form.name)}
                       title={form.name}
                     >

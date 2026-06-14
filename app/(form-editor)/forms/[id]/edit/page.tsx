@@ -3,7 +3,6 @@ import { requireProfile } from "@/lib/auth";
 import { getSignedUrl } from "@/lib/storage";
 import type { FieldDraft } from "@/lib/fields";
 import { FieldEditorLoader } from "@/components/pdf-editor/FieldEditorLoader";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 export default async function EditFormPage({
   params,
@@ -41,27 +40,14 @@ export default async function EditFormPage({
   }));
 
   return (
-    <div className="page-fade-in flex h-full flex-col overflow-hidden">
-      <div className="shrink-0">
-        <Breadcrumbs
-          compact
-          items={[
-            { label: "תבניות", href: "/templates" },
-            { label: form.name },
-            { label: "עריכת שדות" },
-          ]}
-        />
-      </div>
-
-      <div className="min-h-0 flex-1">
-        <FieldEditorLoader
-          formId={form.id}
-          formName={form.name}
-          pdfUrl={pdfUrl}
-          pageCount={form.page_count}
-          initialFields={initialFields}
-        />
-      </div>
+    <div className="page-fade-in h-full overflow-hidden">
+      <FieldEditorLoader
+        formId={form.id}
+        formName={form.name}
+        pdfUrl={pdfUrl}
+        pageCount={form.page_count}
+        initialFields={initialFields}
+      />
     </div>
   );
 }

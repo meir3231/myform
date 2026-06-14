@@ -52,7 +52,7 @@ export function TemplatePreviewPane({
     if (!el) return;
     const ro = new ResizeObserver(() => {
       const w = el.clientWidth - 2;
-      if (w > 0) setContainerWidth(Math.min(1000, w));
+      if (w > 0) setContainerWidth(Math.min(1400, w));
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -72,7 +72,7 @@ export function TemplatePreviewPane({
   return (
     <div className="flex h-full flex-col">
       {/* Toolbar */}
-      <div className="mb-3 flex shrink-0 flex-wrap items-center gap-3">
+      <div className="mb-2 flex shrink-0 flex-wrap items-center gap-3">
         <button
           onClick={() => setZoomPct(100)}
           className="btn-outline !h-10 !px-3 !text-sm"
@@ -126,7 +126,7 @@ export function TemplatePreviewPane({
       </div>
 
       {/* Preview area */}
-      <div ref={containerRef} className="card flex min-h-0 flex-1 items-start justify-center overflow-auto p-4">
+      <div ref={containerRef} className="card flex min-h-0 flex-1 items-start justify-center overflow-auto p-3">
         {loading || !data ? (
           loading ? (
             <div className="skeleton h-full w-full max-w-[640px]" />

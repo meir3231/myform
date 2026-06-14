@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Document, Page, pdfjs } from "react-pdf";
@@ -122,6 +123,16 @@ export default function FieldEditor({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  // ה-slots ב-header (מוגדרים ב-(form-editor)/layout.tsx) שאליהם מוזרקים
+  // כותרת העמוד וכפתורי השמירה במקום תיבת החיפוש הגלובלית.
+  // נמצאים רק בצד לקוח, לכן useEffect.
+  const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
+  const [headerTitleSlot, setHeaderTitleSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setHeaderSlot(document.getElementById("header-actions-slot"));
+    setHeaderTitleSlot(document.getElementById("header-editor-title"));
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -273,21 +284,34 @@ export default function FieldEditor({
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-hidden">
-      {/* Action row */}
-      <div className="flex shrink-0 items-center justify-between gap-4">
-        <h1 className="h1 truncate">{formName}</h1>
-        <div className="flex shrink-0 items-center gap-3">
-          <button onClick={handleSave} disabled={status === "saving"} className="btn-outline h-12">
-            {status === "saving" ? "שומר..." : "שמירה"}
-          </button>
-          <Link href={`/forms/${formId}/preview`} target="_blank" className="btn-secondary">
-            תצוגה מקדימה
-          </Link>
-          <button onClick={handleSaveAndSend} disabled={status === "saving"} className="btn-primary-lg">
-            שמירה ושליחה
-          </button>
-        </div>
-      </div>
+      {headerTitleSlot &&
+        createPortal(
+          <div className="header-editor-title">
+            <nav aria-label="ניווט" className="header-editor-breadcrumb">
+              <Link href="/templates">תבניות</Link>
+              <span>‹</span>
+              <span>עריכת שדות</span>
+            </nav>
+            <h1 className="header-editor-filename">{formName}</h1>
+          </div>,
+          headerTitleSlot
+        )}
+
+      {headerSlot &&
+        createPortal(
+          <div className="flex shrink-0 items-center gap-3">
+            <button onClick={handleSave} disabled={status === "saving"} className="btn-outline h-12">
+              {status === "saving" ? "שומר..." : "שמירה"}
+            </button>
+            <Link href={`/forms/${formId}/preview`} target="_blank" className="btn-secondary">
+              תצוגה מקדימה
+            </Link>
+            <button onClick={handleSaveAndSend} disabled={status === "saving"} className="btn-primary-lg">
+              שמירה ושליחה
+            </button>
+          </div>,
+          headerSlot
+        )}
 
       {placing && (
         <p className="shrink-0 text-xs text-slate-400">
@@ -298,10 +322,10 @@ export default function FieldEditor({
 
       <div
         className="grid min-h-0 flex-1 gap-6 overflow-hidden"
-        style={{ gridTemplateColumns: "minmax(240px,286px) minmax(400px,1fr) minmax(260px,292px)" }}
+        style={{ gridTemplateColumns: "170px minmax(400px,1fr) minmax(260px,292px)" }}
       >
         {/* Field palette (left) */}
-        <aside className="card flex h-full w-full min-w-0 flex-col overflow-hidden p-[18px]">
+        <aside className="card flex h-full w-full flex-col overflow-hidden p-[18px]">
           <h2 className="mb-3 flex shrink-0 items-center gap-1.5 text-sm font-semibold text-slate-700">
             <span className="text-brand">＋</span> הוספת שדה
           </h2>

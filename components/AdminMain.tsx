@@ -39,6 +39,8 @@ export function AdminMain({ children }: { children: React.ReactNode }) {
   // עורך השדות זקוק לרוחב גדול יותר מ-max-w-6xl כדי להציג את 3 פאנלי
   // העריכה (פאלטה / מסמך / מאפיינים) לפי מידות מסמך העיצוב v2 (סעיף 11.1).
   const isFormEditor = /^\/forms\/[^/]+\/edit/.test(pathname);
+  // מסך התבניות זקוק לגובה מקסימלי לרשימה/תצוגה המקדימה, עם פחות "אוויר" בראש העמוד.
+  const isTemplatesPage = pathname === "/templates";
 
   return (
     <main
@@ -46,12 +48,12 @@ export function AdminMain({ children }: { children: React.ReactNode }) {
       style={{ viewTransitionName: "main-content" }}
     >
       <div
-        className={`mx-auto h-full px-8 lg:px-10 ${isFormEditor ? "py-4" : "py-8"} ${
-          isDashboard || isFormEditor ? "" : "max-w-6xl"
-        }`}
+        className={`mx-auto h-full px-8 lg:px-10 ${
+          isFormEditor || isTemplatesPage ? "py-4" : "py-8"
+        } ${isDashboard || isFormEditor ? "" : "max-w-6xl"}`}
       >
         {breadcrumb && !isFormEditor && (
-          <nav className="mb-3 flex items-center gap-1.5 text-sm text-text-secondary">
+          <nav className={`flex items-center gap-1.5 text-sm text-text-secondary ${isTemplatesPage ? "mb-2" : "mb-3"}`}>
             <Link href="/dashboard" className="transition hover:text-brand">
               לוח בקרה
             </Link>

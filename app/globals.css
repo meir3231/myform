@@ -270,6 +270,58 @@ header.admin-header {
   max-width: 100%;
   justify-self: center;
 }
+
+/* slot באמצע ה-header עבור פעולות עמוד (למשל כפתורי שמירה בעורך טפסים) */
+.header-actions-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  justify-self: center;
+}
+
+/* slot ה-header של עורך השדות: כותרת (breadcrumb + שם קובץ) בצד אחד, כפתורי
+   פעולה בצד השני. כשהוא קיים, עמודת המרכז של ה-header נמתחת על כל הרוחב
+   הפנוי כדי לפנות מקום לכותרת. */
+.header-editor-slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-width: 0;
+}
+header.admin-header:has(.header-editor-slot) {
+  grid-template-columns: auto 1fr auto;
+}
+.header-editor-title {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+.header-editor-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #98A2B3;
+}
+.header-editor-breadcrumb a {
+  color: #98A2B3;
+  transition: color .15s;
+}
+.header-editor-breadcrumb a:hover { color: #14B8A6; }
+.header-editor-filename {
+  max-width: 420px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 24px;
+  color: #14213D;
+}
 .header-search svg {
   position: absolute;
   inset-inline-start: 12px;
@@ -453,6 +505,23 @@ tbody tr:hover { background-color: #F8FAFC; }
 .empty-state-pattern > * {
   position: relative;
   z-index: 1;
+}
+
+/* ── Scrollbar עדין לכל אזורי הגלילה ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* ── View Transitions: מעבר חלק בין עמודים ── */
