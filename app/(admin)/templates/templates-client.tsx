@@ -18,6 +18,7 @@ import {
   getFormPreview,
 } from "./actions";
 import { deleteForm as svDeleteForm } from "@/app/(admin)/forms/actions";
+import { PageHeading } from "@/components/PageHeading";
 import { canEdit as canEditRole } from "@/lib/permissions";
 import { Modal } from "@/components/Modal";
 import { NewFormModal } from "@/components/NewFormModal";
@@ -330,12 +331,8 @@ export function TemplatesClient({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      {/* Page header */}
-      <div className="mb-2 flex shrink-0 flex-wrap items-baseline justify-between gap-3">
-        <div className="flex items-baseline gap-3">
-          <h1 className="h1">תבניות</h1>
-          <p className="text-sm text-paper-muted">ניהול תבניות הטפסים של המשרד - יצירה, עריכה ושליחה ללקוחות.</p>
-        </div>
+      <PageHeading title="תבניות" />
+      <div className="mb-2 flex shrink-0 flex-wrap items-baseline justify-end gap-3">
         {canEdit && (
           <button
             onClick={() => setShowNewModal(true)}

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { getSignedUrl } from "@/lib/storage";
 import { AUDIT_EVENT_META, STATUS_META, channelLabel } from "@/lib/status";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { PageHeading } from "@/components/PageHeading";
 
 export default async function SubmissionDetailPage({
   params,
@@ -37,23 +37,18 @@ export default async function SubmissionDetailPage({
 
   return (
     <div className="page-fade-in mx-auto max-w-4xl">
-      <Breadcrumbs
-        items={[
-          { label: "מעקב שליחות", href: "/tracking" },
-          { label: sub.recipient_name },
-        ]}
+      <PageHeading
+        crumbs={[{ label: "מעקב שליחות", href: "/tracking" }]}
+        title={sub.recipient_name}
       />
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-paper-text">{sub.recipient_name}</h1>
-          <p className="text-paper-muted">
-            {form?.name} ·{" "}
-            <span dir="ltr" className="text-sm">
-              {sub.recipient_email}
-            </span>
-          </p>
-        </div>
+        <p className="text-paper-muted">
+          {form?.name} ·{" "}
+          <span dir="ltr" className="text-sm">
+            {sub.recipient_email}
+          </span>
+        </p>
         <span className={`badge badge-dot text-sm ${meta.className}`}>
           {meta.label}
         </span>

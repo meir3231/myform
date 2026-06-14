@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { getSignedUrl } from "@/lib/storage";
 import { canEdit } from "@/lib/permissions";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { PageHeading } from "@/components/PageHeading";
 import { SendForm } from "./send-form";
 
 export default async function SendPage({
@@ -30,17 +30,13 @@ export default async function SendPage({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="shrink-0">
-        <Breadcrumbs
-          items={[
-            { label: "תבניות", href: "/templates" },
-            { label: form.name, href: `/forms/${form.id}/edit` },
-            { label: "שליחה ללקוח" },
-          ]}
-        />
-        <h1 className="mb-1 text-2xl font-bold text-slate-800">שליחה ללקוח</h1>
-        <p className="mb-4 text-slate-500">{form.name}</p>
-      </div>
+      <PageHeading
+        crumbs={[
+          { label: "תבניות", href: "/templates" },
+          { label: form.name, href: `/forms/${form.id}/edit` },
+        ]}
+        title="שליחה ללקוח"
+      />
 
       <div className="min-h-0 flex-1">
         <SendForm

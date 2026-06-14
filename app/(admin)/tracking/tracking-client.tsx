@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { STATUS_META } from "@/lib/status";
 import type { SubmissionStatus } from "@/lib/database.types";
 import { useToast } from "@/components/Toast";
+import { PageHeading } from "@/components/PageHeading";
 import {
   resendSubmissionLink,
   getSubmissionPreviewLink,
@@ -280,12 +281,9 @@ export function TrackingClient({
 
   return (
     <div className="flex h-full flex-col gap-2 overflow-hidden">
-      {/* כותרת ושורת פעולות */}
-      <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-3">
-        <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="h1 leading-none">מעקב שליחות</h1>
-          <p className="text-sm text-paper-muted">מעקב אחר הטפסים שנשלחו ללקוחות וסטטוס המילוי והחתימה שלהם.</p>
-        </div>
+      <PageHeading title="מעקב שליחות" />
+      {/* שורת פעולות */}
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
         <div className="flex items-center gap-4">
           {canEdit && (
             <button

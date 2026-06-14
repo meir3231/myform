@@ -9,8 +9,9 @@ import { signOut } from "@/app/(admin)/actions";
 import { roleLabel as getRoleLabel } from "@/lib/permissions";
 
 // מעטפת אזור הניהול: header קבוע + sidebar + אזור תוכן.
-// headerCenter מאפשר לדפים ספציפיים (כמו עורך השדות) להציג באמצע ה-header
-// תוכן אחר במקום תיבת החיפוש הגלובלית.
+// כברירת מחדל מוצג באמצע ה-header סלוט (#header-page-title) שאליו כל עמוד
+// מזריק את ה-breadcrumb/כותרת שלו (ראו PageHeading). headerCenter מאפשר
+// לדפים ספציפיים (כמו עורך השדות) להציג שם slot מורחב הכולל גם פעולות.
 export async function AdminShell({
   children,
   headerCenter,
@@ -33,10 +34,8 @@ export async function AdminShell({
         </div>
 
         {headerCenter ?? (
-          <div className="header-search">
-            <SearchIcon />
-            <input type="text" placeholder="חיפוש בטפסים, הגשות..." />
-            <kbd className="header-search-kbd">⌘K</kbd>
+          <div className="page-heading-slot">
+            <div id="header-page-title" />
           </div>
         )}
 
@@ -76,15 +75,6 @@ async function AlertBadge() {
 
   if (!count) return null;
   return <span className="header-badge">{count > 9 ? "9+" : count}</span>;
-}
-
-function SearchIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M20 20l-3.2-3.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
 }
 
 function BellIcon() {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { canEdit } from "@/lib/permissions";
+import { PageHeading } from "@/components/PageHeading";
 import { QuickActions } from "./quick-actions";
 import { DonutChart, WeeklyTrendChart } from "./charts";
 import { STATUS_META } from "@/lib/status";
@@ -69,7 +70,6 @@ function shortWeekday(d: Date): string {
 
 export default async function DashboardPage() {
   const { supabase, profile } = await requireProfile();
-  const userName = profile.full_name || "מנהל";
 
   const [
     { data: forms },
@@ -207,11 +207,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-3 lg:h-full lg:overflow-hidden">
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-paper-text">לוח בקרה</h1>
-          <p className="mt-0.5 text-sm text-paper-muted">ברוך הבא, {userName}. הנה סקירה כללית של הפעילות שלך.</p>
-        </div>
+      <PageHeading title="לוח בקרה" />
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-4">
         <QuickActions
           forms={(forms ?? []).filter((f) => !f.archived_at).map((f) => ({ id: f.id, name: f.name, page_count: f.page_count, folder_id: f.folder_id }))}
           folders={folders ?? []}

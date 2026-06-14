@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { createForm, type FormActionState } from "../../actions";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { PageHeading } from "@/components/PageHeading";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -19,13 +19,7 @@ export default function NewFormUploadPage() {
 
   return (
     <div className="page-fade-in mx-auto max-w-xl">
-      <Breadcrumbs
-        items={[
-          { label: "תבניות", href: "/templates" },
-          { label: "העלאת PDF" },
-        ]}
-      />
-      <h1 className="mb-6 text-2xl font-bold text-slate-800">העלאת קובץ PDF</h1>
+      <PageHeading crumbs={[{ label: "תבניות", href: "/templates" }]} title="העלאת קובץ PDF" />
 
       <form action={formAction} className="card space-y-5 p-6">
         <div>

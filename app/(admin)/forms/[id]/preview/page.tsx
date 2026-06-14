@@ -3,7 +3,7 @@ import { requireProfile } from "@/lib/auth";
 import { getSignedUrl } from "@/lib/storage";
 import type { FieldDraft } from "@/lib/fields";
 import { AdminPreviewFiller } from "@/components/pdf-filler/AdminPreviewFiller";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { PageHeading } from "@/components/PageHeading";
 
 export default async function PreviewFormPage({
   params,
@@ -42,12 +42,12 @@ export default async function PreviewFormPage({
 
   return (
     <div className="page-fade-in">
-      <Breadcrumbs
-        items={[
+      <PageHeading
+        crumbs={[
           { label: "תבניות", href: "/templates" },
           { label: form.name, href: `/forms/${form.id}/edit` },
-          { label: "תצוגה מקדימה" },
         ]}
+        title="תצוגה מקדימה"
       />
 
       <AdminPreviewFiller

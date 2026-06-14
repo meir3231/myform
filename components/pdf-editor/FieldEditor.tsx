@@ -10,6 +10,7 @@ import { FIELD_META, type FieldDraft } from "@/lib/fields";
 import type { FieldType } from "@/lib/database.types";
 import { saveFormFields } from "@/app/(admin)/forms/actions";
 import { useToast } from "@/components/Toast";
+import { PageHeading } from "@/components/PageHeading";
 import { FieldBox } from "./FieldBox";
 import { FieldMiniToolbar } from "./FieldMiniToolbar";
 import { FieldsPanel } from "./FieldsPanel";
@@ -108,14 +109,11 @@ export default function FieldEditor({
   const scrollRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
-  // ה-slots ב-header (מוגדרים ב-(form-editor)/layout.tsx) שאליהם מוזרקים
-  // כותרת העמוד וכפתורי השמירה במקום תיבת החיפוש הגלובלית.
-  // נמצאים רק בצד לקוח, לכן useEffect.
+  // ה-slot ב-header (מוגדר ב-(form-editor)/layout.tsx) שאליו מוזרקים כפתורי
+  // השמירה/שליחה. נמצא רק בצד לקוח, לכן useEffect.
   const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
-  const [headerTitleSlot, setHeaderTitleSlot] = useState<HTMLElement | null>(null);
   useEffect(() => {
     setHeaderSlot(document.getElementById("header-actions-slot"));
-    setHeaderTitleSlot(document.getElementById("header-editor-title"));
   }, []);
 
   useEffect(() => {
@@ -352,18 +350,10 @@ export default function FieldEditor({
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-hidden">
-      {headerTitleSlot &&
-        createPortal(
-          <div className="header-editor-title">
-            <nav aria-label="ניווט" className="header-editor-breadcrumb">
-              <Link href="/templates">תבניות</Link>
-              <span>‹</span>
-              <span>עריכת שדות</span>
-            </nav>
-            <h1 className="header-editor-filename">{formName}</h1>
-          </div>,
-          headerTitleSlot
-        )}
+      <PageHeading
+        crumbs={[{ label: "תבניות", href: "/templates" }, { label: "עריכת שדות" }]}
+        title={formName}
+      />
 
       {headerSlot &&
         createPortal(

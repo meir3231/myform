@@ -251,7 +251,7 @@ header.admin-header {
   height: 76px;
   z-index: 200;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 24px;
   padding: 0 32px;
@@ -276,59 +276,42 @@ header.admin-header {
   flex-shrink: 0;
 }
 
-/* חיפוש גלובלי */
-.header-search {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 450px;
-  max-width: 100%;
-  justify-self: center;
-}
-
-/* slot באמצע ה-header עבור פעולות עמוד (למשל כפתורי שמירה בעורך טפסים) */
-.header-actions-slot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  justify-self: center;
-}
-
-/* slot ה-header של עורך השדות: כותרת (breadcrumb + שם קובץ) בצד אחד, כפתורי
-   פעולה בצד השני. כשהוא קיים, עמודת המרכז של ה-header נמתחת על כל הרוחב
-   הפנוי כדי לפנות מקום לכותרת. */
-.header-editor-slot {
+/* slot מרכז ה-header: כותרת העמוד (breadcrumb + שם), ובעורך השדות גם
+   כפתורי פעולה בצד השני. הכותרת מוצבת בתחילת השטח הפנוי (קרוב ללוגו). */
+.page-heading-slot {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
   min-width: 0;
+  overflow: hidden;
 }
-header.admin-header:has(.header-editor-slot) {
-  grid-template-columns: auto 1fr auto;
-}
-.header-editor-title {
+.page-heading-block {
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 2px;
   min-width: 0;
 }
-.header-editor-breadcrumb {
+.page-heading-breadcrumb {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
   color: #64748B;
 }
-.header-editor-breadcrumb a {
+.page-heading-crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.page-heading-breadcrumb a {
   color: #64748B;
   transition: color .15s;
 }
-.header-editor-breadcrumb a:hover { color: #14B8A6; }
-.header-editor-filename {
-  max-width: 420px;
+.page-heading-breadcrumb a:hover { color: #14B8A6; }
+.page-heading-title {
+  max-width: 480px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -337,49 +320,14 @@ header.admin-header:has(.header-editor-slot) {
   line-height: 24px;
   color: #14213D;
 }
-.header-search svg {
-  position: absolute;
-  inset-inline-start: 12px;
-  width: 18px;
-  height: 18px;
-  color: #64748B;
-  pointer-events: none;
-}
-.header-search input {
-  width: 100%;
-  height: 42px;
-  border-radius: 10px;
-  border: 1px solid #E2E8F0;
-  background: #F6F8FB;
-  padding-inline-start: 40px;
-  padding-inline-end: 14px;
-  font-size: 14px;
-  color: #14213D;
-  transition: border-color .15s, background-color .15s;
-}
-.header-search input::placeholder { color: #64748B; }
-.header-search input:focus {
-  outline: none;
-  border-color: #14B8A6;
-  background: #ffffff;
-}
-.header-search-kbd {
-  position: absolute;
-  inset-inline-end: 10px;
+
+/* slot עבור פעולות עמוד (כפתורי שמירה/שליחה בעורך טפסים) */
+.header-actions-slot {
   display: flex;
   align-items: center;
-  justify-content: center;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 6px;
-  border: 1px solid #E2E8F0;
-  background: #ffffff;
-  font-size: 11px;
-  font-weight: 600;
-  color: #64748B;
-  pointer-events: none;
+  gap: 12px;
+  flex-shrink: 0;
 }
-.header-search input { padding-inline-end: 44px; }
 
 /* אזור משתמש/התראות */
 .header-user-area {
@@ -859,12 +807,8 @@ tbody tr:hover { background-color: #F8FAFC; }
 /* ── Header: התאמות לרוחבים קטנים (סעיף 18) ── */
 @media (max-width: 767px) {
   header.admin-header {
-    grid-template-columns: auto 1fr auto;
     padding: 0 16px;
     gap: 8px;
-  }
-  .header-search {
-    display: none;
   }
   .header-user-text {
     display: none;
@@ -872,12 +816,21 @@ tbody tr:hover { background-color: #F8FAFC; }
   .header-user {
     padding: 6px;
   }
+  .page-heading-title {
+    max-width: 260px;
+  }
 }
 
 /* ── כרטיסי KPI (דשבורד/הגשות): עמודה אחת מתחת ל-640px ── */
 @media (max-width: 639px) {
   .kpi-grid {
     grid-template-columns: 1fr;
+  }
+  .page-heading-breadcrumb {
+    display: none;
+  }
+  .page-heading-title {
+    max-width: 180px;
   }
 }
 

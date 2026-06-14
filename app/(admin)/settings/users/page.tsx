@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { PageHeading } from "@/components/PageHeading";
 import { UsersClient } from "./users-client";
 
 export default async function UsersPage() {
@@ -43,7 +44,7 @@ export default async function UsersPage() {
 
   return (
     <div className="mx-auto flex h-full max-w-4xl flex-col overflow-hidden">
-      <h1 className="mb-6 shrink-0 text-2xl font-bold text-paper-text">ניהול משתמשים</h1>
+      <PageHeading crumbs={[{ label: "הגדרות", href: "/settings" }]} title="ניהול משתמשים" />
       <UsersClient users={users} currentUserId={profile.id} />
     </div>
   );

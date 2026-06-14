@@ -1,5 +1,6 @@
 import { requireProfile } from "@/lib/auth";
 import { roleLabel } from "@/lib/permissions";
+import { PageHeading } from "@/components/PageHeading";
 
 export default async function SettingsPage() {
   const { user, profile, supabase } = await requireProfile();
@@ -12,7 +13,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 text-2xl font-bold text-paper-text">הגדרות</h1>
+      <PageHeading title="הגדרות" />
 
       <div className="space-y-4">
         <section className="card p-5 shadow-sm">
